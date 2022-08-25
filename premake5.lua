@@ -71,15 +71,17 @@ project "WillEngine"
 
 	vpaths
 	{
-		["Headers"]					= {"headers/*.h"},
-		["Headers/Managers"]		= {"headers/Managers/*.cpp"},
-		["Headers/Utils"]			= {"headers/Utils/*.cpp"},
-
 		["Precompiled Headers"]		= {"*.h", "*.cpp"},
+
+		["Headers"]					= {"headers/*.h"},
+		["Headers/Managers"]		= {"headers/Managers/*.h"},
+		["Headers/Utils"]			= {"headers/Utils/*.h"},
+		["Headers/Core"]			= {"headers/Core/*.h"},
 
 		["Source Files"]			= {"src/*.cpp"},
 		["Source Files/Managers"]	= {"src/Managers/*.cpp"},
 		["Source Files/Utils"]		= {"src/Utils/*.cpp"},
+		["Source Files/Core"]		= {"src/Core/*.cpp"},
 
 		["Source Files/imgui"] = {
 				"libs/imgui/*.cpp"

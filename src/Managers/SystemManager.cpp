@@ -3,10 +3,9 @@
 #include "Managers/SystemManager.h"
 
 SystemManager::SystemManager() :
-    simulate(false),
     keys(),
-    left_mouse_clicked(0),
-    right_mouse_clicked(0),
+    leftMouseClicked(0),
+    rightMouseClicked(0),
     mouseX(0),
     mouseY(0),
     modelRotation(0)
@@ -17,10 +16,11 @@ SystemManager::SystemManager() :
 
 void SystemManager::init()
 {
-    init_window();
-    init_shaders();
-    init_renderer();
-    init_imgui();
+    initGLWindow();
+    initShaders();
+    initCamera();
+    initRenderer();
+    initImgui();
 
     // Init time
     currentTime = glfwGetTime();
@@ -28,7 +28,7 @@ void SystemManager::init()
     lastTime = currentTime;
 }
 
-void SystemManager::init_window()
+void SystemManager::initGLWindow()
 {
     closeWindow = false;
 
@@ -54,67 +54,11 @@ void SystemManager::init_window()
 
     WillEngine::printSystemInfo();
 
-    // Keyboard handler
-    auto key_callback = [](GLFWwindow* window, i32 key, i32 scancode, i32 action, i32 mods)
-    {
-        glfwGetWindowUserPointer(window);
-
-        SystemManager* system = (SystemManager*) glfwGetWindowUserPointer(window);
-        if (key >= GLFW_KEY_SPACE && key < GLFW_KEY_ESCAPE)
-        {
-            if (action == GLFW_PRESS) system->keys[(char) key] = 1;
-            if (action == GLFW_RELEASE) system->keys[(char) key] = 0;
-        }
-
-        if (key == GLFW_KEY_ESCAPE) system->closeWindow = true;
-    };
-    glfwSetKeyCallback(window, key_callback);
-
-    // Mouse key handler
-    auto mouse_key_callback = [](GLFWwindow* window, i32 key, i32 action, i32 mods)
-    {
-        glfwGetWindowUserPointer(window);
-
-        SystemManager* system = (SystemManager*)glfwGetWindowUserPointer(window);
-        if (key == GLFW_MOUSE_BUTTON_LEFT)
-        {
-            if (action == GLFW_PRESS) system->left_mouse_clicked = 1;
-            else if (action == GLFW_RELEASE) system->left_mouse_clicked = 0;
-        }
-        if (key == GLFW_MOUSE_BUTTON_RIGHT)
-        {
-            if (action == GLFW_PRESS) system->right_mouse_clicked = 1;
-            else if (action == GLFW_RELEASE) system->right_mouse_clicked = 0;
-        }
-    };
-    glfwSetMouseButtonCallback(window, mouse_key_callback);
-    
-    // Mouse movement handler
-    auto mouse_pos_callback = [](GLFWwindow* window, double xpos, double ypos)
-    {
-        glfwGetWindowUserPointer(window);
-
-        SystemManager* system = (SystemManager*)glfwGetWindowUserPointer(window);
-
-        if (system->left_mouse_clicked)
-        {
-            double lastMouseX = system->mouseX;
-            double lastMouseY = system->mouseY;
-
-            double rotateX = xpos - lastMouseX;
-            double rotateY = ypos - lastMouseY;
-
-            system->modelRotation.x += rotateX;
-            system->modelRotation.y += rotateY;
-        }
-
-        system->mouseX = xpos;
-        system->mouseY = ypos;
-    };
-    glfwSetCursorPosCallback(window, mouse_pos_callback);
+    inputManager = new InputManager();
+    inputManager->init(this->window);
 }
 
-void SystemManager::init_shaders()
+void SystemManager::initShaders()
 {
     //// The mesh shader      - 0
     //GLShader* meshShaderProgram = new GLShader();
@@ -131,28 +75,31 @@ void SystemManager::init_shaders()
     //shaderPrograms.emplace_back(hairRootShaderProgram);
 }
 
-
-void SystemManager::init_renderer()
+void SystemManager::initCamera()
 {
-    //Camera* camera = new Camera(vec3(0, 0, 0), vec3(0, 0, -1));
+    camera = new Camera(vec3(0, 0, 0), vec3(0, 0, -1));
+}
 
+void SystemManager::initRenderer()
+{
     renderer = new Renderer(windowWidth, windowHeight);
 
     glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
 
-    renderer->setFramebufferSize(windowWidth, windowHeight);
+    if(windowWidth != renderer->width || windowHeight != renderer->height)
+        renderer->setFramebufferSize(windowWidth, windowHeight);
 
     //renderer->addShaderPrograms(shaderPrograms);
 }
 
-void SystemManager::init_imgui()
+void SystemManager::initImgui()
 {
     WillEngine::UI::init_imgui(window);
 }
 
 void SystemManager::update()
 {
-    update_inputs();
+    updateInputs();
 
     if (glfwWindowShouldClose(window))
     {
@@ -165,64 +112,22 @@ void SystemManager::update()
     currentTime = glfwGetTime();
     deltaTime = currentTime - lastTime;
     lastTime = currentTime;
-    
-    // Debug Log
-    //auto MessageCallback = [](GLenum source,
-    //    GLenum type,
-    //    GLuint id,
-    //    GLenum severity,
-    //    GLsizei length,
-    //    const GLchar* message,
-    //    const void* userParam)
-    //{
-    //    fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
-    //        (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
-    //        type, severity, message);
-    //};
-    //
-    //glEnable(GL_DEBUG_OUTPUT);
-    //glDebugMessageCallback(MessageCallback, 0);
 
-    if (simulate)
-    {
-        frameCount++;
-        timePasses += deltaTime;
-        
-        printf("Frame count: %d\n", frameCount);
-        printf("Delta time average: %lf\n", timePasses / frameCount);
-        printf("Fps average: %lf\n", (f64) frameCount / timePasses);
-    }
+    updateGLWindow();
 
-    update_camera();
+    if(camera)
+        updateCamera();
 
-    update_renderer();
+    updateRenderer();
 
-    update_imgui();
+    updateImgui();
+
+    //WillEngine::printGLDebugMessage();
 
     glfwSwapBuffers(window);
 }
 
-void SystemManager::update_inputs()
-{
-    /* Poll for and process events */
-    glfwPollEvents();
-
-    //if (keys['W']) { renderer->getCamera()->moveForward(0.01f); }
-    //if (keys['S']) { renderer->getCamera()->moveForward(-0.01f); }
-    //if (keys['A']) { renderer->getCamera()->moveRight(-0.01f); }
-    //if (keys['D']) { renderer->getCamera()->moveRight(0.01f); }
-    //if (keys['E']) { renderer->getCamera()->moveUp(0.01f); }
-    //if (keys['Q']) { renderer->getCamera()->moveUp(-0.01f); }
-
-    //if (keys[' ']) { simulate = !simulate; }
-}
-
-void SystemManager::update_camera()
-{
-    //renderer->getCamera()->updateTransformation();
-}
-
-void SystemManager::update_renderer()
+void SystemManager::updateGLWindow()
 {
     glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
 
@@ -231,11 +136,32 @@ void SystemManager::update_renderer()
     {
         renderer->setFramebufferSize(windowWidth, windowHeight);
     }
+}
 
+void SystemManager::updateInputs()
+{
+    /* Poll for and process events */
+    glfwPollEvents();
+}
+
+void SystemManager::updateCamera()
+{
+    if (keys['W']) { camera->moveForward(0.01f); }
+    if (keys['S']) { camera->moveForward(-0.01f); }
+    if (keys['A']) { camera->moveRight(-0.01f); }
+    if (keys['D']) { camera->moveRight(0.01f); }
+    if (keys['E']) { camera->moveUp(0.01f); }
+    if (keys['Q']) { camera->moveUp(-0.01f); }
+
+    camera->updateCameraMatrix();
+}
+
+void SystemManager::updateRenderer()
+{
     renderer->draw();
 }
 
-void SystemManager::update_imgui()
+void SystemManager::updateImgui()
 {
     glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
 

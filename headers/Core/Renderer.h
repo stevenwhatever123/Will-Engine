@@ -3,9 +3,11 @@ class Renderer
 {
 private:
 
+	mat4 projectionMatrix;
+
 public:
 
-	int width, height;
+	i32 width, height;
 	vec4 clearColor;
 
 public:

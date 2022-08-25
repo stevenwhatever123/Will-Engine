@@ -1,18 +1,20 @@
 #pragma once
 #include "Managers/FileManager.h"
-#include "ImGuiUI.h"
-#include "Renderer.h"
+#include "Managers/InputManager.h"
+#include "Core/ImGuiUI.h"
+#include "Core/Renderer.h"
+#include "Core/Camera.h"
 #include "Utils/Logging.h"
 
 class SystemManager
 {
-private:
+public:
 	GLFWwindow* window;
-	int windowWidth, windowHeight;
+	i32 windowWidth, windowHeight;
 
-	int imguiWidth, imguiHeight;
+	i32 imguiWidth, imguiHeight;
 
-	double mouseX, mouseY;			// Current mouse xy position
+	f64 mouseX, mouseY;			// Current mouse xy position
 
 	f64 currentTime;
 	f64 deltaTime;
@@ -24,12 +26,14 @@ private:
 
 	// Cores
 	Renderer* renderer;
-
-public:
-	bool simulate;
+	
+	Camera* camera;
 
 	// For the model matrix
 	vec3 modelRotation;
+
+	// Managers
+	InputManager* inputManager;
 
 public:
 
@@ -38,27 +42,28 @@ public:
 
 	// Initialise
 	void init();
-	void init_window();
-	void init_shaders();
-	void init_renderer();
-	void init_imgui();
+	void initGLWindow();
+	void initShaders();
+	void initCamera();
+	void initRenderer();
+	void initImgui();
 
 
 	// Updates
 	void update();
-	void update_inputs();
-	void update_camera();
-	void update_renderer();
-	void update_imgui();
+	void updateGLWindow();
+	void updateInputs();
+	void updateCamera();
+	void updateRenderer();
+	void updateImgui();
 
 	// Utils
 	void readFile();
 
 	// Keyboard / Mouse
-	unsigned int keys[256];
-	
-	bool left_mouse_clicked;
-	bool right_mouse_clicked;
+	u32 keys[256];
+	bool leftMouseClicked;
+	bool rightMouseClicked;
 
 	// Return
 	bool closeWindow;

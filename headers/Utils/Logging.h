@@ -2,4 +2,6 @@
 namespace WillEngine
 {
 	void printSystemInfo();
+
+	void printGLDebugMessage();
 }

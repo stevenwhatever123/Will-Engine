@@ -1,10 +1,11 @@
 #include "pch.h"
-#include "Renderer.h"
+#include "Core/Renderer.h"
 
 Renderer::Renderer(int width, int height):
 	width(width),
 	height(height),
-	clearColor(0)
+	clearColor(0),
+	projectionMatrix(1)
 {
 	init();
 }
@@ -35,9 +36,6 @@ void Renderer::setFramebufferSize(const int width, const int height)
 	printf("Framebuffer Height: %i\n", this->height);
 
 	glViewport(0, 0, width, height);
-
-	// Update projection matrix
-	// TODO
 }
 
 void Renderer::setClearColor(const vec4& color)
