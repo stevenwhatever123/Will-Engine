@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Utils/Logging.h"
 
-void WillEngine::printSystemInfo()
+void WillEngine::printGLSystemInfo()
 {
     // Print hardware detils
     int CPUInfo[4] = { -1 };

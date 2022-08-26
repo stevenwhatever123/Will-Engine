@@ -1,5 +1,5 @@
 #pragma once
-class Renderer
+class GLRenderer
 {
 private:
 
@@ -11,9 +11,9 @@ public:
 	vec4 clearColor;
 
 public:
-	Renderer(int width, int height);
-	Renderer();
-	~Renderer();
+	GLRenderer(int width, int height);
+	GLRenderer();
+	~GLRenderer();
 
 	// Function commands
 	void init();

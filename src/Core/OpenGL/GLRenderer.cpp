@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Core/Renderer.h"
+#include "Core/OpenGL/GLRenderer.h"
 
-Renderer::Renderer(int width, int height):
+GLRenderer::GLRenderer(int width, int height):
 	width(width),
 	height(height),
 	clearColor(0),
@@ -10,7 +10,7 @@ Renderer::Renderer(int width, int height):
 	init();
 }
 
-void Renderer::init()
+void GLRenderer::init()
 {
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
@@ -22,12 +22,12 @@ void Renderer::init()
 	setClearColor(vec4(0.4f, 0.4f, 0.4f, 1));
 }
 
-void Renderer::draw()
+void GLRenderer::draw()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void Renderer::setFramebufferSize(const int width, const int height)
+void GLRenderer::setFramebufferSize(const int width, const int height)
 {
 	this->width = width;
 	this->height = height;
@@ -38,7 +38,7 @@ void Renderer::setFramebufferSize(const int width, const int height)
 	glViewport(0, 0, width, height);
 }
 
-void Renderer::setClearColor(const vec4& color)
+void GLRenderer::setClearColor(const vec4& color)
 {
 	clearColor = color;
 

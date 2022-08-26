@@ -27,8 +27,6 @@ void InputManager::init(GLFWwindow* systemWindow)
             if (action == GLFW_PRESS) system->keys[(char)key] = 1;
             if (action == GLFW_RELEASE) system->keys[(char)key] = 0;
         }
-
-        if (key == GLFW_KEY_ESCAPE) system->closeWindow = true;
     };
     glfwSetKeyCallback(systemWindow, key_callback);
 

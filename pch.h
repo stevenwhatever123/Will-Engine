@@ -13,14 +13,19 @@
 #include <algorithm>
 #include <iterator>
 #include <thread>
+#include <cstring>
 
 // Windows
 #include <Windows.h>
+
+// Volk
+#include <volk.h>
 
 // Glad
 #include <glad/glad.h>
 
 // GLFW
+#define GLFW_INCLUDE_VULKAN
 #include <glfw/glfw3.h>
 
 // GLM
@@ -40,7 +45,6 @@
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
-
 
 
 

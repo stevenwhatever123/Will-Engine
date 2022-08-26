@@ -3,24 +3,31 @@
 #include "Managers/SystemManager.h"
 
 SystemManager::SystemManager() :
+    vulkan(false),
+    glWindow(nullptr),
+    vulkanWindow(nullptr),
     keys(),
     leftMouseClicked(0),
     rightMouseClicked(0),
-    mouseX(0),
-    mouseY(0),
     modelRotation(0)
 {
-    window = nullptr;
-    closeWindow = false;
+
 }
 
 void SystemManager::init()
 {
-    initGLWindow();
-    initShaders();
-    initCamera();
-    initRenderer();
-    initImgui();
+    if (!vulkan)
+    {
+        initGLWindow();
+        initGLShaders();
+        initCamera();
+        initGLRenderer();
+        initGLImgui();
+    }
+    else
+    {
+        initVulkanWindow();
+    }
 
     // Init time
     currentTime = glfwGetTime();
@@ -28,37 +35,24 @@ void SystemManager::init()
     lastTime = currentTime;
 }
 
-void SystemManager::initGLWindow()
+void SystemManager::initCamera()
 {
-    closeWindow = false;
-
-    /* Initialize the library */
-    if (!glfwInit())
-        closeWindow = true;
-
-    /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(1600, 900, "Hair Simulation", NULL, NULL);
-    if (!window)
-    {
-        glfwTerminate();
-        closeWindow = true;
-        return;
-    }
-
-    /* Make the window's context current */
-    glfwMakeContextCurrent(window);
-
-    glfwSetWindowUserPointer(window, this);
-
-    gladLoadGL();
-
-    WillEngine::printSystemInfo();
-
-    inputManager = new InputManager();
-    inputManager->init(this->window);
+    camera = new Camera(vec3(0, 0, 0), vec3(0, 0, -1));
 }
 
-void SystemManager::initShaders()
+void SystemManager::initGLWindow()
+{
+    glWindow = new GLWindow();
+    glWindow->init();
+
+    WillEngine::printGLSystemInfo();
+
+    // Bind input manager to the window
+    inputManager = new InputManager();
+    inputManager->init(glWindow->window);
+}
+
+void SystemManager::initGLShaders()
 {
     //// The mesh shader      - 0
     //GLShader* meshShaderProgram = new GLShader();
@@ -75,66 +69,61 @@ void SystemManager::initShaders()
     //shaderPrograms.emplace_back(hairRootShaderProgram);
 }
 
-void SystemManager::initCamera()
+void SystemManager::initGLRenderer()
 {
-    camera = new Camera(vec3(0, 0, 0), vec3(0, 0, -1));
-}
+    glRenderer = new GLRenderer(glWindow->windowWidth, glWindow->windowHeight);
 
-void SystemManager::initRenderer()
-{
-    renderer = new Renderer(windowWidth, windowHeight);
-
-    glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
-
-    if(windowWidth != renderer->width || windowHeight != renderer->height)
-        renderer->setFramebufferSize(windowWidth, windowHeight);
+    if(glWindow->windowWidth != glRenderer->width || glWindow->windowHeight != glRenderer->height)
+        glRenderer->setFramebufferSize(glWindow->windowWidth, glWindow->windowHeight);
 
     //renderer->addShaderPrograms(shaderPrograms);
 }
 
-void SystemManager::initImgui()
+void SystemManager::initGLImgui()
 {
-    WillEngine::UI::init_imgui(window);
+    WillEngine::UI::init_glImgui(glWindow->window);
+}
+
+void SystemManager::initVulkanWindow()
+{
+    vulkanWindow = new VulkanWindow();
+    vulkanWindow->init();
+
+    // Bind input manager to the window
+    inputManager = new InputManager();
+    inputManager->init(vulkanWindow->window);
 }
 
 void SystemManager::update()
 {
     updateInputs();
 
-    if (glfwWindowShouldClose(window))
-    {
-        closeWindow = true;
-
-        glfwTerminate();
-    }
+    if (camera)
+        updateCamera();
 
     // Update time
     currentTime = glfwGetTime();
     deltaTime = currentTime - lastTime;
     lastTime = currentTime;
 
-    updateGLWindow();
-
-    if(camera)
-        updateCamera();
-
-    updateRenderer();
-
-    updateImgui();
-
-    //WillEngine::printGLDebugMessage();
-
-    glfwSwapBuffers(window);
-}
-
-void SystemManager::updateGLWindow()
-{
-    glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
-
-    if (windowWidth != renderer->width
-        || windowHeight != renderer->height)
+    if (!vulkan)
     {
-        renderer->setFramebufferSize(windowWidth, windowHeight);
+        if (glfwWindowShouldClose(glWindow->window))
+        {
+            glWindow->closeWindow = true;
+
+            glfwTerminate();
+        }
+
+        updateGLWindow();
+
+        updateGLRenderer();
+
+        updateGLImgui();
+
+        //WillEngine::printGLDebugMessage();
+
+        glfwSwapBuffers(glWindow->window);
     }
 }
 
@@ -156,22 +145,42 @@ void SystemManager::updateCamera()
     camera->updateCameraMatrix();
 }
 
-void SystemManager::updateRenderer()
+void SystemManager::updateGLWindow()
 {
-    renderer->draw();
+    glWindow->update();
 }
 
-void SystemManager::updateImgui()
+void SystemManager::updateGLRenderer()
 {
-    glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
+    // Resizing if window size changed
+    if (glWindow->windowWidth != glRenderer->width
+        || glWindow->windowHeight != glRenderer->height)
+    {
+        glRenderer->setFramebufferSize(glWindow->windowWidth, glWindow->windowHeight);
+    }
 
-    if (windowWidth < 1 || windowHeight < 1)
+    glRenderer->draw();
+}
+
+void SystemManager::updateGLImgui()
+{
+    if (glWindow->windowWidth < 1 || glWindow->windowHeight < 1)
         return;
 
-    WillEngine::UI::update_imgui();
+    WillEngine::UI::update_glImgui();
 }
 
 void SystemManager::readFile()
 {
     WillEngine::Utils::selectFile();
+}
+
+void SystemManager::useVulkan()
+{
+    vulkan = true;
+}
+
+void SystemManager::useOpenGL()
+{
+    vulkan = false;
 }

@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Core/ImGuiUI.h"
+#include "Core/OpenGL/GLImGuiUI.h"
 
-void WillEngine::UI::init_imgui(GLFWwindow* window)
+void WillEngine::UI::init_glImgui(GLFWwindow* window)
 {
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -13,7 +13,7 @@ void WillEngine::UI::init_imgui(GLFWwindow* window)
     ImGui_ImplOpenGL3_Init(glsl_version);
 }
 
-void WillEngine::UI::update_imgui()
+void WillEngine::UI::update_glImgui()
 {
     ImGuiIO& io = ImGui::GetIO();
 

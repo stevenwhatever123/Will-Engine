@@ -8,6 +8,9 @@ int main(void)
 {
     SystemManager* systemManager = new SystemManager();
 
+    //systemManager->useOpenGL();
+    systemManager->useVulkan();
+
     systemManager->init();
 
     while (!systemManager->shouldCloseWindow())

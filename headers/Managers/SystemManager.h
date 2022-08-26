@@ -1,18 +1,27 @@
 #pragma once
 #include "Managers/FileManager.h"
 #include "Managers/InputManager.h"
-#include "Core/ImGuiUI.h"
-#include "Core/Renderer.h"
+#include "Core/OpenGL/GLWindow.h"
+#include "Core/OpenGL/GLRenderer.h"
+#include "Core/OpenGL/GLImGuiUI.h"
+#include "Core/Vulkan/VulkanWindow.h"
 #include "Core/Camera.h"
 #include "Utils/Logging.h"
 
 class SystemManager
 {
-public:
-	GLFWwindow* window;
-	i32 windowWidth, windowHeight;
+private:
 
-	i32 imguiWidth, imguiHeight;
+	bool vulkan;
+
+public:
+
+	GLWindow* glWindow;
+
+	VulkanWindow *vulkanWindow;
+	//i32 windowWidth, windowHeight;
+
+	//i32 imguiWidth, imguiHeight;
 
 	f64 mouseX, mouseY;			// Current mouse xy position
 
@@ -20,12 +29,8 @@ public:
 	f64 deltaTime;
 	f64 lastTime;
 
-	u64 frameCount = 0;
-	f64 timePasses = 0;
-	f64 fpsAverage = 0;
-
 	// Cores
-	Renderer* renderer;
+	GLRenderer* glRenderer;
 	
 	Camera* camera;
 
@@ -42,20 +47,28 @@ public:
 
 	// Initialise
 	void init();
-	void initGLWindow();
-	void initShaders();
 	void initCamera();
-	void initRenderer();
-	void initImgui();
+
+	// OpenGL init
+	void initGLWindow();
+	void initGLShaders();
+	void initGLRenderer();
+	void initGLImgui();
+
+	// Vulkan init
+	void initVulkanWindow();
+
 
 
 	// Updates
 	void update();
-	void updateGLWindow();
 	void updateInputs();
 	void updateCamera();
-	void updateRenderer();
-	void updateImgui();
+
+	// Opengl update
+	void updateGLWindow();
+	void updateGLRenderer();
+	void updateGLImgui();
 
 	// Utils
 	void readFile();
@@ -66,6 +79,9 @@ public:
 	bool rightMouseClicked;
 
 	// Return
-	bool closeWindow;
-	bool shouldCloseWindow() const { return closeWindow; };
+	bool shouldCloseWindow() const { return glWindow? glWindow->closeWindow : vulkanWindow->closeWindow; };
+
+	// Command calls
+	void useVulkan();
+	void useOpenGL();
 };

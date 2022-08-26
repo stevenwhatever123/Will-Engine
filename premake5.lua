@@ -24,6 +24,9 @@ include "premake/premake_glm.lua"
 include "premake/premake_glad.lua"
 include "premake/premake_imgui.lua"
 
+include "premake/premake_volk.lua"
+include "premake/premake_vma.lua"
+
 project "WillEngine"
 	kind "ConsoleApp"
 	language "C++"
@@ -41,12 +44,15 @@ project "WillEngine"
 	{
 		"",
 		"headers",
-		"libs/glfw/include",
-		"libs/assimp/include",
+		"libs/glfw/include/",
+		"libs/assimp/include/",
 		"libs/glm/",
-		"libs/glad/include",
+		"libs/glad/include/",
 		"libs/stb/",
 		"libs/imgui/",
+		"libs/volk/",
+		"libs/vulkan/include/",
+		"libs/vma/include/",
 	}
 
 	dependson
@@ -56,6 +62,9 @@ project "WillEngine"
 		"glm",
 		"glad",
 		"imgui",
+		"volk",
+		"vulkan",
+		"vma",
 	}
 
 	links
@@ -67,21 +76,28 @@ project "WillEngine"
 		"glm",
 		"glad",
 		"imgui",
+		"volk",
+		"vulkan",
+		"vma",
 	}
 
 	vpaths
 	{
-		["Precompiled Headers"]		= {"*.h", "*.cpp"},
+		["Precompiled Headers"]			= {"*.h", "*.cpp"},
 
-		["Headers"]					= {"headers/*.h"},
-		["Headers/Managers"]		= {"headers/Managers/*.h"},
-		["Headers/Utils"]			= {"headers/Utils/*.h"},
-		["Headers/Core"]			= {"headers/Core/*.h"},
+		["Headers"]						= {"headers/*.h"},
+		["Headers/Managers"]			= {"headers/Managers/*.h"},
+		["Headers/Utils"]				= {"headers/Utils/*.h"},
+		["Headers/Core"]				= {"headers/Core/*.h"},
+		["Headers/Core/OpenGL"]			= {"headers/Core/OpenGL/*.h"},
+		["Headers/Core/Vulkan"]			= {"headers/Core/Vulkan/*.h"},
 
-		["Source Files"]			= {"src/*.cpp"},
-		["Source Files/Managers"]	= {"src/Managers/*.cpp"},
-		["Source Files/Utils"]		= {"src/Utils/*.cpp"},
-		["Source Files/Core"]		= {"src/Core/*.cpp"},
+		["Source Files"]				= {"src/*.cpp"},
+		["Source Files/Managers"]		= {"src/Managers/*.cpp"},
+		["Source Files/Utils"]			= {"src/Utils/*.cpp"},
+		["Source Files/Core"]			= {"src/Core/*.cpp"},
+		["Source Files/Core/OpenGL"]	= {"src/Core/OpenGL/*.cpp"},
+		["Source Files/Core/Vulkan"]	= {"src/Core/Vulkan/*.cpp"},
 
 		["Source Files/imgui"] = {
 				"libs/imgui/*.cpp"
