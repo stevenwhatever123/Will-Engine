@@ -29,15 +29,23 @@ void VulkanWindow::init()
     {
         createInstance();
         setDebugMessage();
+        createSurface();
         selectPhysicalDevice();
         createLogicalDevice();
     }
 
+    cleanup();
+}
+
+void VulkanWindow::cleanup()
+{
     closeWindow = true;
 
     destroyDebugMessage();
 
     vkDestroyDevice(logicalDevice, nullptr);
+
+    vkDestroySurfaceKHR(instance, surface, nullptr);
 
     vkDestroyInstance(instance, nullptr);
 
@@ -173,7 +181,7 @@ void VulkanWindow::selectPhysicalDevice()
         throw std::runtime_error("Failed to find a suitable GPU\n");
 
     // Check if the device is suitable
-    if (findQueueFamilies(physicalDevice) < 0)
+    if (!findQueueFamilies(physicalDevice).graphicsFamily.has_value())
         throw std::runtime_error("GPU does not have required Graphics Queue Family\n");
 
     printPhysicalDeviceInfo(physicalDevice);
@@ -181,22 +189,39 @@ void VulkanWindow::selectPhysicalDevice()
 
 void VulkanWindow::createLogicalDevice()
 {
-    u32 queueFamilyIndicies = findQueueFamilies(physicalDevice);
+    QueueFamilyIndices queueFamilyIndicies = findQueueFamilies(physicalDevice);
 
     f32 queuePriorities = 1.0f;
 
     VkPhysicalDeviceFeatures deviceFeatures{};
 
-    VkDeviceQueueCreateInfo queueInfo{};
-    queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueInfo.queueCount = 1;
-    queueInfo.queueFamilyIndex = queueFamilyIndicies;
-    queueInfo.pQueuePriorities = &queuePriorities;
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+
+    std::vector<u32> uniqueQueueFaimiles;
+    if (queueFamilyIndicies.graphicsFamily.value() == queueFamilyIndicies.presentFamily.value())
+    {
+        uniqueQueueFaimiles.push_back(queueFamilyIndicies.graphicsFamily.value());
+    }
+    else
+    {
+        uniqueQueueFaimiles.push_back(queueFamilyIndicies.graphicsFamily.value());
+        uniqueQueueFaimiles.push_back(queueFamilyIndicies.presentFamily.value());
+    }
+
+    for (u32& queueFamily : uniqueQueueFaimiles)
+    {
+        VkDeviceQueueCreateInfo queueInfo{};
+        queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueInfo.queueCount = 1;
+        queueInfo.queueFamilyIndex = queueFamilyIndicies.graphicsFamily.value();
+        queueInfo.pQueuePriorities = &queuePriorities;
+        queueCreateInfos.push_back(queueInfo);
+    }
 
     VkDeviceCreateInfo logicalDeviceInfo{};
     logicalDeviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    logicalDeviceInfo.queueCreateInfoCount = 1;
-    logicalDeviceInfo.pQueueCreateInfos = &queueInfo;
+    logicalDeviceInfo.queueCreateInfoCount = static_cast<u32>(uniqueQueueFaimiles.size());
+    logicalDeviceInfo.pQueueCreateInfos = queueCreateInfos.data();
     logicalDeviceInfo.pEnabledFeatures = &deviceFeatures;
 
     if (enableValidationLayers)
@@ -209,7 +234,16 @@ void VulkanWindow::createLogicalDevice()
         throw std::runtime_error("Failed to create vulkan logical device\n");
 
     // Retrive the graphics queue for later use
-    vkGetDeviceQueue(logicalDevice, queueFamilyIndicies, 0, &graphicsQueue);
+    vkGetDeviceQueue(logicalDevice, queueFamilyIndicies.graphicsFamily.value(), 0, &graphicsQueue);
+
+    // Retrive the present queue for later use
+    vkGetDeviceQueue(logicalDevice, queueFamilyIndicies.presentFamily.value(), 0, &presentQueue);
+}
+
+void VulkanWindow::createSurface()
+{
+    if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create window surface");
 }
 
 //=============================================================================================
@@ -293,9 +327,9 @@ u32 VulkanWindow::getDeviceScore(VkPhysicalDevice& device)
     return score;
 }
 
-u32 VulkanWindow::findQueueFamilies(VkPhysicalDevice& device)
+QueueFamilyIndices VulkanWindow::findQueueFamilies(VkPhysicalDevice& device)
 {
-    u32 graphicsFamily = -1;
+    QueueFamilyIndices indices;
 
     u32 queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
@@ -307,12 +341,18 @@ u32 VulkanWindow::findQueueFamilies(VkPhysicalDevice& device)
     {
         if (queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
         {
-            graphicsFamily = i;
-            return graphicsFamily;
+            VkBool32 presentSupport = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &presentSupport);
+
+            if (presentSupport)
+            {
+                indices.graphicsFamily = i;
+                indices.presentFamily = i;
+            }
         }
     }
 
-    return graphicsFamily;
+    return indices;
 }
 
 void VulkanWindow::printPhysicalDeviceInfo(VkPhysicalDevice& device)

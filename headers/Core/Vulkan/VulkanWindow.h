@@ -1,4 +1,12 @@
 #pragma once
+struct QueueFamilyIndices
+{
+	std::optional<u32> graphicsFamily;
+	std::optional<u32> presentFamily;
+
+	bool isComplete() { return graphicsFamily.has_value() && presentFamily.has_value(); }
+};
+
 class VulkanWindow
 {
 private:
@@ -28,6 +36,10 @@ public:
 
 	VkQueue graphicsQueue;
 
+	VkQueue presentQueue;
+
+	VkSurfaceKHR surface;
+
 	const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
 
 public:
@@ -36,6 +48,7 @@ public:
 	~VulkanWindow();
 
 	void init();
+	void cleanup();
 	void update();
 
 	void createInstance();
@@ -47,6 +60,10 @@ public:
 	void selectPhysicalDevice();
 
 	void createLogicalDevice();
+
+	void createSurface();
+
+	void createPresentQueue();
 
 	// Return
 	bool shouldCloseWindow() const { return closeWindow; };
@@ -66,7 +83,7 @@ private:
 
 	u32 getDeviceScore(VkPhysicalDevice& device);
 
-	u32 findQueueFamilies(VkPhysicalDevice& device);
+	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice& device);
 
 	void printPhysicalDeviceInfo(VkPhysicalDevice& device);
 };

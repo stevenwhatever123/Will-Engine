@@ -14,9 +14,13 @@
 #include <iterator>
 #include <thread>
 #include <cstring>
+#include <set>
 
 // Windows
 #include <Windows.h>
+
+// Vulkan
+#define VK_USE_PLATFORM_WIN32_KHR
 
 // Volk
 #include <volk.h>
@@ -27,6 +31,8 @@
 // GLFW
 #define GLFW_INCLUDE_VULKAN
 #include <glfw/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <glfw/glfw3native.h>
 
 // GLM
 #include <glm/glm.hpp>
