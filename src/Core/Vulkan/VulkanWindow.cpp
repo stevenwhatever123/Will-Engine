@@ -181,15 +181,25 @@ void VulkanWindow::selectPhysicalDevice()
         throw std::runtime_error("Failed to find a suitable GPU\n");
 
     // Check if the device is suitable
-    if (!findQueueFamilies(physicalDevice).graphicsFamily.has_value())
-        throw std::runtime_error("GPU does not have required Graphics Queue Family\n");
+    if(!findQueueFamilies(physicalDevice, VK_QUEUE_GRAPHICS_BIT, VK_NULL_HANDLE).has_value())
+        throw std::runtime_error("GPU does not have required Graphics Queue Family");
+
+    if (!checkDeviceExtensionSupport(physicalDevice))
+        throw std::runtime_error("GPU does not have required extensions");
 
     printPhysicalDeviceInfo(physicalDevice);
 }
 
 void VulkanWindow::createLogicalDevice()
 {
-    QueueFamilyIndices queueFamilyIndicies = findQueueFamilies(physicalDevice);
+    if(!findQueueFamilies(physicalDevice, VK_QUEUE_GRAPHICS_BIT, VK_NULL_HANDLE).has_value())
+        throw std::runtime_error("GPU does not have required Graphics Queue Family");
+
+    if (!findQueueFamilies(physicalDevice, VK_QUEUE_GRAPHICS_BIT, surface))
+        throw std::runtime_error("GPU does not have required Present Queue Family");
+
+    u32 queueFamilyIndicies = findQueueFamilies(physicalDevice, VK_QUEUE_GRAPHICS_BIT, VK_NULL_HANDLE).value();
+    u32 presentFamilyIndicies = findQueueFamilies(physicalDevice, VK_QUEUE_GRAPHICS_BIT, surface).value();
 
     f32 queuePriorities = 1.0f;
 
@@ -198,14 +208,14 @@ void VulkanWindow::createLogicalDevice()
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 
     std::vector<u32> uniqueQueueFaimiles;
-    if (queueFamilyIndicies.graphicsFamily.value() == queueFamilyIndicies.presentFamily.value())
+    if (queueFamilyIndicies == presentFamilyIndicies)
     {
-        uniqueQueueFaimiles.push_back(queueFamilyIndicies.graphicsFamily.value());
+        uniqueQueueFaimiles.push_back(queueFamilyIndicies);
     }
     else
     {
-        uniqueQueueFaimiles.push_back(queueFamilyIndicies.graphicsFamily.value());
-        uniqueQueueFaimiles.push_back(queueFamilyIndicies.presentFamily.value());
+        uniqueQueueFaimiles.insert(uniqueQueueFaimiles.end(),
+            { queueFamilyIndicies,  presentFamilyIndicies });
     }
 
     for (u32& queueFamily : uniqueQueueFaimiles)
@@ -213,7 +223,7 @@ void VulkanWindow::createLogicalDevice()
         VkDeviceQueueCreateInfo queueInfo{};
         queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queueInfo.queueCount = 1;
-        queueInfo.queueFamilyIndex = queueFamilyIndicies.graphicsFamily.value();
+        queueInfo.queueFamilyIndex = queueFamilyIndicies;
         queueInfo.pQueuePriorities = &queuePriorities;
         queueCreateInfos.push_back(queueInfo);
     }
@@ -234,10 +244,10 @@ void VulkanWindow::createLogicalDevice()
         throw std::runtime_error("Failed to create vulkan logical device\n");
 
     // Retrive the graphics queue for later use
-    vkGetDeviceQueue(logicalDevice, queueFamilyIndicies.graphicsFamily.value(), 0, &graphicsQueue);
+    vkGetDeviceQueue(logicalDevice, queueFamilyIndicies, 0, &graphicsQueue);
 
     // Retrive the present queue for later use
-    vkGetDeviceQueue(logicalDevice, queueFamilyIndicies.presentFamily.value(), 0, &presentQueue);
+    vkGetDeviceQueue(logicalDevice, presentFamilyIndicies, 0, &presentQueue);
 }
 
 void VulkanWindow::createSurface()
@@ -247,7 +257,7 @@ void VulkanWindow::createSurface()
 }
 
 //=============================================================================================
-// Private calls you wouldn't normally need outside of this class
+// Private helper functions you wouldn't normally want to know outside of the class
 
 bool VulkanWindow::checkValidationLayerSupport(const std::vector<const char*> validationLayers)
 {
@@ -327,10 +337,8 @@ u32 VulkanWindow::getDeviceScore(VkPhysicalDevice& device)
     return score;
 }
 
-QueueFamilyIndices VulkanWindow::findQueueFamilies(VkPhysicalDevice& device)
+std::optional<u32> VulkanWindow::findQueueFamilies(VkPhysicalDevice& device, VkQueueFlagBits flag, VkSurfaceKHR surface)
 {
-    QueueFamilyIndices indices;
-
     u32 queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
 
@@ -339,20 +347,41 @@ QueueFamilyIndices VulkanWindow::findQueueFamilies(VkPhysicalDevice& device)
 
     for (u32 i = 0; i < queueFamilyProperties.size(); i++)
     {
-        if (queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+        if (queueFamilyProperties[i].queueFlags & flag)
         {
-            VkBool32 presentSupport = false;
+            if(surface == VK_NULL_HANDLE)
+                return i;
+
+            VkBool32 presentSupport = VK_FALSE;
             vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &presentSupport);
 
             if (presentSupport)
             {
-                indices.graphicsFamily = i;
-                indices.presentFamily = i;
+                return i;
             }
         }
     }
 
-    return indices;
+    return {};
+}
+
+bool VulkanWindow::checkDeviceExtensionSupport(VkPhysicalDevice device)
+{
+    u32 extensionCount = 0;
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+
+    std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+
+    std::set<std::string> requiredExtensions(physicalDeviceExtensions.begin(),
+        physicalDeviceExtensions.end());
+
+    for (const auto& extension : availableExtensions)
+    {
+        requiredExtensions.erase(extension.extensionName);
+    }
+
+    return requiredExtensions.empty();
 }
 
 void VulkanWindow::printPhysicalDeviceInfo(VkPhysicalDevice& device)

@@ -42,6 +42,8 @@ public:
 
 	const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
 
+	const std::vector<const char*> physicalDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+
 public:
 
 	VulkanWindow();
@@ -63,8 +65,6 @@ public:
 
 	void createSurface();
 
-	void createPresentQueue();
-
 	// Return
 	bool shouldCloseWindow() const { return closeWindow; };
 
@@ -83,7 +83,9 @@ private:
 
 	u32 getDeviceScore(VkPhysicalDevice& device);
 
-	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice& device);
+	std::optional<u32> findQueueFamilies(VkPhysicalDevice& device, VkQueueFlagBits flag, VkSurfaceKHR surface);
+
+	bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 
 	void printPhysicalDeviceInfo(VkPhysicalDevice& device);
 };
