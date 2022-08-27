@@ -22,6 +22,14 @@ public:
 
 	VkInstance instance;
 
+	VkPhysicalDevice physicalDevice;
+
+	VkDevice logicalDevice;
+
+	VkQueue graphicsQueue;
+
+	const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
+
 public:
 
 	VulkanWindow();
@@ -35,6 +43,10 @@ public:
 	void generateDebugMessageInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
 	void setDebugMessage();
 	void destroyDebugMessage();
+
+	void selectPhysicalDevice();
+
+	void createLogicalDevice();
 
 	// Return
 	bool shouldCloseWindow() const { return closeWindow; };
@@ -51,4 +63,10 @@ private:
 		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 		void* pUserData
 	);
+
+	u32 getDeviceScore(VkPhysicalDevice& device);
+
+	u32 findQueueFamilies(VkPhysicalDevice& device);
+
+	void printPhysicalDeviceInfo(VkPhysicalDevice& device);
 };

@@ -2,7 +2,9 @@
 #include "Core/Vulkan/VulkanWindow.h"
 
 VulkanWindow::VulkanWindow() :
-    enableValidationLayers(true)
+    enableValidationLayers(true),
+    instance(VK_NULL_HANDLE),
+    physicalDevice(VK_NULL_HANDLE)
 {
 
 }
@@ -27,11 +29,15 @@ void VulkanWindow::init()
     {
         createInstance();
         setDebugMessage();
+        selectPhysicalDevice();
+        createLogicalDevice();
     }
 
     closeWindow = true;
 
     destroyDebugMessage();
+
+    vkDestroyDevice(logicalDevice, nullptr);
 
     vkDestroyInstance(instance, nullptr);
 
@@ -69,7 +75,6 @@ void VulkanWindow::createInstance()
     createInfo.ppEnabledExtensionNames = requiredExtensions.data();
 
     // Validation layer for debugging
-    const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
 
     if (enableValidationLayers && !checkValidationLayerSupport(validationLayers))
         throw std::runtime_error("Validation requested but not available!\n");
@@ -99,12 +104,12 @@ void VulkanWindow::createInstance()
 
     vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionCount, suppportedExtensions.data());
 
-    printf("Available extensions:\n");
+    //printf("Available extensions:\n");
 
-    for (const auto& extension : suppportedExtensions)
-    {
-        printf("\t %s\n", extension.extensionName);
-    }
+    //for (const auto& extension : suppportedExtensions)
+    //{
+    //    printf("\t %s\n", extension.extensionName);
+    //}
 }
 
 void VulkanWindow::generateDebugMessageInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
@@ -139,6 +144,76 @@ void VulkanWindow::destroyDebugMessage()
 
     vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 }
+
+void VulkanWindow::selectPhysicalDevice()
+{
+    u32 availablePhysicalDeviceCount = 0;
+    vkEnumeratePhysicalDevices(instance, &availablePhysicalDeviceCount, nullptr);
+
+    if (availablePhysicalDeviceCount == 0)
+        throw std::runtime_error("Unable to find GPU with vulkan support\n");
+
+    std::vector<VkPhysicalDevice> availablePhysicalDevices(availablePhysicalDeviceCount);
+    vkEnumeratePhysicalDevices(instance, &availablePhysicalDeviceCount, availablePhysicalDevices.data());
+
+    u32 score = 0;
+
+    for (auto& availablePhysicalDevice : availablePhysicalDevices)
+    {
+        u32 deviceScore = getDeviceScore(availablePhysicalDevice);
+
+        if (deviceScore > score)
+        {
+            score = deviceScore;
+            physicalDevice = availablePhysicalDevice;
+        }
+    }
+
+    if (physicalDevice == VK_NULL_HANDLE)
+        throw std::runtime_error("Failed to find a suitable GPU\n");
+
+    // Check if the device is suitable
+    if (findQueueFamilies(physicalDevice) < 0)
+        throw std::runtime_error("GPU does not have required Graphics Queue Family\n");
+
+    printPhysicalDeviceInfo(physicalDevice);
+}
+
+void VulkanWindow::createLogicalDevice()
+{
+    u32 queueFamilyIndicies = findQueueFamilies(physicalDevice);
+
+    f32 queuePriorities = 1.0f;
+
+    VkPhysicalDeviceFeatures deviceFeatures{};
+
+    VkDeviceQueueCreateInfo queueInfo{};
+    queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueInfo.queueCount = 1;
+    queueInfo.queueFamilyIndex = queueFamilyIndicies;
+    queueInfo.pQueuePriorities = &queuePriorities;
+
+    VkDeviceCreateInfo logicalDeviceInfo{};
+    logicalDeviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    logicalDeviceInfo.queueCreateInfoCount = 1;
+    logicalDeviceInfo.pQueueCreateInfos = &queueInfo;
+    logicalDeviceInfo.pEnabledFeatures = &deviceFeatures;
+
+    if (enableValidationLayers)
+    {
+        logicalDeviceInfo.enabledLayerCount = static_cast<u32>(validationLayers.size());
+        logicalDeviceInfo.ppEnabledLayerNames = validationLayers.data();
+    }
+
+    if (vkCreateDevice(physicalDevice, &logicalDeviceInfo, nullptr, &logicalDevice) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create vulkan logical device\n");
+
+    // Retrive the graphics queue for later use
+    vkGetDeviceQueue(logicalDevice, queueFamilyIndicies, 0, &graphicsQueue);
+}
+
+//=============================================================================================
+// Private calls you wouldn't normally need outside of this class
 
 bool VulkanWindow::checkValidationLayerSupport(const std::vector<const char*> validationLayers)
 {
@@ -197,4 +272,58 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanWindow::debugCallback(
     }
 
     return VK_FALSE;
+}
+
+u32 VulkanWindow::getDeviceScore(VkPhysicalDevice& device)
+{
+    // Rating the device by score
+    u32 score = 0;
+
+    VkPhysicalDeviceProperties deviceProperties{};
+    vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+    VkPhysicalDeviceFeatures deviceFeatures{};
+    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+    if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+        score += 100;
+    else
+        score += 10;
+
+    return score;
+}
+
+u32 VulkanWindow::findQueueFamilies(VkPhysicalDevice& device)
+{
+    u32 graphicsFamily = -1;
+
+    u32 queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+    std::vector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilyProperties.data());
+
+    for (u32 i = 0; i < queueFamilyProperties.size(); i++)
+    {
+        if (queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+        {
+            graphicsFamily = i;
+            return graphicsFamily;
+        }
+    }
+
+    return graphicsFamily;
+}
+
+void VulkanWindow::printPhysicalDeviceInfo(VkPhysicalDevice& device)
+{
+    VkPhysicalDeviceProperties deviceProperties{};
+    vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+    printf("Device Name: %s\n", deviceProperties.deviceName);
+    printf("Vulkan API Version: %u.%u.%u\n", 
+        VK_API_VERSION_MAJOR(deviceProperties.apiVersion),
+        VK_API_VERSION_MINOR(deviceProperties.apiVersion),
+        VK_API_VERSION_PATCH(deviceProperties.apiVersion)
+    );
 }
