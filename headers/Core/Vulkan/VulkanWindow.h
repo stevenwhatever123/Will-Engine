@@ -28,6 +28,15 @@ public:
 
 public:
 
+	const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
+
+	const std::vector<const char*> physicalDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+
+	// Triple buffering
+	u32 numSwapchainImage = 3;
+
+public:
+
 	VkInstance instance;
 
 	VkPhysicalDevice physicalDevice;
@@ -40,9 +49,13 @@ public:
 
 	VkSurfaceKHR surface;
 
-	const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
+	VkSwapchainKHR swapchain;
 
-	const std::vector<const char*> physicalDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	std::vector<VkImage> swapchainImages;
+
+	VkFormat swapchainImageFormat;
+
+	VkExtent2D swapchainExtent;
 
 public:
 
@@ -65,6 +78,10 @@ public:
 
 	void createSurface();
 
+	void createSwapchain();
+
+	void getSwapchainImages();
+
 	// Return
 	bool shouldCloseWindow() const { return closeWindow; };
 
@@ -83,9 +100,20 @@ private:
 
 	u32 getDeviceScore(VkPhysicalDevice& device);
 
+	bool isDeviceSuitable(VkPhysicalDevice& device, VkSurfaceKHR& surface);
+
 	std::optional<u32> findQueueFamilies(VkPhysicalDevice& device, VkQueueFlagBits flag, VkSurfaceKHR surface);
 
-	bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+	bool checkDeviceExtensionSupport(VkPhysicalDevice& device);	
+
+	void querySupportedSurfaceFormat(VkPhysicalDevice& device, VkSurfaceKHR& surface,
+		VkSurfaceCapabilitiesKHR& capabilities, std::vector<VkSurfaceFormatKHR>& surfaceFormats, std::vector<VkPresentModeKHR>& presentModes);
+
+	VkSurfaceFormatKHR selectSwapchainSurfaceFormat(std::vector<VkSurfaceFormatKHR>& availableSurfaceFormats);
+
+	VkPresentModeKHR selectSwapchainPresentMode(std::vector<VkPresentModeKHR>& presentModes);
+
+	VkExtent2D getSwapchainExtent(VkSurfaceCapabilitiesKHR& capabilities);
 
 	void printPhysicalDeviceInfo(VkPhysicalDevice& device);
 };

@@ -27,6 +27,7 @@ void SystemManager::init()
     else
     {
         initVulkanWindow();
+        initCamera();
     }
 
     // Init time
@@ -124,6 +125,14 @@ void SystemManager::update()
         //WillEngine::printGLDebugMessage();
 
         glfwSwapBuffers(glWindow->window);
+    }
+    else
+    {
+        if (glfwWindowShouldClose(vulkanWindow->window))
+        {
+            vulkanWindow->closeWindow = true;
+            vulkanWindow->cleanup();
+        }
     }
 }
 
