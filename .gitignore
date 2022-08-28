@@ -419,4 +419,3 @@ premake5.exe
 bin
 libs/compiled_libraries/
 libs/build*
-libs
