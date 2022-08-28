@@ -25,6 +25,9 @@
 // Volk
 #include <volk.h>
 
+// Vma
+#include <vk_mem_alloc.h>
+
 // Glad
 #include <glad/glad.h>
 

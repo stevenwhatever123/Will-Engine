@@ -1,11 +1,5 @@
 #pragma once
-struct QueueFamilyIndices
-{
-	std::optional<u32> graphicsFamily;
-	std::optional<u32> presentFamily;
-
-	bool isComplete() { return graphicsFamily.has_value() && presentFamily.has_value(); }
-};
+#include "Core/Vulkan/VulkanEngine.h"
 
 class VulkanWindow
 {
@@ -52,10 +46,14 @@ public:
 	VkSwapchainKHR swapchain;
 
 	std::vector<VkImage> swapchainImages;
+	std::vector<VkImageView> swapchainImageViews;
 
 	VkFormat swapchainImageFormat;
 
 	VkExtent2D swapchainExtent;
+
+	// The majority vulkan stuffs run here
+	VulkanEngine* vulkanEngine;
 
 public:
 
@@ -81,6 +79,12 @@ public:
 	void createSwapchain();
 
 	void getSwapchainImages();
+
+	void createSwapchainImageViews();
+
+	void initVulkanEngine();
+
+	void createPipeline();
 
 	// Return
 	bool shouldCloseWindow() const { return closeWindow; };
@@ -114,6 +118,8 @@ private:
 	VkPresentModeKHR selectSwapchainPresentMode(std::vector<VkPresentModeKHR>& presentModes);
 
 	VkExtent2D getSwapchainExtent(VkSurfaceCapabilitiesKHR& capabilities);
+
+	void createImageView(VkImage& image, VkImageView& imageView, VkFormat format);
 
 	void printPhysicalDeviceInfo(VkPhysicalDevice& device);
 };

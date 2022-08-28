@@ -4,7 +4,9 @@
 VulkanWindow::VulkanWindow() :
     enableValidationLayers(true),
     instance(VK_NULL_HANDLE),
-    physicalDevice(VK_NULL_HANDLE)
+    physicalDevice(VK_NULL_HANDLE),
+    swapchainImages(),
+    swapchainImageViews()
 {
 
 }
@@ -39,22 +41,30 @@ void VulkanWindow::init()
         createLogicalDevice();
         createSwapchain();
         getSwapchainImages();
-    }
+        createSwapchainImageViews();
 
-    //cleanup();
+        initVulkanEngine();
+    }
 }
 
 void VulkanWindow::cleanup()
 {
     closeWindow = true;
 
-    destroyDebugMessage();
+    vulkanEngine->cleanup(logicalDevice);
+
+    for (auto imageView : swapchainImageViews)
+    {
+        vkDestroyImageView(logicalDevice, imageView, nullptr);
+    }
 
     vkDestroySwapchainKHR(logicalDevice, swapchain, nullptr);
 
     vkDestroyDevice(logicalDevice, nullptr);
 
     vkDestroySurfaceKHR(instance, surface, nullptr);
+
+    destroyDebugMessage();
 
     vkDestroyInstance(instance, nullptr);
 
@@ -65,6 +75,7 @@ void VulkanWindow::cleanup()
 
 void VulkanWindow::update()
 {
+    
 
 }
 
@@ -77,9 +88,7 @@ void VulkanWindow::createInstance()
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = "Will Engine";
-    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName = "Will Engine";
-    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.applicationVersion = 1;
     appInfo.apiVersion = VK_API_VERSION_1_2;
 
     // Get all required extensions
@@ -337,6 +346,28 @@ void VulkanWindow::getSwapchainImages()
     vkGetSwapchainImagesKHR(logicalDevice, swapchain, &imageCount, swapchainImages.data());
 }
 
+void VulkanWindow::createSwapchainImageViews()
+{
+    swapchainImageViews.resize(swapchainImages.size());
+
+    for (u32 i = 0; i < swapchainImageViews.size(); i++)
+    {
+        createImageView(swapchainImages[i], swapchainImageViews[i], swapchainImageFormat);
+    }
+}
+
+
+void VulkanWindow::initVulkanEngine()
+{
+    vulkanEngine = new VulkanEngine();
+    vulkanEngine->init(instance, physicalDevice, logicalDevice, swapchainImageFormat);
+}
+
+void VulkanWindow::createPipeline()
+{
+
+}
+
 //=============================================================================================
 // Private helper functions you wouldn't normally want to know outside of the class
 
@@ -555,6 +586,27 @@ VkExtent2D VulkanWindow::getSwapchainExtent(VkSurfaceCapabilitiesKHR& capabiliti
     currentExtent.height = std::clamp(currentExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
     return currentExtent;
+}
+
+void VulkanWindow::createImageView(VkImage& image, VkImageView& imageView, VkFormat format)
+{
+    VkImageViewCreateInfo imageViewInfo{};
+    imageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    imageViewInfo.image = image;
+    imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    imageViewInfo.format = format;
+    imageViewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+    imageViewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+    imageViewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+    imageViewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+    imageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imageViewInfo.subresourceRange.baseMipLevel = 0;
+    imageViewInfo.subresourceRange.layerCount = 1;
+    imageViewInfo.subresourceRange.baseArrayLayer = 0;
+    imageViewInfo.subresourceRange.levelCount = 1;
+
+    if (vkCreateImageView(logicalDevice, &imageViewInfo, nullptr, &imageView) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create image view");
 }
 
 void VulkanWindow::printPhysicalDeviceInfo(VkPhysicalDevice& device)

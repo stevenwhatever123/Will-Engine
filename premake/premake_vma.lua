@@ -17,7 +17,8 @@ project "vma"
     }
   filter {}
 
-  files( "../libs/vma/src/*.cpp" )
+  files( "../libs/vma/include/*.h" )
+  files( "../libs/vma/include/*.cpp" )
 
   filter "configurations:Debug"
   runtime "Debug"
