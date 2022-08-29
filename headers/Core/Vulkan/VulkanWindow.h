@@ -1,6 +1,8 @@
 #pragma once
 #include "Core/Vulkan/VulkanEngine.h"
 
+#include "Utils/VulkanUtil.h"
+
 class VulkanWindow
 {
 private:
@@ -26,9 +28,6 @@ public:
 
 	const std::vector<const char*> physicalDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
-	// Triple buffering
-	u32 numSwapchainImage = 3;
-
 public:
 
 	VkInstance instance;
@@ -42,15 +41,6 @@ public:
 	VkQueue presentQueue;
 
 	VkSurfaceKHR surface;
-
-	VkSwapchainKHR swapchain;
-
-	std::vector<VkImage> swapchainImages;
-	std::vector<VkImageView> swapchainImageViews;
-
-	VkFormat swapchainImageFormat;
-
-	VkExtent2D swapchainExtent;
 
 	// The majority vulkan stuffs run here
 	VulkanEngine* vulkanEngine;
@@ -76,12 +66,6 @@ public:
 
 	void createSurface();
 
-	void createSwapchain();
-
-	void getSwapchainImages();
-
-	void createSwapchainImageViews();
-
 	void initVulkanEngine();
 
 	void createPipeline();
@@ -105,21 +89,6 @@ private:
 	u32 getDeviceScore(VkPhysicalDevice& device);
 
 	bool isDeviceSuitable(VkPhysicalDevice& device, VkSurfaceKHR& surface);
-
-	std::optional<u32> findQueueFamilies(VkPhysicalDevice& device, VkQueueFlagBits flag, VkSurfaceKHR surface);
-
-	bool checkDeviceExtensionSupport(VkPhysicalDevice& device);	
-
-	void querySupportedSurfaceFormat(VkPhysicalDevice& device, VkSurfaceKHR& surface,
-		VkSurfaceCapabilitiesKHR& capabilities, std::vector<VkSurfaceFormatKHR>& surfaceFormats, std::vector<VkPresentModeKHR>& presentModes);
-
-	VkSurfaceFormatKHR selectSwapchainSurfaceFormat(std::vector<VkSurfaceFormatKHR>& availableSurfaceFormats);
-
-	VkPresentModeKHR selectSwapchainPresentMode(std::vector<VkPresentModeKHR>& presentModes);
-
-	VkExtent2D getSwapchainExtent(VkSurfaceCapabilitiesKHR& capabilities);
-
-	void createImageView(VkImage& image, VkImageView& imageView, VkFormat format);
 
 	void printPhysicalDeviceInfo(VkPhysicalDevice& device);
 };
