@@ -26,6 +26,7 @@ include "premake/premake_imgui.lua"
 
 include "premake/premake_volk.lua"
 include "premake/premake_vma.lua"
+include "premake/premake_glslang.lua"
 
 project "WillEngine"
 	kind "ConsoleApp"
@@ -53,6 +54,7 @@ project "WillEngine"
 		"libs/volk/",
 		"libs/vulkan/include/",
 		"libs/vma/include/",
+		"libs/glslang/"
 	}
 
 	dependson
@@ -65,6 +67,7 @@ project "WillEngine"
 		"volk",
 		"vulkan",
 		"vma",
+		"glslang",
 	}
 
 	links
@@ -79,6 +82,7 @@ project "WillEngine"
 		"volk",
 		"vulkan",
 		"vma",
+		"glslang",
 	}
 
 	vpaths
@@ -116,4 +120,4 @@ project "WillEngine"
 	pchheader "pch.h"
 	pchsource "pch.cpp"
 
-			postbuildcommands { '{COPYFILE} "%{wks.location}/libs/compiled_libs/assimp/Debug/assimp-vc143-mtd.dll" %{cfg.targetdir}'  }
+	postbuildcommands { '{COPYFILE} "%{wks.location}/libs/compiled_libs/assimp/Debug/assimp-vc143-mtd.dll" %{cfg.targetdir}'  }

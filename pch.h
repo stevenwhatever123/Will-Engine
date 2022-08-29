@@ -28,6 +28,9 @@
 // Vma
 #include <vk_mem_alloc.h>
 
+// Glslang
+#include <SPIRV/GlslangToSpv.h>
+
 // Glad
 #include <glad/glad.h>
 

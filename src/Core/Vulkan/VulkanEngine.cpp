@@ -32,14 +32,20 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 
 	createRenderPass(logicalDevice, swapchainImageFormat, depthFormat);
 
-
 	createDepthBuffer(logicalDevice, vmaAllocator, swapchainExtent);
 
 	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, renderPass, depthImageView, swapchainExtent);
+
+	createCommandPool(logicalDevice, physicalDevice, surface, commandPool);
+
+	createCommandBuffer(logicalDevice, commandBuffers);
 }
 
 void VulkanEngine::cleanup(VkDevice& logicalDevice)
 {
+	// Destroy Command Pool
+	vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
+
 	// Destroy framebuffer
 	for (auto& framebuffer : framebuffers)
 	{
@@ -61,6 +67,11 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 
 	// Destroy Render Pass
 	vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
+}
+
+bool VulkanEngine::compileShader()
+{
+	return true;
 }
 
 
@@ -266,6 +277,39 @@ void VulkanEngine::createSwapchainFramebuffer(VkDevice& logicalDevice, std::vect
 	}
 
 	assert(swapchainImageViews.size() == framebuffers.size());
+}
+
+void VulkanEngine::createCommandPool(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, VkCommandPool& commandPool)
+{
+	std::optional<u32> graphicsFamilyIndex = WillEngine::VulkanUtil::findQueueFamilies(physicalDevice, VK_QUEUE_GRAPHICS_BIT, surface);
+
+	if (!graphicsFamilyIndex.has_value())
+		throw std::runtime_error("Cannot retrieve graphics family index");
+
+	VkCommandPoolCreateInfo poolInfo{};
+	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	poolInfo.queueFamilyIndex = graphicsFamilyIndex.value();
+
+	if (vkCreateCommandPool(logicalDevice, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create command pool");
+}
+
+void VulkanEngine::createCommandBuffer(VkDevice& logicalDevice, std::vector<VkCommandBuffer>& commandBuffers)
+{
+	commandBuffers.resize(framebuffers.size());
+
+	for (u32 i = 0; i < commandBuffers.size(); i++)
+	{
+		VkCommandBufferAllocateInfo allocateInfo{};
+		allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocateInfo.commandPool = commandPool;
+		allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocateInfo.commandBufferCount = 1;
+
+		if (vkAllocateCommandBuffers(logicalDevice, &allocateInfo, &commandBuffers[i]) != VK_SUCCESS)
+			throw std::runtime_error("Failed to allocate command buffers");
+	}
 }
 
 // =========================================================================================================

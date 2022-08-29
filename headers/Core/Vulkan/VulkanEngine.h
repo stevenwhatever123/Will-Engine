@@ -38,6 +38,10 @@ public:
 	// Stored as a vector as there are multiple framebuffers in a swapchain
 	std::vector<VkFramebuffer> framebuffers;
 
+	// Command pool and buffer
+	VkCommandPool commandPool;
+	std::vector<VkCommandBuffer> commandBuffers;
+
 public:
 
 	VulkanEngine();
@@ -45,6 +49,8 @@ public:
 
 	void init(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface);
 	void cleanup(VkDevice& logicalDevice);
+
+	bool compileShader();
 
 	void createVmaAllocator(VkInstance& instance, VkPhysicalDevice& physicalDevice, VkDevice& logicalDevice);
 
@@ -58,6 +64,10 @@ public:
 
 	void createSwapchainFramebuffer(VkDevice& logicalDevice, std::vector<VkImageView>& swapchainImageViews,
 		std::vector<VkFramebuffer>& framebuffers, VkRenderPass& renderPass, VkImageView& depthImageView, VkExtent2D swapchainExtent);
+
+	void createCommandPool(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, VkCommandPool& commandPool);
+
+	void createCommandBuffer(VkDevice& logicalDevice, std::vector<VkCommandBuffer>& commandBuffers);
 
 private:
 	VkSurfaceFormatKHR selectSwapchainSurfaceFormat(std::vector<VkSurfaceFormatKHR>& availableSurfaceFormats);
