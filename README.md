@@ -1,4 +1,4 @@
 # Will-Engine
- The engine that is created for the will to make a change.
+ The engine that is created with the will to make a change.
   
-This is a side project to revisit what I have learnt
+This is a side project for me to revisit/refresh what I have learnt
