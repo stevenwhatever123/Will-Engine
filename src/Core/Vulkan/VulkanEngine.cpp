@@ -39,10 +39,27 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	createCommandPool(logicalDevice, physicalDevice, surface, commandPool);
 
 	createCommandBuffer(logicalDevice, commandBuffers);
+
+	createSemaphore(logicalDevice, waitImageAvailable, signalRenderFinished);
+
+	createFence(logicalDevice, fences, VK_FENCE_CREATE_SIGNALED_BIT);
 }
 
 void VulkanEngine::cleanup(VkDevice& logicalDevice)
 {
+	// Wait for all execution to be finished before cleaning up
+	vkDeviceWaitIdle(logicalDevice);
+
+	// Destroy Fences
+	for (auto& fence : fences)
+	{
+		vkDestroyFence(logicalDevice, fence, nullptr);
+	}
+
+	// Destroy Semaphore
+	vkDestroySemaphore(logicalDevice, waitImageAvailable, nullptr);
+	vkDestroySemaphore(logicalDevice, signalRenderFinished, nullptr);
+
 	// Destroy Command Pool
 	vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
 
@@ -69,11 +86,34 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
 }
 
-bool VulkanEngine::compileShader()
+void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue graphicsQueue)
 {
-	return true;
-}
+	// Acquire next image of the swapchain
+	u32 imageIndex = 0;
+	const VkResult res = vkAcquireNextImageKHR(logicalDevice, swapchain, std::numeric_limits<u64>::max(), waitImageAvailable, VK_NULL_HANDLE, &imageIndex);
 
+	if (res != VK_SUCCESS)
+		throw std::runtime_error("Failed to acquire swapchain image index");
+
+	// Wait for command buffer to be available
+	if (vkWaitForFences(logicalDevice, 1, &fences[imageIndex], VK_TRUE, std::numeric_limits<u64>::max()) != VK_SUCCESS)
+		throw std::runtime_error("Failed to wait for fences to be available");
+
+	if (vkResetFences(logicalDevice, 1, &fences[imageIndex]) != VK_SUCCESS)
+		throw std::runtime_error("Failed to reset fence");
+
+	assert(imageIndex < commandBuffers.size());
+	assert(imageIndex < fences.size());
+
+	// Make sure command buffer finishes executing
+	vkResetCommandBuffer(commandBuffers[imageIndex], 0);
+
+	recordCommands(commandBuffers[imageIndex], renderPass, framebuffers[imageIndex], swapchainExtent);
+
+	submitCommands(commandBuffers[imageIndex], waitImageAvailable, signalRenderFinished, graphicsQueue, fences[imageIndex]);
+
+	presentImage(graphicsQueue, signalRenderFinished, swapchain, imageIndex);
+}
 
 void VulkanEngine::createVmaAllocator(VkInstance& instance, VkPhysicalDevice& physicalDevice, VkDevice& logicalDevice)
 {
@@ -310,6 +350,107 @@ void VulkanEngine::createCommandBuffer(VkDevice& logicalDevice, std::vector<VkCo
 		if (vkAllocateCommandBuffers(logicalDevice, &allocateInfo, &commandBuffers[i]) != VK_SUCCESS)
 			throw std::runtime_error("Failed to allocate command buffers");
 	}
+}
+
+void VulkanEngine::createSemaphore(VkDevice& logicalDevice, VkSemaphore& waitImageAvailable, VkSemaphore& signalRenderFinish)
+{
+	VkSemaphoreCreateInfo semaphoreInfo{};
+	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &waitImageAvailable) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create wait image availabe semaphore");
+
+	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &signalRenderFinish) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create signal render finish semaphore");
+}
+
+void VulkanEngine::createFence(VkDevice& logicalDevice, std::vector<VkFence>& fences, VkFenceCreateFlagBits flag)
+{
+	fences.resize(framebuffers.size());
+
+	for (u32 i = 0; i < fences.size(); i++)
+	{
+		VkFenceCreateInfo fenceInfo{};
+		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceInfo.flags = flag;
+
+		if (vkCreateFence(logicalDevice, &fenceInfo, nullptr, &fences[i]) != VK_SUCCESS)
+			throw std::runtime_error("Failed to create fence");
+	}
+}
+
+void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& renderpass, VkFramebuffer& framebuffer, VkExtent2D& extent)
+{
+	// Begin command buffer
+	VkCommandBufferBeginInfo commandBeginInfo{};
+	commandBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	commandBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	if (vkBeginCommandBuffer(commandBuffer, &commandBeginInfo) != VK_SUCCESS)
+		throw std::runtime_error("Failed to begin command buffer");
+
+	VkClearValue clearValue[2];
+	// Clear color
+	clearValue[0].color.float32[0] = 0.5f;
+	clearValue[0].color.float32[1] = 0.5f;
+	clearValue[0].color.float32[2] = 0.5f;
+	clearValue[0].color.float32[3] = 1.0f;
+	// Clear Depth
+	clearValue[1].depthStencil.depth = 1.0f;
+
+	// Begin Render Pass
+	VkRenderPassBeginInfo renderPassBeginInfo{};
+	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	renderPassBeginInfo.renderPass = renderPass;
+	renderPassBeginInfo.framebuffer = framebuffer;
+	renderPassBeginInfo.renderArea.extent = extent;
+	renderPassBeginInfo.clearValueCount = static_cast<u32>(sizeof(clearValue) / sizeof(clearValue[0]));
+	renderPassBeginInfo.pClearValues = clearValue;
+
+	vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	//=============================
+	// Record rendering command here
+
+	//=============================
+
+
+	// End Render Pass
+	vkCmdEndRenderPass(commandBuffer);
+
+	// End command buffer
+	vkEndCommandBuffer(commandBuffer);
+}
+
+void VulkanEngine::submitCommands(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore,
+	VkQueue& graphicsQueue, VkFence& fence)
+{
+	VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = &waitSemaphore;
+	submitInfo.pWaitDstStageMask = &dstStageMask;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = &signalSemaphore;
+
+	vkQueueSubmit(graphicsQueue, 1, &submitInfo, fence);
+}
+
+void VulkanEngine::presentImage(VkQueue& graphicsQueue, VkSemaphore& waitSemaphore, VkSwapchainKHR& swapchain, u32& swapchainIndex)
+{
+	VkPresentInfoKHR presentInfo{};
+	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = &waitSemaphore;
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = &swapchain;
+	presentInfo.pImageIndices = &swapchainIndex;
+
+	vkQueuePresentKHR(graphicsQueue, &presentInfo);
 }
 
 // =========================================================================================================

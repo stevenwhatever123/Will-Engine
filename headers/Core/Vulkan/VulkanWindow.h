@@ -68,8 +68,6 @@ public:
 
 	void initVulkanEngine();
 
-	void createPipeline();
-
 	// Return
 	bool shouldCloseWindow() const { return closeWindow; };
 

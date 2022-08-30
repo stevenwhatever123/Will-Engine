@@ -80,8 +80,7 @@ void VulkanWindow::cleanup()
 
 void VulkanWindow::update()
 {
-    
-
+    vulkanEngine->update(window, instance, logicalDevice, physicalDevice, surface, graphicsQueue);
 }
 
 void VulkanWindow::createInstance()
@@ -287,11 +286,6 @@ void VulkanWindow::initVulkanEngine()
 {
     vulkanEngine = new VulkanEngine();
     vulkanEngine->init(window, instance, logicalDevice, physicalDevice, surface);
-}
-
-void VulkanWindow::createPipeline()
-{
-
 }
 
 //=============================================================================================

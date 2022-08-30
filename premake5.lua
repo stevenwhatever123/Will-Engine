@@ -105,7 +105,10 @@ project "WillEngine"
 
 		["Source Files/imgui"] = {
 				"libs/imgui/*.cpp"
-			}
+			},
+
+		["Shaders"]						= {"shaders/*.vert"},
+		["Shaders"]						= {"shaders/*.frag"},
 
 	}
 
@@ -115,6 +118,8 @@ project "WillEngine"
 		"src/**.cpp",
 		"*.h",
 		"*.cpp",
+		"shaders/*.vert",
+		"shaders/*.frag",
 	}
 
 	pchheader "pch.h"

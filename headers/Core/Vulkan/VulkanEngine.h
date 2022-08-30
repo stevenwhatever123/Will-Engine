@@ -42,6 +42,15 @@ public:
 	VkCommandPool commandPool;
 	std::vector<VkCommandBuffer> commandBuffers;
 
+	// Semaphore for waiting and signaling
+	// Used for GPU - GPU sync
+	VkSemaphore waitImageAvailable;
+	VkSemaphore signalRenderFinished;
+
+	// Fence 
+	// Used for CPU - GPU symc
+	std::vector<VkFence> fences;
+
 public:
 
 	VulkanEngine();
@@ -50,7 +59,9 @@ public:
 	void init(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface);
 	void cleanup(VkDevice& logicalDevice);
 
-	bool compileShader();
+	void update(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue graphicsQueue);
+
+	// Init / setup
 
 	void createVmaAllocator(VkInstance& instance, VkPhysicalDevice& physicalDevice, VkDevice& logicalDevice);
 
@@ -68,6 +79,20 @@ public:
 	void createCommandPool(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, VkCommandPool& commandPool);
 
 	void createCommandBuffer(VkDevice& logicalDevice, std::vector<VkCommandBuffer>& commandBuffers);
+
+	void createSemaphore(VkDevice& logicalDevice, VkSemaphore& waitImageAvailable, VkSemaphore& signalRenderFinish);
+
+	void createFence(VkDevice& logicalDevice, std::vector<VkFence>& fences, VkFenceCreateFlagBits flag);
+
+	// Update
+
+	void recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& renderpass, VkFramebuffer& framebuffer, VkExtent2D& extent);
+
+	void submitCommands(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, 
+		VkQueue& graphicsQueue, VkFence& fence);
+
+	void presentImage(VkQueue& graphicsQueue, VkSemaphore& waitSemaphore, VkSwapchainKHR& swapchain, u32& swapchainIndex);
+
 
 private:
 	VkSurfaceFormatKHR selectSwapchainSurfaceFormat(std::vector<VkSurfaceFormatKHR>& availableSurfaceFormats);

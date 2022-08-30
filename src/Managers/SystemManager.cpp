@@ -114,6 +114,8 @@ void SystemManager::update()
             glWindow->closeWindow = true;
 
             glfwTerminate();
+
+            return;
         }
 
         updateGLWindow();
@@ -132,7 +134,11 @@ void SystemManager::update()
         {
             vulkanWindow->closeWindow = true;
             vulkanWindow->cleanup();
+
+            return;
         }
+
+        vulkanWindow->update();
     }
 }
 
