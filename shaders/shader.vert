@@ -12,5 +12,11 @@ void main()
 	oNormal = normal;
 	oTexCoord = texCoord;
 
-	gl_Position = vec4(position, 1);
+	mat4 transformation;
+	transformation[0][0] = 1;
+	transformation[1][1] = 1;
+	transformation[2][2] = 1;
+	transformation[3] = vec4(0, 0, -50, 0);
+
+	gl_Position = transformation * vec4(position, 1);
 }

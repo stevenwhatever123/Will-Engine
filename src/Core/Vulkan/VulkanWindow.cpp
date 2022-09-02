@@ -40,7 +40,7 @@ void VulkanWindow::init()
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
 
-    glfwSetWindowUserPointer(window, this);
+    //glfwSetWindowUserPointer(window, this);
 
     if (glfwVulkanSupported())
     {

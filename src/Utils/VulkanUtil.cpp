@@ -109,3 +109,105 @@ void WillEngine::VulkanUtil::createImageView(VkDevice& logicalDevice, VkImage& i
     if (vkCreateImageView(logicalDevice, &imageViewInfo, nullptr, &imageView) != VK_SUCCESS)
         throw std::runtime_error("Failed to create image view");
 }
+
+std::tuple<VkBuffer, VmaAllocation> WillEngine::VulkanUtil::createBuffer(VmaAllocator& vmaAllocator, u64 allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage)
+{
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = allocSize;
+    bufferInfo.usage = usage;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    VmaAllocationCreateInfo vmaAllocInfo{};
+    vmaAllocInfo.usage = memoryUsage;
+
+    VkBuffer buffer = VK_NULL_HANDLE;
+    VmaAllocation vmaAllocation = VK_NULL_HANDLE;
+
+    if (vmaCreateBuffer(vmaAllocator, &bufferInfo, &vmaAllocInfo, &buffer, &vmaAllocation, nullptr) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create buffer");
+
+    return std::make_tuple(std::move(buffer), std::move(vmaAllocation));
+}
+
+VkCommandPool WillEngine::VulkanUtil::createCommandPool(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface)
+{
+    std::optional<u32> graphicsFamilyIndex = WillEngine::VulkanUtil::findQueueFamilies(physicalDevice, VK_QUEUE_GRAPHICS_BIT, surface);
+
+    if (!graphicsFamilyIndex.has_value())
+        throw std::runtime_error("Cannot retrieve graphics family index");
+
+    VkCommandPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    poolInfo.queueFamilyIndex = graphicsFamilyIndex.value();
+
+    VkCommandPool commandPool = VK_NULL_HANDLE;
+
+    if (vkCreateCommandPool(logicalDevice, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create command pool");
+
+    return std::move(commandPool);
+}
+
+VkCommandBuffer WillEngine::VulkanUtil::createCommandBuffer(VkDevice& logicalDevice, VkCommandPool& commandPool)
+{
+    VkCommandBufferAllocateInfo allocateInfo{};
+    allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocateInfo.commandPool = commandPool;
+    allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocateInfo.commandBufferCount = 1;
+
+    VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+
+    if (vkAllocateCommandBuffers(logicalDevice, &allocateInfo, &commandBuffer) != VK_SUCCESS)
+        throw std::runtime_error("Failed to allocate command buffers");
+
+    return std::move(commandBuffer);
+}
+
+VkFence WillEngine::VulkanUtil::createFence(VkDevice& logicalDevice, bool signaled)
+{
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    if(signaled)
+        fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    VkFence fence = VK_NULL_HANDLE;
+
+    if (vkCreateFence(logicalDevice, &fenceInfo, nullptr, &fence) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create fence");
+
+    return std::move(fence);
+}
+
+void WillEngine::VulkanUtil::bufferBarrier(VkCommandBuffer& commandBuffer, VkBuffer& buffer, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask,
+    VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkDeviceSize size, VkDeviceSize offset, u32 srcFamilyIndex, u32 dstFamilyIndex)
+{
+    VkBufferMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    barrier.srcAccessMask = srcAccessMask;
+    barrier.dstAccessMask = dstAccessMask;
+    barrier.srcQueueFamilyIndex = srcFamilyIndex;
+    barrier.dstQueueFamilyIndex = dstFamilyIndex;
+    barrier.buffer = buffer;
+    barrier.offset = offset;
+    barrier.size = size;
+
+    vkCmdPipelineBarrier(commandBuffer, srcStage, dstStage, 0, 0, nullptr, 1, &barrier, 0, nullptr);
+}
+
+VkShaderModule WillEngine::VulkanUtil::createShaderModule(VkDevice& logicalDevice, std::vector<char>& shaderCode)
+{
+    VkShaderModuleCreateInfo shaderInfo{};
+    shaderInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    shaderInfo.codeSize = shaderCode.size();
+    shaderInfo.pCode = reinterpret_cast<const u32*>(shaderCode.data());
+
+    VkShaderModule shaderModule = VK_NULL_HANDLE;
+
+    if (vkCreateShaderModule(logicalDevice, &shaderInfo, nullptr, &shaderModule) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create shader module");
+
+    return shaderModule;
+}

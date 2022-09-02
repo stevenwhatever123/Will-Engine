@@ -1,10 +1,15 @@
 #pragma once
+#include "Core/Mesh.h"
 
 #include "Utils/VulkanUtil.h"
 
 class VulkanEngine
 {
 private:
+
+public:
+
+	std::vector<Mesh*> meshes;
 
 public:
 
@@ -44,12 +49,16 @@ public:
 
 	// Semaphore for waiting and signaling
 	// Used for GPU - GPU sync
-	VkSemaphore waitImageAvailable;
-	VkSemaphore signalRenderFinished;
+	VkSemaphore imageAvailable;
+	VkSemaphore renderFinished;
 
 	// Fence 
 	// Used for CPU - GPU symc
 	std::vector<VkFence> fences;
+
+	// Viewport and scissor
+	VkViewport viewport;
+	VkRect2D scissor;
 
 public:
 

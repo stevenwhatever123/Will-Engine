@@ -6,7 +6,9 @@
 #include "Core/OpenGL/GLImGuiUI.h"
 #include "Core/Vulkan/VulkanWindow.h"
 #include "Core/Camera.h"
+#include "Core/Mesh.h"
 #include "Utils/Logging.h"
+#include "Utils/ModelImporter.h"
 
 class SystemManager
 {

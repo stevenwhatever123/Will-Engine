@@ -1,5 +1,5 @@
 externalproject "glslang"
-  location "../libs/build_glslang/glslang"
+  location "../libs/build_glslang/glslang/"
   filename "glslang"
   kind "StaticLib"
   language "C++"

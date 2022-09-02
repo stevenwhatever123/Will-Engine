@@ -27,6 +27,7 @@ void SystemManager::init()
     else
     {
         initVulkanWindow();
+        glfwSetWindowUserPointer(vulkanWindow->window, this);
         initCamera();
     }
 
@@ -146,6 +147,28 @@ void SystemManager::updateInputs()
 {
     /* Poll for and process events */
     glfwPollEvents();
+
+    if (keys['L'])
+    {
+        bool readSuccess;
+        std::string filename;
+
+        std::tie(readSuccess, filename) = WillEngine::Utils::selectFile();
+
+        if (readSuccess)
+        {
+            std::vector<Mesh*> loadedMeshes = WillEngine::Utils::readModel(filename.c_str());
+
+            for (Mesh* mesh : loadedMeshes)
+            {
+                mesh->sendDataToGPU(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator, vulkanWindow->surface,
+                    vulkanWindow->graphicsQueue);
+                mesh->generatePipeline(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->renderPass, vulkanWindow->vulkanEngine->swapchainExtent);
+            }
+
+            vulkanWindow->vulkanEngine->meshes.insert(vulkanWindow->vulkanEngine->meshes.end(), loadedMeshes.begin(), loadedMeshes.end());
+        }
+    }
 }
 
 void SystemManager::updateCamera()

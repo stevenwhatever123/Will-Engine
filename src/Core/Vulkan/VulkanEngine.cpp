@@ -12,7 +12,9 @@ VulkanEngine::VulkanEngine():
 	depthImageView(VK_NULL_HANDLE),
 	depthImage(VK_NULL_HANDLE),
 	depthImageAllocation(VK_NULL_HANDLE),
-	framebuffers()
+	framebuffers(),
+	viewport({}),
+	scissor({})
 {
 
 }
@@ -40,7 +42,7 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 
 	createCommandBuffer(logicalDevice, commandBuffers);
 
-	createSemaphore(logicalDevice, waitImageAvailable, signalRenderFinished);
+	createSemaphore(logicalDevice, imageAvailable, renderFinished);
 
 	createFence(logicalDevice, fences, VK_FENCE_CREATE_SIGNALED_BIT);
 }
@@ -57,8 +59,8 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	}
 
 	// Destroy Semaphore
-	vkDestroySemaphore(logicalDevice, waitImageAvailable, nullptr);
-	vkDestroySemaphore(logicalDevice, signalRenderFinished, nullptr);
+	vkDestroySemaphore(logicalDevice, imageAvailable, nullptr);
+	vkDestroySemaphore(logicalDevice, renderFinished, nullptr);
 
 	// Destroy Command Pool
 	vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
@@ -90,7 +92,7 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 {
 	// Acquire next image of the swapchain
 	u32 imageIndex = 0;
-	const VkResult res = vkAcquireNextImageKHR(logicalDevice, swapchain, std::numeric_limits<u64>::max(), waitImageAvailable, VK_NULL_HANDLE, &imageIndex);
+	const VkResult res = vkAcquireNextImageKHR(logicalDevice, swapchain, std::numeric_limits<u64>::max(), imageAvailable, VK_NULL_HANDLE, &imageIndex);
 
 	if (res != VK_SUCCESS)
 		throw std::runtime_error("Failed to acquire swapchain image index");
@@ -110,9 +112,9 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 
 	recordCommands(commandBuffers[imageIndex], renderPass, framebuffers[imageIndex], swapchainExtent);
 
-	submitCommands(commandBuffers[imageIndex], waitImageAvailable, signalRenderFinished, graphicsQueue, fences[imageIndex]);
+	submitCommands(commandBuffers[imageIndex], imageAvailable, renderFinished, graphicsQueue, fences[imageIndex]);
 
-	presentImage(graphicsQueue, signalRenderFinished, swapchain, imageIndex);
+	presentImage(graphicsQueue, renderFinished, swapchain, imageIndex);
 }
 
 void VulkanEngine::createVmaAllocator(VkInstance& instance, VkPhysicalDevice& physicalDevice, VkDevice& logicalDevice)
@@ -411,6 +413,22 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& 
 
 	//=============================
 	// Record rendering command here
+
+	for (auto mesh : meshes)
+	{
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mesh->pipeline);
+
+		VkBuffer buffers[3] = { mesh->vertexBuffer, mesh->normalBuffer, mesh->uvBuffer };
+
+		VkDeviceSize offsets[3]{};
+
+		vkCmdBindVertexBuffers(commandBuffer, 0, 3, buffers, offsets);
+
+		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+		//vkCmdDraw(commandBuffer, mesh->positions.size(), 1, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indicies.size()), 1, 0, 0, 0);
+	}
 
 	//=============================
 
