@@ -139,6 +139,7 @@ void SystemManager::update()
             return;
         }
 
+        vulkanWindow->vulkanEngine->updateUniformValues(camera);
         vulkanWindow->update();
     }
 }
@@ -163,6 +164,8 @@ void SystemManager::updateInputs()
             {
                 mesh->sendDataToGPU(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator, vulkanWindow->surface,
                     vulkanWindow->graphicsQueue);
+
+                mesh->generatePipelineLayout(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->sceneDescriptorSetLayout);
                 mesh->generatePipeline(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->renderPass, vulkanWindow->vulkanEngine->swapchainExtent);
             }
 

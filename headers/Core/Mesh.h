@@ -50,7 +50,7 @@ public:
 
 	void sendDataToGPU(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkSurfaceKHR& surface, VkQueue& queue);
 
-	void generateDescriptorSet(VmaAllocator vmaAllocator, u32 queueIndiciesSize, u32* queueIndices);
+	void generatePipelineLayout(VkDevice& logicalDevice, VkDescriptorSetLayout& descriptorSetLayout);
 
 	void generatePipeline(VkDevice& logicalDevice, VkRenderPass& renderpass, VkExtent2D swapchainExtent);
 

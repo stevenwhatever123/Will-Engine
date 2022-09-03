@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Mesh.h"
+#include "Core/Camera.h"
 
 #include "Utils/VulkanUtil.h"
 
@@ -56,6 +57,17 @@ public:
 	// Used for CPU - GPU symc
 	std::vector<VkFence> fences;
 
+	VkDescriptorPool descriptorPool;
+
+	// Descriptor sets
+	VkDescriptorSetLayout sceneDescriptorSetLayout;
+	VkDescriptorSet sceneDescriptorSet;
+
+	// Global Uniform buffer
+	VkBuffer sceneUniformBuffer;
+	VmaAllocation sceneUniformAllocation;
+	mat4 sceneMatrix;
+	
 	// Viewport and scissor
 	VkViewport viewport;
 	VkRect2D scissor;
@@ -93,7 +105,20 @@ public:
 
 	void createFence(VkDevice& logicalDevice, std::vector<VkFence>& fences, VkFenceCreateFlagBits flag);
 
+	void createDescriptionPool(VkDevice& logicalDevice);
+
+	void generateSceneDescriptorLayout(VkDevice& logicalDevice);
+
+	void createUniformBuffers(VkDevice& logicalDevice);
+
+	void allocDescriptorSet(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool, VkDescriptorSetLayout& descriptorSetInfo, 
+		VkDescriptorSet& descriptorSet);
+
+	void updateDescriptorSet(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkBuffer& descriptorBuffer);
+
 	// Update
+
+	void updateUniformValues(Camera* camera);
 
 	void recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& renderpass, VkFramebuffer& framebuffer, VkExtent2D& extent);
 

@@ -13,6 +13,7 @@ VulkanEngine::VulkanEngine():
 	depthImage(VK_NULL_HANDLE),
 	depthImageAllocation(VK_NULL_HANDLE),
 	framebuffers(),
+	sceneMatrix(1),
 	viewport({}),
 	scissor({})
 {
@@ -45,6 +46,17 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	createSemaphore(logicalDevice, imageAvailable, renderFinished);
 
 	createFence(logicalDevice, fences, VK_FENCE_CREATE_SIGNALED_BIT);
+
+	createDescriptionPool(logicalDevice);
+
+	createUniformBuffers(logicalDevice);
+
+	generateSceneDescriptorLayout(logicalDevice);
+
+	allocDescriptorSet(logicalDevice, descriptorPool, sceneDescriptorSetLayout, sceneDescriptorSet);
+
+	updateDescriptorSet(logicalDevice, sceneDescriptorSet, sceneUniformBuffer);
+
 }
 
 void VulkanEngine::cleanup(VkDevice& logicalDevice)
@@ -381,6 +393,84 @@ void VulkanEngine::createFence(VkDevice& logicalDevice, std::vector<VkFence>& fe
 	}
 }
 
+void VulkanEngine::createDescriptionPool(VkDevice& logicalDevice)
+{
+	VkDescriptorPoolSize const pools[] = {
+			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2048},
+			{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2048}
+	};
+
+	VkDescriptorPoolCreateInfo poolInfo{};
+	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	poolInfo.maxSets = 1024;
+	poolInfo.poolSizeCount = sizeof(pools) / sizeof(pools[0]);
+	poolInfo.pPoolSizes = pools;
+
+	vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool);
+}
+
+void VulkanEngine::generateSceneDescriptorLayout(VkDevice& logicalDevice)
+{
+	VkDescriptorSetLayoutBinding binding[1]{};
+	binding[0].binding = 0;
+	binding[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	binding[0].descriptorCount = 1;
+	binding[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	VkDescriptorSetLayoutCreateInfo descriptorInfo{};
+	descriptorInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	descriptorInfo.bindingCount = sizeof(binding) / sizeof(binding[0]);
+	descriptorInfo.pBindings = binding;
+
+	if (vkCreateDescriptorSetLayout(logicalDevice, &descriptorInfo, nullptr, &sceneDescriptorSetLayout) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create descriptor set layout");
+}
+
+void VulkanEngine::createUniformBuffers(VkDevice& logicalDevice)
+{
+	std::tie(sceneUniformBuffer, sceneUniformAllocation) = 
+		WillEngine::VulkanUtil::createBuffer(vmaAllocator, sizeof(mat4), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+}
+
+void VulkanEngine::allocDescriptorSet(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool, VkDescriptorSetLayout& descriptorSetInfo,
+	VkDescriptorSet& descriptorSet)
+{
+	VkDescriptorSetAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorSetCount = 1;
+	allocInfo.pSetLayouts = &descriptorSetInfo;
+
+	vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSet);
+}
+
+void VulkanEngine::updateDescriptorSet(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkBuffer& descriptorBuffer)
+{
+	VkDescriptorBufferInfo bufferInfo{};
+	bufferInfo.buffer = descriptorBuffer;
+	bufferInfo.range = VK_WHOLE_SIZE;
+
+	VkWriteDescriptorSet writeSet{};
+	writeSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	writeSet.dstSet = descriptorSet;
+	writeSet.dstBinding = 0;
+	writeSet.descriptorCount = 1;
+	writeSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	writeSet.pBufferInfo = &bufferInfo;
+
+	vkUpdateDescriptorSets(logicalDevice, 1, &writeSet, 0, nullptr);
+}
+
+void VulkanEngine::updateUniformValues(Camera* camera)
+{
+	// Model Transform
+	mat4 model(1);
+	model[3][2] = -2;
+
+	// Update camera 
+	sceneMatrix = camera->getProjectionMatrix(swapchainExtent.width, swapchainExtent.height) * camera->getCameraMatrix() * model;
+}
+
 void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& renderpass, VkFramebuffer& framebuffer, VkExtent2D& extent)
 {
 	// Begin command buffer
@@ -390,6 +480,9 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& 
 
 	if (vkBeginCommandBuffer(commandBuffer, &commandBeginInfo) != VK_SUCCESS)
 		throw std::runtime_error("Failed to begin command buffer");
+
+	// Update uniform buffers
+	vkCmdUpdateBuffer(commandBuffer, sceneUniformBuffer, 0, sizeof(mat4), &sceneMatrix);
 
 	VkClearValue clearValue[2];
 	// Clear color
@@ -416,18 +509,23 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& 
 
 	for (auto mesh : meshes)
 	{
+		// Bind pipeline
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mesh->pipeline);
 
 		VkBuffer buffers[3] = { mesh->vertexBuffer, mesh->normalBuffer, mesh->uvBuffer };
 
 		VkDeviceSize offsets[3]{};
 
+		// Bind buffers
 		vkCmdBindVertexBuffers(commandBuffer, 0, 3, buffers, offsets);
 
 		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
+		// Bind Scene Uniform Buffer
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mesh->pipelineLayout, 0, 1, &sceneDescriptorSet, 0, nullptr);
+
 		//vkCmdDraw(commandBuffer, mesh->positions.size(), 1, 0, 0);
-		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indicies.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indicies.size()), 3, 0, 0, 0);
 	}
 
 	//=============================

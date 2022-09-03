@@ -141,9 +141,15 @@ void Mesh::sendDataToGPU(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevi
 	// Now we can clean data from the CPU as we don't need it anymore
 }
 
-void Mesh::generateDescriptorSet(VmaAllocator vmaAllocator, u32 queueIndiciesSize, u32* queueIndices)
+void Mesh::generatePipelineLayout(VkDevice& logicalDevice, VkDescriptorSetLayout& descriptorSetLayout)
 {
-	
+	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pipelineLayoutInfo.setLayoutCount = 1;
+	pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+
+	if (vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create pipeline layout");
 }
 
 void Mesh::generatePipeline(VkDevice& logicalDevice, VkRenderPass& renderpass, VkExtent2D swapchainExtent)
@@ -293,7 +299,7 @@ void Mesh::generatePipeline(VkDevice& logicalDevice, VkRenderPass& renderpass, V
 	pipelineInfo.pDepthStencilState = &depthInfo;
 	pipelineInfo.pColorBlendState = &colorBlendInfo;
 	pipelineInfo.pDynamicState = nullptr;
-	pipelineInfo.layout = 0;
+	pipelineInfo.layout = pipelineLayout;
 	pipelineInfo.renderPass = renderpass;
 	pipelineInfo.subpass = 0;
 
