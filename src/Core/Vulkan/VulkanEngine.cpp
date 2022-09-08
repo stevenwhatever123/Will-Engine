@@ -106,6 +106,11 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	u32 imageIndex = 0;
 	const VkResult res = vkAcquireNextImageKHR(logicalDevice, swapchain, std::numeric_limits<u64>::max(), imageAvailable, VK_NULL_HANDLE, &imageIndex);
 
+	if (res == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		printf("HAHA you resized the window!\n");
+	}
+
 	if (res != VK_SUCCESS)
 		throw std::runtime_error("Failed to acquire swapchain image index");
 
