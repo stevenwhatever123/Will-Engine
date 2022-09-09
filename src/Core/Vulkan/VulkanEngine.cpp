@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Core/Vulkan/VulkanEngine.h"
 
-VulkanEngine::VulkanEngine():
+VulkanEngine::VulkanEngine() :
 	vmaAllocator(VK_NULL_HANDLE),
 	renderPass(VK_NULL_HANDLE),
 	swapchain(VK_NULL_HANDLE),
@@ -13,9 +13,17 @@ VulkanEngine::VulkanEngine():
 	depthImage(VK_NULL_HANDLE),
 	depthImageAllocation(VK_NULL_HANDLE),
 	framebuffers(),
-	sceneMatrix(1),
-	viewport({}),
-	scissor({})
+	commandPool(VK_NULL_HANDLE),
+	commandBuffers(),
+	imageAvailable(VK_NULL_HANDLE),
+	renderFinished(VK_NULL_HANDLE),
+	fences(),
+	descriptorPool(VK_NULL_HANDLE),
+	sceneDescriptorSetLayout(VK_NULL_HANDLE),
+	sceneDescriptorSet(VK_NULL_HANDLE),
+	sceneUniformBuffer(VK_NULL_HANDLE),
+	sceneUniformAllocation(VK_NULL_HANDLE),
+	sceneMatrix(1)
 {
 
 }
@@ -49,13 +57,14 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 
 	createDescriptionPool(logicalDevice);
 
-	createUniformBuffers(logicalDevice);
+	createSceneUniformBuffers(logicalDevice);
 
-	generateSceneDescriptorLayout(logicalDevice);
+	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, sceneDescriptorSetLayout, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+		VK_SHADER_STAGE_VERTEX_BIT);
 
-	allocDescriptorSet(logicalDevice, descriptorPool, sceneDescriptorSetLayout, sceneDescriptorSet);
+	WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, sceneDescriptorSetLayout, sceneDescriptorSet);
 
-	updateDescriptorSet(logicalDevice, sceneDescriptorSet, sceneUniformBuffer);
+	updateSceneDescriptorSet(logicalDevice, sceneDescriptorSet, sceneUniformBuffer);
 
 }
 
@@ -63,6 +72,20 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 {
 	// Wait for all execution to be finished before cleaning up
 	vkDeviceWaitIdle(logicalDevice);
+
+	// Destroy Descriptor sets / layouts
+	vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &sceneDescriptorSet);
+	vkDestroyDescriptorSetLayout(logicalDevice, sceneDescriptorSetLayout, nullptr);
+	vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
+
+	// Destroy all data from a mesh
+	for (auto* mesh : meshes)
+	{
+		mesh->cleanup(logicalDevice, vmaAllocator);
+	}
+
+	// Destroy Scene Descriptor
+	vmaDestroyBuffer(vmaAllocator, sceneUniformBuffer, sceneUniformAllocation);
 
 	// Destroy Fences
 	for (auto& fence : fences)
@@ -74,7 +97,8 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	vkDestroySemaphore(logicalDevice, imageAvailable, nullptr);
 	vkDestroySemaphore(logicalDevice, renderFinished, nullptr);
 
-	// Destroy Command Pool
+	// Free Command Buffer and Destroy Command Pool
+	vkFreeCommandBuffers(logicalDevice, commandPool, commandBuffers.size(), commandBuffers.data());
 	vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
 
 	// Destroy framebuffer
@@ -410,46 +434,18 @@ void VulkanEngine::createDescriptionPool(VkDevice& logicalDevice)
 	poolInfo.maxSets = 1024;
 	poolInfo.poolSizeCount = sizeof(pools) / sizeof(pools[0]);
 	poolInfo.pPoolSizes = pools;
+	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
 	vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool);
 }
 
-void VulkanEngine::generateSceneDescriptorLayout(VkDevice& logicalDevice)
-{
-	VkDescriptorSetLayoutBinding binding[1]{};
-	binding[0].binding = 0;
-	binding[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	binding[0].descriptorCount = 1;
-	binding[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-	VkDescriptorSetLayoutCreateInfo descriptorInfo{};
-	descriptorInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	descriptorInfo.bindingCount = sizeof(binding) / sizeof(binding[0]);
-	descriptorInfo.pBindings = binding;
-
-	if (vkCreateDescriptorSetLayout(logicalDevice, &descriptorInfo, nullptr, &sceneDescriptorSetLayout) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create descriptor set layout");
-}
-
-void VulkanEngine::createUniformBuffers(VkDevice& logicalDevice)
+void VulkanEngine::createSceneUniformBuffers(VkDevice& logicalDevice)
 {
 	std::tie(sceneUniformBuffer, sceneUniformAllocation) = 
 		WillEngine::VulkanUtil::createBuffer(vmaAllocator, sizeof(mat4), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 }
 
-void VulkanEngine::allocDescriptorSet(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool, VkDescriptorSetLayout& descriptorSetInfo,
-	VkDescriptorSet& descriptorSet)
-{
-	VkDescriptorSetAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = descriptorPool;
-	allocInfo.descriptorSetCount = 1;
-	allocInfo.pSetLayouts = &descriptorSetInfo;
-
-	vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSet);
-}
-
-void VulkanEngine::updateDescriptorSet(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkBuffer& descriptorBuffer)
+void VulkanEngine::updateSceneDescriptorSet(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkBuffer& descriptorBuffer)
 {
 	VkDescriptorBufferInfo bufferInfo{};
 	bufferInfo.buffer = descriptorBuffer;
@@ -466,8 +462,9 @@ void VulkanEngine::updateDescriptorSet(VkDevice& logicalDevice, VkDescriptorSet&
 	vkUpdateDescriptorSets(logicalDevice, 1, &writeSet, 0, nullptr);
 }
 
-void VulkanEngine::updateUniformValues(Camera* camera)
+void VulkanEngine::updateSceneUniform(Camera* camera)
 {
+	// Temperory!!!!!
 	// Model Transform
 	mat4 model(1);
 	model[3][2] = -2;

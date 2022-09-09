@@ -51,12 +51,6 @@ public:
 	void init();
 	void initCamera();
 
-	// OpenGL init
-	void initGLWindow();
-	void initGLShaders();
-	void initGLRenderer();
-	void initGLImgui();
-
 	// Vulkan init
 	void initVulkanWindow();
 
@@ -66,11 +60,6 @@ public:
 	void update();
 	void updateInputs();
 	void updateCamera();
-
-	// Opengl update
-	void updateGLWindow();
-	void updateGLRenderer();
-	void updateGLImgui();
 
 	// Utils
 	void readFile();

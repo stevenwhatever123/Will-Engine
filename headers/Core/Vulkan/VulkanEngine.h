@@ -68,10 +68,6 @@ public:
 	VmaAllocation sceneUniformAllocation;
 	mat4 sceneMatrix;
 	
-	// Viewport and scissor
-	VkViewport viewport;
-	VkRect2D scissor;
-
 public:
 
 	VulkanEngine();
@@ -107,18 +103,13 @@ public:
 
 	void createDescriptionPool(VkDevice& logicalDevice);
 
-	void generateSceneDescriptorLayout(VkDevice& logicalDevice);
+	void createSceneUniformBuffers(VkDevice& logicalDevice);
 
-	void createUniformBuffers(VkDevice& logicalDevice);
-
-	void allocDescriptorSet(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool, VkDescriptorSetLayout& descriptorSetInfo, 
-		VkDescriptorSet& descriptorSet);
-
-	void updateDescriptorSet(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkBuffer& descriptorBuffer);
+	void updateSceneDescriptorSet(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkBuffer& descriptorBuffer);
 
 	// Update
 
-	void updateUniformValues(Camera* camera);
+	void updateSceneUniform(Camera* camera);
 
 	void recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& renderpass, VkFramebuffer& framebuffer, VkExtent2D& extent);
 

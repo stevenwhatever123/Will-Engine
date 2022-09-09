@@ -32,14 +32,8 @@ public:
 	VkBuffer indexBuffer;
 	VmaAllocation indexAllocation;
 
-	// Uniform buffer
-	mat4 transformation;
-	VkBuffer buffer;
-	VmaAllocation vmaAllocation;
-
 	VkPrimitiveTopology primitive;
 
-	VkDescriptorSet descriptorSet;
 	VkPipelineLayout pipelineLayout;
 	VkPipeline pipeline;
 
@@ -54,5 +48,5 @@ public:
 
 	void generatePipeline(VkDevice& logicalDevice, VkRenderPass& renderpass, VkExtent2D swapchainExtent);
 
-	void cleanup(VkDevice& logicalDevice);
+	void cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator);
 };

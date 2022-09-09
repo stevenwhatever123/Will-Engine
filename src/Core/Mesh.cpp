@@ -7,7 +7,6 @@ Mesh::Mesh():
 	normals(),
 	uvs(),
 	indicies(),
-	transformation(1),
 	primitive(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 {
 
@@ -137,6 +136,10 @@ void Mesh::sendDataToGPU(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevi
 
 	if (vkWaitForFences(logicalDevice, 1, &uploadComplete, VK_TRUE, std::numeric_limits<u64>::max()) != VK_SUCCESS)
 		throw std::runtime_error("Failed to wait for fence");
+
+	vkDestroyFence(logicalDevice, uploadComplete, nullptr);
+	vkFreeCommandBuffers(logicalDevice, commandPool, 1, &commandBuffer);
+	vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
 
 	// Now we can clean data from the CPU as we don't need it anymore
 }
@@ -307,8 +310,26 @@ void Mesh::generatePipeline(VkDevice& logicalDevice, VkRenderPass& renderpass, V
 		throw std::runtime_error("Failed to create graphics pipeline");
 }
 
-void Mesh::cleanup(VkDevice& logicalDevice)
+void Mesh::cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator)
 {
+	// Vertex Buffer
+	vmaDestroyBuffer(vmaAllocator, vertexBuffer, vertexAllocation);
+
+	// Normal Buffer
+	vmaDestroyBuffer(vmaAllocator, normalBuffer, normalAllocation);
+
+	// UV Buffer
+	vmaDestroyBuffer(vmaAllocator, uvBuffer, uvAllocation);
+
+	// Index Buffer
+	vmaDestroyBuffer(vmaAllocator, indexBuffer, indexAllocation);
+
+	// Pipeline
+	vkDestroyPipeline(logicalDevice, pipeline, nullptr);
+
+	// Pipeline layout
+	vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
+
 	vkDestroyShaderModule(logicalDevice, vertShader, nullptr);
 	vkDestroyShaderModule(logicalDevice, fragShader, nullptr);
 }

@@ -211,3 +211,34 @@ VkShaderModule WillEngine::VulkanUtil::createShaderModule(VkDevice& logicalDevic
 
     return shaderModule;
 }
+
+void WillEngine::VulkanUtil::createDescriptorSetLayout(VkDevice& logicalDevice, VkDescriptorSetLayout& descriptorSetLayout,
+    VkDescriptorType descriptorType, VkShaderStageFlags shaderStage)
+{
+    VkDescriptorSetLayoutBinding binding[1]{};
+    binding[0].binding = 0;
+    binding[0].descriptorType = descriptorType;
+    binding[0].descriptorCount = 1;
+    binding[0].stageFlags = shaderStage;
+
+    VkDescriptorSetLayoutCreateInfo descriptorInfo{};
+    descriptorInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    descriptorInfo.bindingCount = sizeof(binding) / sizeof(binding[0]);
+    descriptorInfo.pBindings = binding;
+
+    if (vkCreateDescriptorSetLayout(logicalDevice, &descriptorInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create descriptor set layout");
+}
+
+void WillEngine::VulkanUtil::allocDescriptorSet(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool, VkDescriptorSetLayout& descriptorSetInfo,
+    VkDescriptorSet& descriptorSet)
+{
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = descriptorPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &descriptorSetInfo;
+
+    if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSet) != VK_SUCCESS)
+        throw std::runtime_error("Failed to allocate Descriptor Sets");
+}
