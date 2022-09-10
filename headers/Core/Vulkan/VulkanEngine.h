@@ -4,6 +4,13 @@
 
 #include "Utils/VulkanUtil.h"
 
+struct RendObj
+{
+	u32 startIndex;
+	u32 endIndex;
+	VkPrimitiveTopology primitive;
+};
+
 class VulkanEngine
 {
 private:
@@ -63,11 +70,17 @@ public:
 	VkDescriptorSetLayout sceneDescriptorSetLayout;
 	VkDescriptorSet sceneDescriptorSet;
 
-	// Global Uniform buffer
-	VkBuffer sceneUniformBuffer;
-	VmaAllocation sceneUniformAllocation;
+	// Scene Uniform buffer
+	VulkanAllocatedMemory sceneUniformBuffer;
+
+	// Pipeline and Piplien Layout
+	VkPipelineLayout pipelineLayout;
+	VkPipeline pipeline;
+
+private:
+
 	mat4 sceneMatrix;
-	
+
 public:
 
 	VulkanEngine();
@@ -103,7 +116,7 @@ public:
 
 	void createDescriptionPool(VkDevice& logicalDevice);
 
-	void createSceneUniformBuffers(VkDevice& logicalDevice);
+	void createSceneUniformBuffers(VkDevice& logicalDevice, VulkanAllocatedMemory& uniformBuffer);
 
 	void updateSceneDescriptorSet(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkBuffer& descriptorBuffer);
 

@@ -75,6 +75,8 @@ std::vector<Mesh*> WillEngine::Utils::extractScene(const aiScene* scene)
 			face++;
 		}
 
+		mesh->indiciesSize = mesh->indicies.size();
+
 		mesh->primitive = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
 		meshes.emplace_back(mesh);

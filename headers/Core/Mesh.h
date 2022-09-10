@@ -5,11 +5,6 @@
 
 class Mesh
 {
-private:
-
-	VkShaderModule vertShader;
-	VkShaderModule fragShader;
-
 public:
 
 	std::string name;
@@ -19,18 +14,18 @@ public:
 	std::vector<vec2> uvs;
 	std::vector<u32> indicies;
 
+public:
+
+	u32 indiciesSize;
+
+	VkShaderModule vertShader;
+	VkShaderModule fragShader;
+
 	// Vertex Buffer
-	VkBuffer vertexBuffer;
-	VmaAllocation vertexAllocation;
-
-	VkBuffer normalBuffer;
-	VmaAllocation normalAllocation;
-
-	VkBuffer uvBuffer;
-	VmaAllocation uvAllocation;
-
-	VkBuffer indexBuffer;
-	VmaAllocation indexAllocation;
+	VulkanAllocatedMemory positionBuffer;
+	VulkanAllocatedMemory normalBuffer;
+	VulkanAllocatedMemory uvBuffer;
+	VulkanAllocatedMemory indexBuffer;
 
 	VkPrimitiveTopology primitive;
 
@@ -42,11 +37,9 @@ public:
 	Mesh();
 	~Mesh();
 
-	void sendDataToGPU(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkSurfaceKHR& surface, VkQueue& queue);
+	void uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkSurfaceKHR& surface, VkQueue& queue);
 
-	void generatePipelineLayout(VkDevice& logicalDevice, VkDescriptorSetLayout& descriptorSetLayout);
-
-	void generatePipeline(VkDevice& logicalDevice, VkRenderPass& renderpass, VkExtent2D swapchainExtent);
+	void dataUploaded();
 
 	void cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator);
 };

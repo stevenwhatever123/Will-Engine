@@ -21,8 +21,7 @@ VulkanEngine::VulkanEngine() :
 	descriptorPool(VK_NULL_HANDLE),
 	sceneDescriptorSetLayout(VK_NULL_HANDLE),
 	sceneDescriptorSet(VK_NULL_HANDLE),
-	sceneUniformBuffer(VK_NULL_HANDLE),
-	sceneUniformAllocation(VK_NULL_HANDLE),
+	sceneUniformBuffer({VK_NULL_HANDLE, VK_NULL_HANDLE}),
 	sceneMatrix(1)
 {
 
@@ -57,14 +56,14 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 
 	createDescriptionPool(logicalDevice);
 
-	createSceneUniformBuffers(logicalDevice);
+	createSceneUniformBuffers(logicalDevice, sceneUniformBuffer);
 
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, sceneDescriptorSetLayout, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 		VK_SHADER_STAGE_VERTEX_BIT);
 
 	WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, sceneDescriptorSetLayout, sceneDescriptorSet);
 
-	updateSceneDescriptorSet(logicalDevice, sceneDescriptorSet, sceneUniformBuffer);
+	updateSceneDescriptorSet(logicalDevice, sceneDescriptorSet, sceneUniformBuffer.buffer);
 
 }
 
@@ -85,7 +84,7 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	}
 
 	// Destroy Scene Descriptor
-	vmaDestroyBuffer(vmaAllocator, sceneUniformBuffer, sceneUniformAllocation);
+	vmaDestroyBuffer(vmaAllocator, sceneUniformBuffer.buffer, sceneUniformBuffer.allocation);
 
 	// Destroy Fences
 	for (auto& fence : fences)
@@ -439,9 +438,9 @@ void VulkanEngine::createDescriptionPool(VkDevice& logicalDevice)
 	vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool);
 }
 
-void VulkanEngine::createSceneUniformBuffers(VkDevice& logicalDevice)
+void VulkanEngine::createSceneUniformBuffers(VkDevice& logicalDevice, VulkanAllocatedMemory& uniformBuffer)
 {
-	std::tie(sceneUniformBuffer, sceneUniformAllocation) = 
+	uniformBuffer =
 		WillEngine::VulkanUtil::createBuffer(vmaAllocator, sizeof(mat4), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 }
 
@@ -484,7 +483,7 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& 
 		throw std::runtime_error("Failed to begin command buffer");
 
 	// Update uniform buffers
-	vkCmdUpdateBuffer(commandBuffer, sceneUniformBuffer, 0, sizeof(mat4), &sceneMatrix);
+	vkCmdUpdateBuffer(commandBuffer, sceneUniformBuffer.buffer, 0, sizeof(mat4), &sceneMatrix);
 
 	VkClearValue clearValue[2];
 	// Clear color
@@ -514,20 +513,20 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& 
 		// Bind pipeline
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mesh->pipeline);
 
-		VkBuffer buffers[3] = { mesh->vertexBuffer, mesh->normalBuffer, mesh->uvBuffer };
+		VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
 
 		VkDeviceSize offsets[3]{};
 
 		// Bind buffers
 		vkCmdBindVertexBuffers(commandBuffer, 0, 3, buffers, offsets);
 
-		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 		// Bind Scene Uniform Buffer
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mesh->pipelineLayout, 0, 1, &sceneDescriptorSet, 0, nullptr);
 
 		//vkCmdDraw(commandBuffer, mesh->positions.size(), 1, 0, 0);
-		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indicies.size()), 3, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 	}
 
 	//=============================

@@ -96,32 +96,39 @@ void SystemManager::updateInputs()
 
         std::tie(readSuccess, filename) = WillEngine::Utils::selectFile();
 
-        if (readSuccess)
+        if (!readSuccess)
         {
-            std::vector<Mesh*> loadedMeshes = WillEngine::Utils::readModel(filename.c_str());
-
-            for (Mesh* mesh : loadedMeshes)
-            {
-                mesh->sendDataToGPU(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator, vulkanWindow->surface,
-                    vulkanWindow->graphicsQueue);
-
-                mesh->generatePipelineLayout(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->sceneDescriptorSetLayout);
-                mesh->generatePipeline(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->renderPass, vulkanWindow->vulkanEngine->swapchainExtent);
-            }
-
-            vulkanWindow->vulkanEngine->meshes.insert(vulkanWindow->vulkanEngine->meshes.end(), loadedMeshes.begin(), loadedMeshes.end());
+            printf("Failed to read %s\n", filename);
+            return;
         }
+            
+        std::vector<Mesh*> loadedMeshes = WillEngine::Utils::readModel(filename.c_str());
+
+        for (Mesh* mesh : loadedMeshes)
+        {
+            mesh->uploadDataToPhysicalDevice(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator, vulkanWindow->surface,
+                vulkanWindow->graphicsQueue);
+
+            WillEngine::VulkanUtil::createPipelineLayout(vulkanWindow->logicalDevice, mesh->pipelineLayout,
+                1, &vulkanWindow->vulkanEngine->sceneDescriptorSetLayout);
+            WillEngine::VulkanUtil::createPipeline(vulkanWindow->logicalDevice, mesh->pipeline, mesh->pipelineLayout,
+                vulkanWindow->vulkanEngine->renderPass, mesh->vertShader, mesh->fragShader, mesh->primitive, vulkanWindow->vulkanEngine->swapchainExtent);
+        }
+
+        vulkanWindow->vulkanEngine->meshes.insert(vulkanWindow->vulkanEngine->meshes.end(), loadedMeshes.begin(), loadedMeshes.end());
     }
 }
 
 void SystemManager::updateCamera()
 {
-    if (keys['W']) { camera->moveForward(0.01f); }
-    if (keys['S']) { camera->moveForward(-0.01f); }
-    if (keys['A']) { camera->moveRight(-0.01f); }
-    if (keys['D']) { camera->moveRight(0.01f); }
-    if (keys['E']) { camera->moveUp(0.01f); }
-    if (keys['Q']) { camera->moveUp(-0.01f); }
+    float speed = 5.0f;
+
+    if (keys['W']) { camera->moveForward(speed * deltaTime); }
+    if (keys['S']) { camera->moveForward(-speed * deltaTime); }
+    if (keys['A']) { camera->moveRight(-speed * deltaTime); }
+    if (keys['D']) { camera->moveRight(speed * deltaTime); }
+    if (keys['E']) { camera->moveUp(speed * deltaTime); }
+    if (keys['Q']) { camera->moveUp(-speed * deltaTime); }
 
     camera->updateCameraMatrix();
 }

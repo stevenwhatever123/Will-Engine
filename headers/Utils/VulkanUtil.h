@@ -1,4 +1,12 @@
 #pragma once
+#include "Managers/FileManager.h"
+
+struct VulkanAllocatedMemory
+{
+	VkBuffer buffer;
+	VmaAllocation allocation;
+};
+
 namespace WillEngine::VulkanUtil
 {
 	// Queue Families
@@ -17,7 +25,7 @@ namespace WillEngine::VulkanUtil
 	void createImageView(VkDevice& logicalDevice, VkImage& image, VkImageView& imageView, VkFormat format, VkImageAspectFlags aspectMask);
 
 	// Buffers
-	std::tuple<VkBuffer, VmaAllocation> createBuffer(VmaAllocator& vmaAllocator, u64 allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
+	VulkanAllocatedMemory createBuffer(VmaAllocator& vmaAllocator, u64 allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 
 	// Command Pool / Buffer
 	VkCommandPool createCommandPool(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface);
@@ -39,4 +47,11 @@ namespace WillEngine::VulkanUtil
 
 	void allocDescriptorSet(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool, VkDescriptorSetLayout& descriptorSetInfo,
 		VkDescriptorSet& descriptorSet);
+
+	// Pipeline
+	void createPipelineLayout(VkDevice& logicalDevice, VkPipelineLayout& pipelineLayout, u32 size,
+		VkDescriptorSetLayout* descriptorSetLayout);
+
+	void createPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass, 
+		VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology& primitive, VkExtent2D swapchainExtent);
 }
