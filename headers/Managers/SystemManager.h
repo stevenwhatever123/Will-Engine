@@ -14,11 +14,7 @@ class SystemManager
 {
 private:
 
-	bool vulkan;
-
 public:
-
-	GLWindow* glWindow;
 
 	VulkanWindow *vulkanWindow;
 	//i32 windowWidth, windowHeight;
@@ -32,8 +28,6 @@ public:
 	f64 lastTime;
 
 	// Cores
-	GLRenderer* glRenderer;
-	
 	Camera* camera;
 
 	// For the model matrix
@@ -41,6 +35,11 @@ public:
 
 	// Managers
 	InputManager* inputManager;
+
+	// Keyboard / Mouse
+	u32 keys[256];
+	bool leftMouseClicked;
+	bool rightMouseClicked;
 
 public:
 
@@ -54,8 +53,6 @@ public:
 	// Vulkan init
 	void initVulkanWindow();
 
-
-
 	// Updates
 	void update();
 	void updateInputs();
@@ -64,15 +61,8 @@ public:
 	// Utils
 	void readFile();
 
-	// Keyboard / Mouse
-	u32 keys[256];
-	bool leftMouseClicked;
-	bool rightMouseClicked;
-
 	// Return
-	bool shouldCloseWindow() const { return glWindow? glWindow->closeWindow : vulkanWindow->closeWindow; };
+	bool shouldCloseWindow() { return vulkanWindow->closeWindow; }
 
 	// Command calls
-	void useVulkan();
-	void useOpenGL();
 };

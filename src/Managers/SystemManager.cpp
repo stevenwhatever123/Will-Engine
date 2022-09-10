@@ -3,13 +3,18 @@
 #include "Managers/SystemManager.h"
 
 SystemManager::SystemManager() :
-    vulkan(false),
-    glWindow(nullptr),
     vulkanWindow(nullptr),
+    mouseX(0),
+    mouseY(0),
+    currentTime(0),
+    deltaTime(0),
+    lastTime(0),
+    camera(nullptr),
+    modelRotation(0),
+    inputManager(nullptr),
     keys(),
     leftMouseClicked(0),
-    rightMouseClicked(0),
-    modelRotation(0)
+    rightMouseClicked(0)
 {
 
 }
@@ -54,34 +59,16 @@ void SystemManager::update()
     deltaTime = currentTime - lastTime;
     lastTime = currentTime;
 
-    if (!vulkan)
+    if (glfwWindowShouldClose(vulkanWindow->window))
     {
-        if (glfwWindowShouldClose(glWindow->window))
-        {
-            glWindow->closeWindow = true;
+        vulkanWindow->closeWindow = true;
+        vulkanWindow->cleanup();
 
-            glfwTerminate();
-
-            return;
-        }
-
-        //WillEngine::printGLDebugMessage();
-
-        glfwSwapBuffers(glWindow->window);
+        return;
     }
-    else
-    {
-        if (glfwWindowShouldClose(vulkanWindow->window))
-        {
-            vulkanWindow->closeWindow = true;
-            vulkanWindow->cleanup();
 
-            return;
-        }
-
-        vulkanWindow->vulkanEngine->updateSceneUniform(camera);
-        vulkanWindow->update();
-    }
+    vulkanWindow->vulkanEngine->updateSceneUniform(camera);
+    vulkanWindow->update();
 }
 
 void SystemManager::updateInputs()
@@ -98,7 +85,7 @@ void SystemManager::updateInputs()
 
         if (!readSuccess)
         {
-            printf("Failed to read %s\n", filename);
+            printf("Failed to read %s\n", filename.c_str());
             return;
         }
             
@@ -121,14 +108,14 @@ void SystemManager::updateInputs()
 
 void SystemManager::updateCamera()
 {
-    float speed = 5.0f;
+    f32 speed = 5.0f;
 
-    if (keys['W']) { camera->moveForward(speed * deltaTime); }
-    if (keys['S']) { camera->moveForward(-speed * deltaTime); }
-    if (keys['A']) { camera->moveRight(-speed * deltaTime); }
-    if (keys['D']) { camera->moveRight(speed * deltaTime); }
-    if (keys['E']) { camera->moveUp(speed * deltaTime); }
-    if (keys['Q']) { camera->moveUp(-speed * deltaTime); }
+    if (keys['W']) { camera->moveForward(speed * (f32) deltaTime); }
+    if (keys['S']) { camera->moveForward(-speed * (f32) deltaTime); }
+    if (keys['A']) { camera->moveRight(-speed * (f32) deltaTime); }
+    if (keys['D']) { camera->moveRight(speed * (f32) deltaTime); }
+    if (keys['E']) { camera->moveUp(speed * (f32) deltaTime); }
+    if (keys['Q']) { camera->moveUp(-speed * (f32) deltaTime); }
 
     camera->updateCameraMatrix();
 }
@@ -136,14 +123,4 @@ void SystemManager::updateCamera()
 void SystemManager::readFile()
 {
     WillEngine::Utils::selectFile();
-}
-
-void SystemManager::useVulkan()
-{
-    vulkan = true;
-}
-
-void SystemManager::useOpenGL()
-{
-    vulkan = false;
 }
