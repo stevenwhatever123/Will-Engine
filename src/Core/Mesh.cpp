@@ -142,12 +142,16 @@ void Mesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice&
 	if (vkWaitForFences(logicalDevice, 1, &uploadComplete, VK_TRUE, std::numeric_limits<u64>::max()) != VK_SUCCESS)
 		throw std::runtime_error("Failed to wait for fence");
 
+	// Clean up staging buffers
+	vmaDestroyBuffer(vmaAllocator, positionStagingBuffer.buffer, positionStagingBuffer.allocation);
+	vmaDestroyBuffer(vmaAllocator, normalStagingBuffer.buffer, normalStagingBuffer.allocation);
+	vmaDestroyBuffer(vmaAllocator, uvStagingBuffer.buffer, uvStagingBuffer.allocation);
+	vmaDestroyBuffer(vmaAllocator, indexStagingBuffer.buffer, indexStagingBuffer.allocation);
+
+	// Clean up command pool, command buffer, and fence
 	vkDestroyFence(logicalDevice, uploadComplete, nullptr);
 	vkFreeCommandBuffers(logicalDevice, commandPool, 1, &commandBuffer);
 	vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
-
-	// Now we can clean data from the CPU as we don't need it anymore
-	//dataUploaded();
 }
 
 void Mesh::dataUploaded()

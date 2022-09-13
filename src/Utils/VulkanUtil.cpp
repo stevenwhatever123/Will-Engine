@@ -259,11 +259,10 @@ void WillEngine::VulkanUtil::createPipeline(VkDevice& logicalDevice, VkPipeline&
     VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology& primitive, VkExtent2D swapchainExtent)
 {
     // Shader Module
-    //const char* vertShaderPath = "shaders/compiled_shaders/shader.vert.spv";
-    //const char* fragShaderPath = "shaders/compiled_shaders/shader.frag.spv";
-
-    const char* vertShaderPath = "C:/Users/Steven/Documents/GitHub/Will-Engine/shaders/compiled_shaders/shader.vert.spv";
-    const char* fragShaderPath = "C:/Users/Steven/Documents/GitHub/Will-Engine/shaders/compiled_shaders/shader.frag.spv";
+    //const char* vertShaderPath = "C:/Users/Steven/Documents/GitHub/Will-Engine/shaders/compiled_shaders/shader.vert.spv";
+    //const char* fragShaderPath = "C:/Users/Steven/Documents/GitHub/Will-Engine/shaders/compiled_shaders/shader.frag.spv";
+    const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/shader.vert.spv";
+    const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/shader.frag.spv";
 
 
     auto vertShaderCode = WillEngine::Utils::readSprivShader(vertShaderPath);

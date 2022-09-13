@@ -79,14 +79,14 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	// Destroy Descriptor Pool
 	vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
 
-
 	// Destroy all data from a mesh
 	for (auto* mesh : meshes)
 	{
 		mesh->cleanup(logicalDevice, vmaAllocator);
+		delete mesh;
 	}
 
-	// Destroy Scene Descriptor
+	// Destroy Scene Descriptor Uniform Buffer
 	vmaDestroyBuffer(vmaAllocator, sceneUniformBuffer.buffer, sceneUniformBuffer.allocation);
 
 	// Destroy Fences
