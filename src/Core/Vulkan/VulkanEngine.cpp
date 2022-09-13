@@ -75,7 +75,10 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	// Destroy Descriptor sets / layouts
 	vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &sceneDescriptorSet);
 	vkDestroyDescriptorSetLayout(logicalDevice, sceneDescriptorSetLayout, nullptr);
+
+	// Destroy Descriptor Pool
 	vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
+
 
 	// Destroy all data from a mesh
 	for (auto* mesh : meshes)
@@ -115,6 +118,9 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	{
 		vkDestroyImageView(logicalDevice, imageView, nullptr);
 	}
+
+	// Destroy vma alloator
+	vmaDestroyAllocator(vmaAllocator);
 
 	// Destroy swapchain
 	vkDestroySwapchainKHR(logicalDevice, swapchain, nullptr);
