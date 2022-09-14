@@ -30,6 +30,7 @@ std::vector<Mesh*> WillEngine::Utils::extractScene(const aiScene* scene)
 	std::vector<Mesh*> meshes;
 	meshes.reserve(scene->mNumMeshes);
 
+	// Extract Mesh data
 	for (u32 i = 0; i < scene->mNumMeshes; i++)
 	{
 		const aiMesh* currentAiMesh = scene->mMeshes[i];
@@ -80,6 +81,32 @@ std::vector<Mesh*> WillEngine::Utils::extractScene(const aiScene* scene)
 		mesh->primitive = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
 		meshes.emplace_back(mesh);
+	}
+
+	// Extract Material Data
+	for (u32 i = 0; i < scene->mNumMaterials; i++)
+	{
+		const aiMaterial* currentAiMaterial = scene->mMaterials[i];
+
+		aiString materialName;
+		aiReturn ret;
+
+		ret = currentAiMaterial->Get(AI_MATKEY_NAME, materialName);
+		if (ret != AI_SUCCESS) materialName = "";
+
+		printf("Texture name: %s\n", materialName.C_Str());
+
+		i32 numTextures = currentAiMaterial->GetTextureCount(aiTextureType_DIFFUSE);
+		aiString texturePath;
+
+		if (numTextures)
+		{
+			ret = currentAiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), texturePath);
+
+			if (ret != AI_SUCCESS) continue;
+
+			printf("Texture Path %s\n", texturePath.C_Str());
+		}
 	}
 
 	return meshes;

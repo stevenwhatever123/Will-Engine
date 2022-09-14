@@ -2,8 +2,8 @@
 #include "Core/Vulkan/VulkanWindow.h"
 
 VulkanWindow::VulkanWindow() :
-    enableValidationLayers(true),
-    debugMessenger(VK_NULL_HANDLE),
+    m_enableValidationLayers(true),
+    m_debugMessenger(VK_NULL_HANDLE),
     window(nullptr),
     closeWindow(false),
     windowWidth(0),
@@ -26,7 +26,7 @@ VulkanWindow::~VulkanWindow()
 
 }
 
-void VulkanWindow::init()
+void VulkanWindow::init(i32 windowWidth, i32 windowHeight)
 {
     closeWindow = false;
 
@@ -35,7 +35,7 @@ void VulkanWindow::init()
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    window = glfwCreateWindow(1600, 900, "Will Engine - Vulkan", nullptr, nullptr);
+    window = glfwCreateWindow(windowWidth, windowHeight, "Will Engine - Vulkan", nullptr, nullptr);
 
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
@@ -105,10 +105,10 @@ void VulkanWindow::createInstance()
     createInfo.ppEnabledExtensionNames = requiredExtensions.data();
 
     // Validation layer for debugging
-    if (enableValidationLayers && !checkValidationLayerSupport(validationLayers))
+    if (m_enableValidationLayers && !checkValidationLayerSupport(validationLayers))
         throw std::runtime_error("Validation requested but not available!\n");
 
-    if (enableValidationLayers)
+    if (m_enableValidationLayers)
     {
         createInfo.enabledLayerCount = static_cast<u32>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
@@ -154,13 +154,13 @@ void VulkanWindow::generateDebugMessageInfo(VkDebugUtilsMessengerCreateInfoEXT& 
 
 void VulkanWindow::setDebugMessage()
 {
-    if (!enableValidationLayers) return;
+    if (!m_enableValidationLayers) return;
 
     VkDebugUtilsMessengerCreateInfoEXT debugMessageInfo{};
     generateDebugMessageInfo(debugMessageInfo);
 
     // Create Debug callback
-    if (vkCreateDebugUtilsMessengerEXT(instance, &debugMessageInfo, nullptr, &debugMessenger)
+    if (vkCreateDebugUtilsMessengerEXT(instance, &debugMessageInfo, nullptr, &m_debugMessenger)
         != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to set up debug messenger!\n");
@@ -169,9 +169,9 @@ void VulkanWindow::setDebugMessage()
 
 void VulkanWindow::destroyDebugMessage()
 {
-    if (!enableValidationLayers) return;
+    if (!m_enableValidationLayers) return;
 
-    vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+    vkDestroyDebugUtilsMessengerEXT(instance, m_debugMessenger, nullptr);
 }
 
 void VulkanWindow::selectPhysicalDevice()
@@ -260,7 +260,7 @@ void VulkanWindow::createLogicalDevice()
     logicalDeviceInfo.enabledExtensionCount = static_cast<u32>(physicalDeviceExtensions.size());
     logicalDeviceInfo.ppEnabledExtensionNames = physicalDeviceExtensions.data();
 
-    if (enableValidationLayers)
+    if (m_enableValidationLayers)
     {
         logicalDeviceInfo.enabledLayerCount = static_cast<u32>(validationLayers.size());
         logicalDeviceInfo.ppEnabledLayerNames = validationLayers.data();
@@ -328,7 +328,7 @@ std::vector<const char*> VulkanWindow::getRequiredExtensions()
 
     std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtentionCount);
 
-    if (enableValidationLayers)
+    if (m_enableValidationLayers)
     {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }

@@ -7,10 +7,10 @@ class VulkanWindow
 {
 private:
 
-	bool enableValidationLayers;
+	bool m_enableValidationLayers;
 
 	// For debugging
-	VkDebugUtilsMessengerEXT debugMessenger;
+	VkDebugUtilsMessengerEXT m_debugMessenger;
 
 public:
 
@@ -50,7 +50,7 @@ public:
 	VulkanWindow();
 	~VulkanWindow();
 
-	void init();
+	void init(i32 windowWidth, i32 windowHeight);
 	void cleanup();
 	void update();
 

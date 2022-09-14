@@ -4,13 +4,14 @@
 
 SystemManager::SystemManager() :
     vulkanWindow(nullptr),
+    windowWidth(0),
+    windowHeight(0),
     mouseX(0),
     mouseY(0),
     currentTime(0),
     deltaTime(0),
     lastTime(0),
     camera(nullptr),
-    modelRotation(0),
     inputManager(nullptr),
     keys(),
     leftMouseClicked(0),
@@ -19,8 +20,11 @@ SystemManager::SystemManager() :
 
 }
 
-void SystemManager::init()
+void SystemManager::init(i32 windowWidth, i32 windowHeight)
 {
+    this->windowWidth = windowWidth;
+    this->windowHeight = windowHeight;
+
     initCamera();
 
     initVulkanWindow();
@@ -40,7 +44,7 @@ void SystemManager::initCamera()
 void SystemManager::initVulkanWindow()
 {
     vulkanWindow = new VulkanWindow();
-    vulkanWindow->init();
+    vulkanWindow->init(windowWidth, windowHeight);
 
     // Bind input manager to the window
     inputManager = new InputManager();

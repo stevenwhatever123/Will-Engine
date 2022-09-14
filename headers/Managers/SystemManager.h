@@ -17,8 +17,7 @@ private:
 public:
 
 	VulkanWindow *vulkanWindow;
-	//i32 windowWidth, windowHeight;
-
+	i32 windowWidth, windowHeight;
 	//i32 imguiWidth, imguiHeight;
 
 	f64 mouseX, mouseY;			// Current mouse xy position
@@ -29,9 +28,6 @@ public:
 
 	// Cores
 	Camera* camera;
-
-	// For the model matrix
-	vec3 modelRotation;
 
 	// Managers
 	InputManager* inputManager;
@@ -47,7 +43,7 @@ public:
 	~SystemManager();
 
 	// Initialise
-	void init();
+	void init(i32 windowWidth, i32 windowHeight);
 	void initCamera();
 
 	// Vulkan init
