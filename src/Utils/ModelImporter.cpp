@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Utils/ModelImporter.h"
 
+#include "Utils/Image.h"
+
 std::vector<Mesh*> WillEngine::Utils::readModel(const char* filename)
 {
 	Assimp::Importer importer;
@@ -51,7 +53,7 @@ std::vector<Mesh*> WillEngine::Utils::extractScene(const aiScene* scene)
 		const aiVector3D* pNormal = currentAiMesh->mNormals;
 		const aiVector3D* pUV = hasTexture ? currentAiMesh->mTextureCoords[0] : zero3D;
 
-		for (u32 j = 0; j < currentAiMesh->mNumVertices; j++)
+		for (u64 j = 0; j < currentAiMesh->mNumVertices; j++)
 		{
 			mesh->positions.emplace_back(pVertex->x, pVertex->y, pVertex->z);
 			mesh->normals.emplace_back(pNormal->x, pNormal->y, pNormal->z);
@@ -66,7 +68,7 @@ std::vector<Mesh*> WillEngine::Utils::extractScene(const aiScene* scene)
 
 		const aiFace* face = currentAiMesh->mFaces;
 
-		for (u32 j = 0; j < currentAiMesh->mNumFaces; j++)
+		for (u64 j = 0; j < currentAiMesh->mNumFaces; j++)
 		{
 			for (u32 k = 0; k < face->mNumIndices; k++)
 			{
@@ -88,13 +90,17 @@ std::vector<Mesh*> WillEngine::Utils::extractScene(const aiScene* scene)
 	{
 		const aiMaterial* currentAiMaterial = scene->mMaterials[i];
 
+		Material* material = new Material();
+
 		aiString materialName;
 		aiReturn ret;
 
 		ret = currentAiMaterial->Get(AI_MATKEY_NAME, materialName);
-		if (ret != AI_SUCCESS) materialName = "";
+		if (ret != AI_SUCCESS) continue;
 
-		printf("Texture name: %s\n", materialName.C_Str());
+		material->name = materialName.C_Str();
+
+		printf("Texture name: %s\n", material->name.c_str());
 
 		i32 numTextures = currentAiMaterial->GetTextureCount(aiTextureType_DIFFUSE);
 		aiString texturePath;
@@ -105,9 +111,39 @@ std::vector<Mesh*> WillEngine::Utils::extractScene(const aiScene* scene)
 
 			if (ret != AI_SUCCESS) continue;
 
-			printf("Texture Path %s\n", texturePath.C_Str());
+			material->has_texture = true;
+			material->texture_path = texturePath.C_Str();
+
+			printf("Texture Path %s\n", material->texture_path.c_str());
 		}
+
+		// Color
+		aiColor3D color(0, 0, 0);
+		ret = currentAiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, color);
+		if (ret != AI_SUCCESS) continue;
+
+		material->color.x = color.r;
+		material->color.y = color.g;
+		material->color.z = color.b;
+		material->color.w = 1.0f;
+
+		if (material->hasTexture())
+		{
+			loadTexture(material);
+		}
+
+		printf("Color: %f, %f, %f\n", material->color.x, material->color.y, 
+			material->color.z);
 	}
 
 	return meshes;
+}
+
+void WillEngine::Utils::loadTexture(Material* material)
+{
+	Image* image = new Image();
+	image->readImage(material->getTexturePath(), material->width, material->height,
+		material->numChannels);
+
+	material->setTextureImage(image);
 }

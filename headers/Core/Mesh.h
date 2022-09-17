@@ -1,6 +1,8 @@
 #pragma once
 #include "Utils/VulkanUtil.h"
 
+#include "Core/Material.h"
+
 #include "Managers/FileManager.h"
 
 class Mesh

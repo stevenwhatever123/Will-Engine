@@ -104,6 +104,8 @@ void SystemManager::updateInputs()
                 1, &vulkanWindow->vulkanEngine->sceneDescriptorSetLayout);
             WillEngine::VulkanUtil::createPipeline(vulkanWindow->logicalDevice, mesh->pipeline, mesh->pipelineLayout,
                 vulkanWindow->vulkanEngine->renderPass, mesh->vertShader, mesh->fragShader, mesh->primitive, vulkanWindow->vulkanEngine->swapchainExtent);
+        
+            mesh->dataUploaded();
         }
 
         vulkanWindow->vulkanEngine->meshes.insert(vulkanWindow->vulkanEngine->meshes.end(), loadedMeshes.begin(), loadedMeshes.end());

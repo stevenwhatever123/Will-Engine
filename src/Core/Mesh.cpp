@@ -160,6 +160,11 @@ void Mesh::dataUploaded()
 	normals.clear();
 	uvs.clear();
 	indicies.clear();
+
+	positions.shrink_to_fit();
+	normals.shrink_to_fit();
+	uvs.shrink_to_fit();
+	indicies.shrink_to_fit();
 }
 
 void Mesh::cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator)
