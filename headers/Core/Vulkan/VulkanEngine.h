@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Mesh.h"
+#include "Core/Material.h"
 #include "Core/Camera.h"
 
 #include "Utils/VulkanUtil.h"
@@ -18,6 +19,7 @@ private:
 public:
 
 	std::vector<Mesh*> meshes;
+	std::vector<Material*> materials;
 
 public:
 

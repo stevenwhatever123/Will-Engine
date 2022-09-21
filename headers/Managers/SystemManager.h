@@ -14,6 +14,9 @@ class SystemManager
 {
 private:
 
+	std::vector<Mesh*> meshes;
+	std::vector<Material*> materials;
+
 public:
 
 	VulkanWindow *vulkanWindow;

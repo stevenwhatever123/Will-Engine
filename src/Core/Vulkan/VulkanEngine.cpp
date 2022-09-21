@@ -2,6 +2,8 @@
 #include "Core/Vulkan/VulkanEngine.h"
 
 VulkanEngine::VulkanEngine() :
+	meshes(),
+	materials(),
 	vmaAllocator(VK_NULL_HANDLE),
 	renderPass(VK_NULL_HANDLE),
 	swapchain(VK_NULL_HANDLE),
@@ -78,6 +80,13 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 
 	// Destroy Descriptor Pool
 	vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
+
+	// Destroyb all data from a material
+	for (auto* material : materials)
+	{
+		material->cleanUp(logicalDevice, vmaAllocator);
+		delete material;
+	}
 
 	// Destroy all data from a mesh
 	for (auto* mesh : meshes)

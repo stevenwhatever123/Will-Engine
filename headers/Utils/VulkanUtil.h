@@ -1,9 +1,17 @@
 #pragma once
 #include "Managers/FileManager.h"
 
+#include "Utils/Image.h"
+
 struct VulkanAllocatedMemory
 {
 	VkBuffer buffer;
+	VmaAllocation allocation;
+};
+
+struct VulkanAllocatedImage
+{
+	VkImage image;
 	VmaAllocation allocation;
 };
 
@@ -22,6 +30,12 @@ namespace WillEngine::VulkanUtil
 	// Swapchain Details
 	VkExtent2D getSwapchainExtent(GLFWwindow* window, VkSurfaceCapabilitiesKHR& capabilities);
 
+	//Images
+	VulkanAllocatedImage createImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkImage& image, VkFormat format, u32 width, u32 height);
+
+	void loadTextureImage(VkDevice& logicalDevice, VmaAllocator vmaAllocator, VkCommandPool& commandPool, VkQueue& queue, VulkanAllocatedImage& vulkanImage, 
+		u32 mipLevels, u32 width, u32 height, unsigned char* textureImage);
+
 	void createImageView(VkDevice& logicalDevice, VkImage& image, VkImageView& imageView, VkFormat format, VkImageAspectFlags aspectMask);
 
 	// Buffers
@@ -38,6 +52,10 @@ namespace WillEngine::VulkanUtil
 	// Memory Buffer Barrier
 	void bufferBarrier(VkCommandBuffer& commandBuffer, VkBuffer& buffer, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStage,
 		VkPipelineStageFlags dstStage, VkDeviceSize size, VkDeviceSize offset, u32 srcFamilyIndex, u32 dstFamilyIndex);
+
+	void imageBarrier(VkCommandBuffer& commandBuffer, VkImage& image, VkAccessFlags srcAccessFlag, VkAccessFlags dstAccessFlag,
+		VkImageLayout srcLayout, VkImageLayout dstLayout, VkImageSubresourceRange subresourceRange, u32 srcQueueFamilyIndex, u32 dstQueueFamilyIndex,
+		VkPipelineStageFlags srcStageFlag, VkPipelineStageFlags dstStageFlag);
 
 	// ShaderModule
 	VkShaderModule createShaderModule(VkDevice& logicalDevice, std::vector<char>& shaderCode);

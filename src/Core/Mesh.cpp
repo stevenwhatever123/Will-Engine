@@ -3,6 +3,7 @@
 
 Mesh::Mesh() :
 	name(""),
+	materialIndex(0),
 	positions(),
 	normals(),
 	uvs(),

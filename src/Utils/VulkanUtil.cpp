@@ -90,6 +90,109 @@ VkExtent2D WillEngine::VulkanUtil::getSwapchainExtent(GLFWwindow* window, VkSurf
     return currentExtent;
 }
 
+VulkanAllocatedImage WillEngine::VulkanUtil::createImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkImage& image, VkFormat format, u32 width, u32 height)
+{
+    // Image Info
+    VkImageCreateInfo imageInfo{};
+    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageInfo.format = format;
+    imageInfo.extent.width = width;
+    imageInfo.extent.height = height;
+    imageInfo.extent.depth = 1;
+    imageInfo.mipLevels = 1;
+    imageInfo.arrayLayers = 1;
+    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    // Allocate Memory
+    VmaAllocationCreateInfo allocInfo{};
+    allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+    VulkanAllocatedImage vulkanImage;
+
+    if (vmaCreateImage(vmaAllocator, &imageInfo, &allocInfo, &vulkanImage.image, &vulkanImage.allocation, nullptr) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create image");
+
+    return std::move(vulkanImage);
+}
+
+void WillEngine::VulkanUtil::loadTextureImage(VkDevice& logicalDevice, VmaAllocator vmaAllocator, VkCommandPool& commandPool, VkQueue& queue, 
+    VulkanAllocatedImage& vulkanImage, u32 mipLevels, u32 width, u32 height, unsigned char* textureImage)
+{
+    VkCommandBuffer commandBuffer = createCommandBuffer(logicalDevice, commandPool);
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = 0;
+    beginInfo.pInheritanceInfo = nullptr;
+
+    if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
+        throw std::runtime_error("Failed to begin Command Buffer");
+
+    imageBarrier(commandBuffer, vulkanImage.image, 0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT , 0, mipLevels, 0, 1 }, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+    auto sizeInBytes = width * height * 4;
+
+    // Staging Buffer
+    VulkanAllocatedMemory stagingBuffer = createBuffer(vmaAllocator, sizeInBytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+    
+    // Copying the texture to the staging buffer
+    void* ptr = nullptr;
+    if (vmaMapMemory(vmaAllocator, stagingBuffer.allocation, &ptr) != VK_SUCCESS)
+        throw std::runtime_error("Vma failed to map memory");
+    std::memcpy(ptr, textureImage, sizeInBytes);
+
+    vmaUnmapMemory(vmaAllocator, stagingBuffer.allocation);
+
+    // Copy data from staging to the actual buffer
+    VkBufferImageCopy copy{};
+    copy.bufferOffset = 0;
+    copy.bufferRowLength = 0;
+    copy.bufferImageHeight = 0;
+    copy.imageSubresource = VkImageSubresourceLayers{
+        VK_IMAGE_ASPECT_COLOR_BIT , 0, 0, 1
+    };
+    copy.imageOffset = VkOffset3D{ 0, 0, 0 };
+    copy.imageExtent = VkExtent3D{ width, height, 1 };
+
+    vkCmdCopyBufferToImage(commandBuffer, stagingBuffer.buffer, vulkanImage.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+
+    imageBarrier(commandBuffer, vulkanImage.image, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT , 0, mipLevels, 0, 1 }, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+    // End Command Buffer
+    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
+        throw std::runtime_error("Failed to end command buffer");
+
+    VkFence uploadComplete = createFence(logicalDevice, false);
+
+    // Submit the recorded commands
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+
+    if (vkQueueSubmit(queue, 1, &submitInfo, uploadComplete) != VK_SUCCESS)
+        throw std::runtime_error("Failed to submit commands");
+
+    if (vkWaitForFences(logicalDevice, 1, &uploadComplete, VK_TRUE, std::numeric_limits<u64>::max()) != VK_SUCCESS)
+        throw std::runtime_error("Failed to wait for fence");
+
+    // Clean up staging buffers
+    vmaDestroyBuffer(vmaAllocator, stagingBuffer.buffer, stagingBuffer.allocation);
+
+    // Clean up command buffer and fence
+    vkDestroyFence(logicalDevice, uploadComplete, nullptr);
+    vkFreeCommandBuffers(logicalDevice, commandPool, 1, &commandBuffer);
+}
+
 void WillEngine::VulkanUtil::createImageView(VkDevice& logicalDevice, VkImage& image, VkImageView& imageView, VkFormat format, VkImageAspectFlags aspectMask)
 {
     VkImageViewCreateInfo imageViewInfo{};
@@ -195,6 +298,24 @@ void WillEngine::VulkanUtil::bufferBarrier(VkCommandBuffer& commandBuffer, VkBuf
     barrier.size = size;
 
     vkCmdPipelineBarrier(commandBuffer, srcStage, dstStage, 0, 0, nullptr, 1, &barrier, 0, nullptr);
+}
+
+void WillEngine::VulkanUtil::imageBarrier(VkCommandBuffer& commandBuffer, VkImage& image, VkAccessFlags srcAccessFlag, VkAccessFlags dstAccessFlag,
+    VkImageLayout srcLayout, VkImageLayout dstLayout, VkImageSubresourceRange subresourceRange, u32 srcQueueFamilyIndex, u32 dstQueueFamilyIndex,
+    VkPipelineStageFlags srcStageFlag, VkPipelineStageFlags dstStageFlag)
+{
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.srcAccessMask = srcAccessFlag;
+    barrier.dstAccessMask = dstAccessFlag;
+    barrier.oldLayout = srcLayout;
+    barrier.newLayout = dstLayout;
+    barrier.srcQueueFamilyIndex = srcQueueFamilyIndex;
+    barrier.dstQueueFamilyIndex = dstQueueFamilyIndex;
+    barrier.image = image;
+    barrier.subresourceRange = subresourceRange;
+
+    vkCmdPipelineBarrier(commandBuffer, srcStageFlag, dstStageFlag, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
 VkShaderModule WillEngine::VulkanUtil::createShaderModule(VkDevice& logicalDevice, std::vector<char>& shaderCode)

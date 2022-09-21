@@ -93,7 +93,18 @@ void SystemManager::updateInputs()
             return;
         }
             
-        std::vector<Mesh*> loadedMeshes = WillEngine::Utils::readModel(filename.c_str());
+        std::vector<Mesh*> loadedMeshes;
+        std::vector<Material*> loadedMaterials;
+
+        std::tie(loadedMeshes, loadedMaterials) = WillEngine::Utils::readModel(filename.c_str());
+
+        u32 currentMaterialSize = materials.size();
+
+        // Modify mesh's material index based on the current size of materials
+        for (Mesh* mesh : loadedMeshes)
+        {
+            mesh->materialIndex = currentMaterialSize + mesh->materialIndex;
+        }
 
         for (Mesh* mesh : loadedMeshes)
         {
@@ -108,7 +119,22 @@ void SystemManager::updateInputs()
             mesh->dataUploaded();
         }
 
+        for (Material* material : loadedMaterials)
+        {
+            if (!material->hasTexture()) continue;
+
+            material->vulkanImage = WillEngine::VulkanUtil::createImage(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
+                material->vulkanImage.image, VK_FORMAT_R8G8B8A8_SRGB, material->width, material->height);
+        
+            WillEngine::VulkanUtil::loadTextureImage(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
+                vulkanWindow->vulkanEngine->commandPool, vulkanWindow->graphicsQueue, material->vulkanImage, 1, material->width, material->height, material->textureImage->data);
+       
+            // Free the image from the cpu
+            material->freeTextureImage();
+        }
+
         vulkanWindow->vulkanEngine->meshes.insert(vulkanWindow->vulkanEngine->meshes.end(), loadedMeshes.begin(), loadedMeshes.end());
+        vulkanWindow->vulkanEngine->materials.insert(vulkanWindow->vulkanEngine->materials.end(), loadedMaterials.begin(), loadedMaterials.end());
     }
 }
 

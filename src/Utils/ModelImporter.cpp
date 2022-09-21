@@ -3,7 +3,8 @@
 
 #include "Utils/Image.h"
 
-std::vector<Mesh*> WillEngine::Utils::readModel(const char* filename)
+std::tuple<std::vector<Mesh*>, std::vector<Material*>>
+	WillEngine::Utils::readModel(const char* filename)
 {
 	Assimp::Importer importer;
 
@@ -21,16 +22,20 @@ std::vector<Mesh*> WillEngine::Utils::readModel(const char* filename)
 	}
 	else
 	{
-		return std::vector<Mesh*>();
+		return { std::vector<Mesh*>() , std::vector<Material*>() };
 	}
 }
 
-std::vector<Mesh*> WillEngine::Utils::extractScene(const aiScene* scene)
+std::tuple<std::vector<Mesh*>, std::vector<Material*>> 
+	WillEngine::Utils::extractScene(const aiScene* scene)
 {
 	aiVector3D* zero3D(0);
 
 	std::vector<Mesh*> meshes;
 	meshes.reserve(scene->mNumMeshes);
+
+	std::vector<Material*> materials;
+	materials.reserve(scene->mNumMaterials);
 
 	// Extract Mesh data
 	for (u32 i = 0; i < scene->mNumMeshes; i++)
@@ -81,6 +86,8 @@ std::vector<Mesh*> WillEngine::Utils::extractScene(const aiScene* scene)
 		mesh->indiciesSize = mesh->indicies.size();
 
 		mesh->primitive = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+		mesh->materialIndex = currentAiMesh->mMaterialIndex;
 
 		meshes.emplace_back(mesh);
 	}
@@ -134,9 +141,11 @@ std::vector<Mesh*> WillEngine::Utils::extractScene(const aiScene* scene)
 
 		printf("Color: %f, %f, %f\n", material->color.x, material->color.y, 
 			material->color.z);
+
+		materials.emplace_back(material);
 	}
 
-	return meshes;
+	return { meshes, materials };
 }
 
 void WillEngine::Utils::loadTexture(Material* material)

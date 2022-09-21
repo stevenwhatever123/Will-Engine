@@ -10,6 +10,7 @@ class Mesh
 public:
 
 	std::string name;
+	u32 materialIndex;
 
 	std::vector<vec3> positions;
 	std::vector<vec3> normals;
