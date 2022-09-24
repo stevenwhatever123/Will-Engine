@@ -213,6 +213,22 @@ void WillEngine::VulkanUtil::createImageView(VkDevice& logicalDevice, VkImage& i
         throw std::runtime_error("Failed to create image view");
 }
 
+void WillEngine::VulkanUtil::createDefaultSampler(VkDevice& logicalDevice, VkSampler& sampler)
+{
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
+
+    if (vkCreateSampler(logicalDevice, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create sampler");
+}
+
 VulkanAllocatedMemory WillEngine::VulkanUtil::createBuffer(VmaAllocator& vmaAllocator, u64 allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage)
 {
     VkBufferCreateInfo bufferInfo{};

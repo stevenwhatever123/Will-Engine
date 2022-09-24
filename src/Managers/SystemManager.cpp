@@ -100,10 +100,21 @@ void SystemManager::updateInputs()
 
         u32 currentMaterialSize = materials.size();
 
-        // Modify mesh's material index based on the current size of materials
-        for (Mesh* mesh : loadedMeshes)
+        for (Material* material : loadedMaterials)
         {
-            mesh->materialIndex = currentMaterialSize + mesh->materialIndex;
+            if (!material->hasTexture()) continue;
+
+            material->vulkanImage = WillEngine::VulkanUtil::createImage(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
+                material->vulkanImage.image, VK_FORMAT_R8G8B8A8_SRGB, material->width, material->height);
+
+            WillEngine::VulkanUtil::loadTextureImage(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
+                vulkanWindow->vulkanEngine->commandPool, vulkanWindow->graphicsQueue, material->vulkanImage, 1, material->width, material->height, material->textureImage->data);
+
+            // Free the image from the cpu
+            material->freeTextureImage();
+
+            material->initDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->descriptorPool, 
+                vulkanWindow->vulkanEngine->sampler);
         }
 
         for (Mesh* mesh : loadedMeshes)
@@ -111,26 +122,23 @@ void SystemManager::updateInputs()
             mesh->uploadDataToPhysicalDevice(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator, vulkanWindow->surface,
                 vulkanWindow->graphicsQueue);
 
+            VkDescriptorSetLayout layouts[] = { vulkanWindow->vulkanEngine->sceneDescriptorSetLayout ,
+                loadedMaterials[mesh->materialIndex]->descriptorSetLayout };
+
+            u32 descriptorSetLayoutSize = sizeof(layouts) / sizeof(layouts[0]);
+
             WillEngine::VulkanUtil::createPipelineLayout(vulkanWindow->logicalDevice, mesh->pipelineLayout,
-                1, &vulkanWindow->vulkanEngine->sceneDescriptorSetLayout);
+                descriptorSetLayoutSize, layouts);
             WillEngine::VulkanUtil::createPipeline(vulkanWindow->logicalDevice, mesh->pipeline, mesh->pipelineLayout,
                 vulkanWindow->vulkanEngine->renderPass, mesh->vertShader, mesh->fragShader, mesh->primitive, vulkanWindow->vulkanEngine->swapchainExtent);
         
             mesh->dataUploaded();
         }
 
-        for (Material* material : loadedMaterials)
+        // Modify mesh's material index based on the current size of materials
+        for (Mesh* mesh : loadedMeshes)
         {
-            if (!material->hasTexture()) continue;
-
-            material->vulkanImage = WillEngine::VulkanUtil::createImage(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
-                material->vulkanImage.image, VK_FORMAT_R8G8B8A8_SRGB, material->width, material->height);
-        
-            WillEngine::VulkanUtil::loadTextureImage(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
-                vulkanWindow->vulkanEngine->commandPool, vulkanWindow->graphicsQueue, material->vulkanImage, 1, material->width, material->height, material->textureImage->data);
-       
-            // Free the image from the cpu
-            material->freeTextureImage();
+            mesh->materialIndex = currentMaterialSize + mesh->materialIndex;
         }
 
         vulkanWindow->vulkanEngine->meshes.insert(vulkanWindow->vulkanEngine->meshes.end(), loadedMeshes.begin(), loadedMeshes.end());

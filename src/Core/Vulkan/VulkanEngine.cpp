@@ -24,6 +24,7 @@ VulkanEngine::VulkanEngine() :
 	sceneDescriptorSetLayout(VK_NULL_HANDLE),
 	sceneDescriptorSet(VK_NULL_HANDLE),
 	sceneUniformBuffer({VK_NULL_HANDLE, VK_NULL_HANDLE}),
+	sampler(VK_NULL_HANDLE),
 	sceneMatrix(1)
 {
 
@@ -67,6 +68,7 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 
 	updateSceneDescriptorSet(logicalDevice, sceneDescriptorSet, sceneUniformBuffer.buffer);
 
+	WillEngine::VulkanUtil::createDefaultSampler(logicalDevice, sampler);
 }
 
 void VulkanEngine::cleanup(VkDevice& logicalDevice)
@@ -78,15 +80,14 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &sceneDescriptorSet);
 	vkDestroyDescriptorSetLayout(logicalDevice, sceneDescriptorSetLayout, nullptr);
 
-	// Destroy Descriptor Pool
-	vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
-
-	// Destroyb all data from a material
+	// Destroy all data from a material
 	for (auto* material : materials)
 	{
-		material->cleanUp(logicalDevice, vmaAllocator);
+		material->cleanUp(logicalDevice, vmaAllocator, descriptorPool);
 		delete material;
 	}
+
+	vkDestroySampler(logicalDevice, sampler, nullptr);
 
 	// Destroy all data from a mesh
 	for (auto* mesh : meshes)
@@ -94,6 +95,9 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 		mesh->cleanup(logicalDevice, vmaAllocator);
 		delete mesh;
 	}
+
+	// Destroy Descriptor Pool
+	vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
 
 	// Destroy Scene Descriptor Uniform Buffer
 	vmaDestroyBuffer(vmaAllocator, sceneUniformBuffer.buffer, sceneUniformBuffer.allocation);
@@ -540,7 +544,12 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& 
 		// Bind Scene Uniform Buffer
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mesh->pipelineLayout, 0, 1, &sceneDescriptorSet, 0, nullptr);
 
-		//vkCmdDraw(commandBuffer, mesh->positions.size(), 1, 0, 0);
+		// Bind Texture if available
+		if (materials[mesh->materialIndex]->hasTexture())
+		{
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mesh->pipelineLayout, 1, 1, &materials[mesh->materialIndex]->descriptorSet, 0, nullptr);
+		}
+
 		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 	}
 

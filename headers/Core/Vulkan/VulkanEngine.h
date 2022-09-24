@@ -75,9 +75,8 @@ public:
 	// Scene Uniform buffer
 	VulkanAllocatedMemory sceneUniformBuffer;
 
-	// Pipeline and Piplien Layout
-	VkPipelineLayout pipelineLayout;
-	VkPipeline pipeline;
+	// Image Sampler
+	VkSampler sampler;
 
 private:
 

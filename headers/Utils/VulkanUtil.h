@@ -38,6 +38,9 @@ namespace WillEngine::VulkanUtil
 
 	void createImageView(VkDevice& logicalDevice, VkImage& image, VkImageView& imageView, VkFormat format, VkImageAspectFlags aspectMask);
 
+	// Samplers
+	void createDefaultSampler(VkDevice& logicalDevice, VkSampler& sampler);
+
 	// Buffers
 	VulkanAllocatedMemory createBuffer(VmaAllocator& vmaAllocator, u64 allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 
