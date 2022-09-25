@@ -545,10 +545,7 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& 
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mesh->pipelineLayout, 0, 1, &sceneDescriptorSet, 0, nullptr);
 
 		// Bind Texture if available
-		if (materials[mesh->materialIndex]->hasTexture())
-		{
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mesh->pipelineLayout, 1, 1, &materials[mesh->materialIndex]->descriptorSet, 0, nullptr);
-		}
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mesh->pipelineLayout, 1, 1, &materials[mesh->materialIndex]->textureDescriptorSet, 0, nullptr);
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 	}

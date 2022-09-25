@@ -102,8 +102,6 @@ void SystemManager::updateInputs()
 
         for (Material* material : loadedMaterials)
         {
-            if (!material->hasTexture()) continue;
-
             material->vulkanImage = WillEngine::VulkanUtil::createImage(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
                 material->vulkanImage.image, VK_FORMAT_R8G8B8A8_SRGB, material->width, material->height);
 
@@ -111,7 +109,8 @@ void SystemManager::updateInputs()
                 vulkanWindow->vulkanEngine->commandPool, vulkanWindow->graphicsQueue, material->vulkanImage, 1, material->width, material->height, material->textureImage->data);
 
             // Free the image from the cpu
-            material->freeTextureImage();
+            if(material->hasTexture())
+                material->freeTextureImage();
 
             material->initDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->descriptorPool, 
                 vulkanWindow->vulkanEngine->sampler);
@@ -123,7 +122,7 @@ void SystemManager::updateInputs()
                 vulkanWindow->graphicsQueue);
 
             VkDescriptorSetLayout layouts[] = { vulkanWindow->vulkanEngine->sceneDescriptorSetLayout ,
-                loadedMaterials[mesh->materialIndex]->descriptorSetLayout };
+                loadedMaterials[mesh->materialIndex]->textureDescriptorSetLayout };
 
             u32 descriptorSetLayoutSize = sizeof(layouts) / sizeof(layouts[0]);
 
@@ -148,7 +147,7 @@ void SystemManager::updateInputs()
 
 void SystemManager::updateCamera()
 {
-    f32 speed = 5.0f;
+    f32 speed = 50.0f;
 
     if (keys['W']) { camera->moveForward(speed * (f32) deltaTime); }
     if (keys['S']) { camera->moveForward(-speed * (f32) deltaTime); }

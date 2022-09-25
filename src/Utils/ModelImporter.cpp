@@ -11,7 +11,7 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 	const aiScene* scene = importer.ReadFile(
 		filename,
 		aiProcess_Triangulate |
-		//aiProcess_FlipUVs |
+		aiProcess_FlipUVs |
 		aiProcess_GenSmoothNormals |
 		aiProcess_JoinIdenticalVertices
 	);
@@ -134,9 +134,22 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 		material->color.z = color.b;
 		material->color.w = 1.0f;
 
+		material->width = 1;
+		material->height = 1;
+		material->textureImage->setImageColor(material->color);
+
 		if (material->hasTexture())
 		{
 			loadTexture(material);
+
+			if (!material->textureImage->data)
+			{
+				material->has_texture = false;
+
+				material->width = 1;
+				material->height = 1;
+				material->textureImage->setImageColor(material->color);
+			}
 		}
 
 		printf("Color: %f, %f, %f\n", material->color.x, material->color.y, 
