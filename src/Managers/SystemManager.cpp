@@ -109,8 +109,7 @@ void SystemManager::updateInputs()
                 vulkanWindow->vulkanEngine->commandPool, vulkanWindow->graphicsQueue, material->vulkanImage, 1, material->width, material->height, material->textureImage->data);
 
             // Free the image from the cpu
-            if(material->hasTexture())
-                material->freeTextureImage();
+            material->freeTextureImage();
 
             material->initDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->descriptorPool, 
                 vulkanWindow->vulkanEngine->sampler);

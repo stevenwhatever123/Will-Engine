@@ -142,6 +142,7 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 		{
 			loadTexture(material);
 
+			// Use the color as the texture if we cannot load the texture
 			if (!material->textureImage->data)
 			{
 				material->has_texture = false;
