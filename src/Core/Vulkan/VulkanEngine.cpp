@@ -21,6 +21,8 @@ VulkanEngine::VulkanEngine() :
 	renderFinished(VK_NULL_HANDLE),
 	fences(),
 	descriptorPool(VK_NULL_HANDLE),
+	defaultPipelineLayout(VK_NULL_HANDLE),
+	defaultPipeline(VK_NULL_HANDLE),
 	sceneDescriptorSetLayout(VK_NULL_HANDLE),
 	sceneDescriptorSet(VK_NULL_HANDLE),
 	sceneUniformBuffer({VK_NULL_HANDLE, VK_NULL_HANDLE}),
@@ -59,6 +61,7 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 
 	createDescriptionPool(logicalDevice);
 
+	// Scene Descriptors
 	createSceneUniformBuffers(logicalDevice, sceneUniformBuffer);
 
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, sceneDescriptorSetLayout, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -142,15 +145,22 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
 }
 
-void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue graphicsQueue)
+void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, 
+	VkQueue graphicsQueue)
 {
 	// Acquire next image of the swapchain
 	u32 imageIndex = 0;
 	const VkResult res = vkAcquireNextImageKHR(logicalDevice, swapchain, std::numeric_limits<u64>::max(), imageAvailable, VK_NULL_HANDLE, &imageIndex);
 
-	if (res == VK_ERROR_OUT_OF_DATE_KHR)
+	if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR)
 	{
 		printf("HAHA you resized the window!\n");
+		
+		vkDeviceWaitIdle(logicalDevice);
+
+		recreateSwapchain(window, logicalDevice, physicalDevice, surface);
+
+		return;
 	}
 
 	if (res != VK_SUCCESS)
@@ -319,6 +329,80 @@ void VulkanEngine::createSwapchainImageViews(VkDevice& logicalDevice)
 	{
 		WillEngine::VulkanUtil::createImageView(logicalDevice, swapchainImages[i], swapchainImageViews[i], swapchainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
+}
+
+void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface)
+{
+	auto const oldFormat = swapchainImageFormat;
+	auto const oldExtent = swapchainExtent;
+
+	// Destroy old objects
+	VkSwapchainKHR oldSwapchain = swapchain;
+
+	for (auto view : swapchainImageViews)
+		vkDestroyImageView(logicalDevice, view, nullptr);
+
+	swapchainImageViews.clear();
+	swapchainImages.clear();
+
+	// Destroy the old swapchain
+	vkDestroySwapchainKHR(logicalDevice, oldSwapchain, nullptr);
+
+	// Create new swapchains
+	createSwapchain(window, logicalDevice, physicalDevice, surface);
+
+	// Get swap chain image and create associate image views
+	getSwapchainImages(logicalDevice);
+	createSwapchainImageViews(logicalDevice);
+
+	// Determine which chain properties have changed and change render pass or depth buffer accordingly
+	bool extentChanged = false;
+	bool formatChanged = false;
+	if (oldExtent.width != swapchainExtent.width || oldExtent.height != swapchainExtent.height)
+		extentChanged = true;
+
+	if (oldFormat != swapchainImageFormat)
+		formatChanged = true;
+
+	if (formatChanged)
+		createRenderPass(logicalDevice, swapchainImageFormat, depthFormat);
+
+	if (extentChanged)
+	{
+		// Destroy the old depth buffer
+		vkDestroyImageView(logicalDevice, depthImageView, nullptr);
+		vmaDestroyImage(vmaAllocator, depthImage, depthImageAllocation);
+
+		// Create a new depth buffer
+		createDepthBuffer(logicalDevice, vmaAllocator, swapchainExtent);
+	}
+
+	// Recreate framebuffers
+	for (auto framebuffer : framebuffers)
+		vkDestroyFramebuffer(logicalDevice, framebuffer, nullptr);
+
+	framebuffers.clear();
+
+	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, renderPass, depthImageView, swapchainExtent);
+
+	if (extentChanged)
+	{
+		for (auto mesh : meshes)
+		{
+			// Destroy old pipeline
+			vkDestroyPipeline(logicalDevice, mesh->pipeline, nullptr);
+
+			// Destroy shader modules
+			vkDestroyShaderModule(logicalDevice, mesh->vertShader, nullptr);
+			vkDestroyShaderModule(logicalDevice, mesh->fragShader, nullptr);
+
+			// Create new pipeline
+			WillEngine::VulkanUtil::createPipeline(logicalDevice, mesh->pipeline, mesh->pipelineLayout, renderPass, mesh->vertShader,
+				mesh->fragShader, mesh->primitive, swapchainExtent);
+		}
+	}
+
+	//vkDeviceWaitIdle(logicalDevice);
 }
 
 void VulkanEngine::createDepthBuffer(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, const VkExtent2D& swapchainExtent)

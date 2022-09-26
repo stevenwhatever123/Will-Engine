@@ -68,6 +68,10 @@ public:
 
 	VkDescriptorPool descriptorPool;
 
+	// Pipeline and pipeline layout
+	VkPipelineLayout defaultPipelineLayout;
+	VkPipeline defaultPipeline;
+
 	// Descriptor sets
 	VkDescriptorSetLayout sceneDescriptorSetLayout;
 	VkDescriptorSet sceneDescriptorSet;
@@ -99,6 +103,7 @@ public:
 	void createSwapchain(GLFWwindow* window, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface);
 	void getSwapchainImages(VkDevice& logicalDevice);
 	void createSwapchainImageViews(VkDevice& logicalDevice);
+	void recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface);
 
 	void createRenderPass(VkDevice& logicalDevice, VkFormat& format, const VkFormat& depthFormat);
 
