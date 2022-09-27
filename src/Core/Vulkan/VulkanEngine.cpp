@@ -392,10 +392,6 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 			// Destroy old pipeline
 			vkDestroyPipeline(logicalDevice, mesh->pipeline, nullptr);
 
-			// Destroy shader modules
-			vkDestroyShaderModule(logicalDevice, mesh->vertShader, nullptr);
-			vkDestroyShaderModule(logicalDevice, mesh->fragShader, nullptr);
-
 			// Create new pipeline
 			WillEngine::VulkanUtil::createPipeline(logicalDevice, mesh->pipeline, mesh->pipelineLayout, renderPass, mesh->vertShader,
 				mesh->fragShader, mesh->primitive, swapchainExtent);

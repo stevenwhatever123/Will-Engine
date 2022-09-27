@@ -42,6 +42,8 @@ public:
 
 	void uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkSurfaceKHR& surface, VkQueue& queue);
 
+	void initShaderModules(VkDevice& logicalDevice);
+
 	void dataUploaded();
 
 	void cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator);

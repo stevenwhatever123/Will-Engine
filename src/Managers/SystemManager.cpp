@@ -125,6 +125,8 @@ void SystemManager::updateInputs()
 
             u32 descriptorSetLayoutSize = sizeof(layouts) / sizeof(layouts[0]);
 
+            mesh->initShaderModules(vulkanWindow->logicalDevice);
+
             WillEngine::VulkanUtil::createPipelineLayout(vulkanWindow->logicalDevice, mesh->pipelineLayout,
                 descriptorSetLayoutSize, layouts);
             WillEngine::VulkanUtil::createPipeline(vulkanWindow->logicalDevice, mesh->pipeline, mesh->pipelineLayout,

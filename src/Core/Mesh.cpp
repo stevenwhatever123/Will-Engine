@@ -155,6 +155,21 @@ void Mesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice&
 	vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
 }
 
+void Mesh::initShaderModules(VkDevice& logicalDevice)
+{
+	//const char* vertShaderPath = "C:/Users/Steven/Documents/GitHub/Will-Engine/shaders/compiled_shaders/shader.vert.spv";
+	//const char* fragShaderPath = "C:/Users/Steven/Documents/GitHub/Will-Engine/shaders/compiled_shaders/shader.frag.spv";
+
+	const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/shader.vert.spv";
+	const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/shader.frag.spv";
+
+	auto vertShaderCode = WillEngine::Utils::readSprivShader(vertShaderPath);
+	auto fragShaderCode = WillEngine::Utils::readSprivShader(fragShaderPath);
+
+	vertShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, vertShaderCode);
+	fragShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, fragShaderCode);
+}
+
 void Mesh::dataUploaded()
 {
 	positions.clear();
