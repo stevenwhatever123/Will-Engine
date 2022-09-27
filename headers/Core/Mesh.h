@@ -21,9 +21,6 @@ public:
 
 	u32 indiciesSize;
 
-	VkShaderModule vertShader;
-	VkShaderModule fragShader;
-
 	// Vertex Buffer
 	VulkanAllocatedMemory positionBuffer;
 	VulkanAllocatedMemory normalBuffer;
@@ -32,17 +29,12 @@ public:
 
 	VkPrimitiveTopology primitive;
 
-	VkPipelineLayout pipelineLayout;
-	VkPipeline pipeline;
-
 public:
 
 	Mesh();
 	~Mesh();
 
 	void uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkSurfaceKHR& surface, VkQueue& queue);
-
-	void initShaderModules(VkDevice& logicalDevice);
 
 	void dataUploaded();
 

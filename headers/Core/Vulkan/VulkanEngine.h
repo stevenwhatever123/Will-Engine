@@ -45,9 +45,8 @@ public:
 	VkExtent2D swapchainExtent;
 
 	// Depth buffer
+	VulkanAllocatedImage depthImage;
 	VkImageView depthImageView;
-	VkImage depthImage;
-	VmaAllocation depthImageAllocation;
 
 	// Framebuffer
 	// Stored as a vector as there are multiple framebuffers in a swapchain
@@ -72,12 +71,18 @@ public:
 	VkPipelineLayout defaultPipelineLayout;
 	VkPipeline defaultPipeline;
 
-	// Descriptor sets
+	// Scene Descriptor sets
 	VkDescriptorSetLayout sceneDescriptorSetLayout;
 	VkDescriptorSet sceneDescriptorSet;
-
 	// Scene Uniform buffer
 	VulkanAllocatedMemory sceneUniformBuffer;
+
+	// Texture Descriptor sets
+	VkDescriptorSetLayout textureDescriptorSetLayout;
+
+	// Shader modules
+	VkShaderModule defaultVertShader;
+	VkShaderModule defaultFragShader;
 
 	// Image Sampler
 	VkSampler sampler;

@@ -12,8 +12,7 @@ VulkanEngine::VulkanEngine() :
 	swapchainImageFormat(),
 	swapchainExtent(),
 	depthImageView(VK_NULL_HANDLE),
-	depthImage(VK_NULL_HANDLE),
-	depthImageAllocation(VK_NULL_HANDLE),
+	depthImage({ VK_NULL_HANDLE, VK_NULL_HANDLE }),
 	framebuffers(),
 	commandPool(VK_NULL_HANDLE),
 	commandBuffers(),
@@ -26,6 +25,9 @@ VulkanEngine::VulkanEngine() :
 	sceneDescriptorSetLayout(VK_NULL_HANDLE),
 	sceneDescriptorSet(VK_NULL_HANDLE),
 	sceneUniformBuffer({VK_NULL_HANDLE, VK_NULL_HANDLE}),
+	textureDescriptorSetLayout(VK_NULL_HANDLE),
+	defaultVertShader(VK_NULL_HANDLE),
+	defaultFragShader(VK_NULL_HANDLE),
 	sampler(VK_NULL_HANDLE),
 	sceneMatrix(1)
 {
@@ -71,6 +73,24 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 
 	updateSceneDescriptorSet(logicalDevice, sceneDescriptorSet, sceneUniformBuffer.buffer);
 
+	// Texture Descriptor
+	// We only need to know the layout of the descriptor
+	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+
+	// Shader Modules
+	WillEngine::VulkanUtil::initShaderModule(logicalDevice, defaultVertShader, defaultFragShader);
+
+	// Create pipeline and pipeline layout
+	VkDescriptorSetLayout layouts[] = { sceneDescriptorSetLayout, textureDescriptorSetLayout };
+
+	u32 descriptorSetLayoutSize = sizeof(layouts) / sizeof(layouts[0]);
+
+	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, defaultPipelineLayout,
+		descriptorSetLayoutSize, layouts);
+
+	WillEngine::VulkanUtil::createPipeline(logicalDevice, defaultPipeline, defaultPipelineLayout,
+		renderPass, defaultVertShader, defaultFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
+
 	WillEngine::VulkanUtil::createDefaultSampler(logicalDevice, sampler);
 }
 
@@ -80,8 +100,19 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	vkDeviceWaitIdle(logicalDevice);
 
 	// Destroy Descriptor sets / layouts
+	// Scene
 	vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &sceneDescriptorSet);
 	vkDestroyDescriptorSetLayout(logicalDevice, sceneDescriptorSetLayout, nullptr);
+	// Texture
+	vkDestroyDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, nullptr);
+
+	// Destroy default pipeline and pipeline layout
+	vkDestroyPipeline(logicalDevice, defaultPipeline, nullptr);
+	vkDestroyPipelineLayout(logicalDevice, defaultPipelineLayout, nullptr);
+
+	// Destroy default shader modules
+	vkDestroyShaderModule(logicalDevice, defaultVertShader, nullptr);
+	vkDestroyShaderModule(logicalDevice, defaultFragShader, nullptr);
 
 	// Destroy all data from a material
 	for (auto* material : materials)
@@ -126,7 +157,7 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	}
 
 	// Destroy depth buffer
-	vmaDestroyImage(vmaAllocator, depthImage, depthImageAllocation);
+	vmaDestroyImage(vmaAllocator, depthImage.image, depthImage.allocation);
 	vkDestroyImageView(logicalDevice, depthImageView, nullptr);
 
 	// Destroy swapchain imageview
@@ -371,7 +402,7 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 	{
 		// Destroy the old depth buffer
 		vkDestroyImageView(logicalDevice, depthImageView, nullptr);
-		vmaDestroyImage(vmaAllocator, depthImage, depthImageAllocation);
+		vmaDestroyImage(vmaAllocator, depthImage.image, depthImage.allocation);
 
 		// Create a new depth buffer
 		createDepthBuffer(logicalDevice, vmaAllocator, swapchainExtent);
@@ -390,11 +421,11 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 		for (auto mesh : meshes)
 		{
 			// Destroy old pipeline
-			vkDestroyPipeline(logicalDevice, mesh->pipeline, nullptr);
+			vkDestroyPipeline(logicalDevice, defaultPipeline, nullptr);
 
 			// Create new pipeline
-			WillEngine::VulkanUtil::createPipeline(logicalDevice, mesh->pipeline, mesh->pipelineLayout, renderPass, mesh->vertShader,
-				mesh->fragShader, mesh->primitive, swapchainExtent);
+			WillEngine::VulkanUtil::createPipeline(logicalDevice, defaultPipeline, defaultPipelineLayout, renderPass, defaultVertShader,
+				defaultFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
 		}
 	}
 
@@ -422,11 +453,11 @@ void VulkanEngine::createDepthBuffer(VkDevice& logicalDevice, VmaAllocator& vmaA
 	depthImageAllocationInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
 	// Create depth buffer
-	if (vmaCreateImage(vmaAllocator, &depthImageInfo, &depthImageAllocationInfo, &depthImage, &depthImageAllocation, nullptr) != VK_SUCCESS)
+	if (vmaCreateImage(vmaAllocator, &depthImageInfo, &depthImageAllocationInfo, &depthImage.image, &depthImage.allocation, nullptr) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create depth image");
 
 	// Create depth buffer image view
-	WillEngine::VulkanUtil::createImageView(logicalDevice, depthImage, depthImageView, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+	WillEngine::VulkanUtil::createImageView(logicalDevice, depthImage.image, depthImageView, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
 void VulkanEngine::createSwapchainFramebuffer(VkDevice& logicalDevice, std::vector<VkImageView>& swapchainImageViews,
@@ -607,11 +638,11 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& 
 	//=============================
 	// Record rendering command here
 
+	// Bind default pipeline
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipeline);
+
 	for (auto mesh : meshes)
 	{
-		// Bind pipeline
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mesh->pipeline);
-
 		VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
 
 		VkDeviceSize offsets[3]{};
@@ -622,10 +653,10 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& 
 		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 		// Bind Scene Uniform Buffer
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mesh->pipelineLayout, 0, 1, &sceneDescriptorSet, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 0, 1, &sceneDescriptorSet, 0, nullptr);
 
-		// Bind Texture if available
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mesh->pipelineLayout, 1, 1, &materials[mesh->materialIndex]->textureDescriptorSet, 0, nullptr);
+		// Bind Texture
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 1, 1, &materials[mesh->materialIndex]->textureDescriptorSet, 0, nullptr);
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 	}

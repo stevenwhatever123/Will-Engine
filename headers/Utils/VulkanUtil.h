@@ -62,6 +62,7 @@ namespace WillEngine::VulkanUtil
 
 	// ShaderModule
 	VkShaderModule createShaderModule(VkDevice& logicalDevice, std::vector<char>& shaderCode);
+	void initShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader);
 
 	// Descriptors related
 	void createDescriptorSetLayout(VkDevice& logicalDevice, VkDescriptorSetLayout& descriptorSetLayout,VkDescriptorType descriptorType, VkShaderStageFlags shaderStage);
@@ -74,5 +75,5 @@ namespace WillEngine::VulkanUtil
 		VkDescriptorSetLayout* descriptorSetLayout);
 
 	void createPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass, 
-		VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology& primitive, VkExtent2D swapchainExtent);
+		VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D swapchainExtent);
 }

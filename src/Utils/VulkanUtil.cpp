@@ -349,6 +349,21 @@ VkShaderModule WillEngine::VulkanUtil::createShaderModule(VkDevice& logicalDevic
     return shaderModule;
 }
 
+void WillEngine::VulkanUtil::initShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader)
+{
+    //const char* vertShaderPath = "C:/Users/Steven/Documents/GitHub/Will-Engine/shaders/compiled_shaders/shader.vert.spv";
+    //const char* fragShaderPath = "C:/Users/Steven/Documents/GitHub/Will-Engine/shaders/compiled_shaders/shader.frag.spv";
+
+    const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/shader.vert.spv";
+    const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/shader.frag.spv";
+
+    auto vertShaderCode = WillEngine::Utils::readSprivShader(vertShaderPath);
+    auto fragShaderCode = WillEngine::Utils::readSprivShader(fragShaderPath);
+
+    vertShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, vertShaderCode);
+    fragShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, fragShaderCode);
+}
+
 void WillEngine::VulkanUtil::createDescriptorSetLayout(VkDevice& logicalDevice, VkDescriptorSetLayout& descriptorSetLayout,
     VkDescriptorType descriptorType, VkShaderStageFlags shaderStage)
 {
@@ -393,7 +408,7 @@ void WillEngine::VulkanUtil::createPipelineLayout(VkDevice& logicalDevice, VkPip
 }
 
 void WillEngine::VulkanUtil::createPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass, 
-    VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology& primitive, VkExtent2D swapchainExtent)
+    VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D swapchainExtent)
 {
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;

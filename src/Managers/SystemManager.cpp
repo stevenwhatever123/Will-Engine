@@ -119,18 +119,6 @@ void SystemManager::updateInputs()
         {
             mesh->uploadDataToPhysicalDevice(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator, vulkanWindow->surface,
                 vulkanWindow->graphicsQueue);
-
-            VkDescriptorSetLayout layouts[] = { vulkanWindow->vulkanEngine->sceneDescriptorSetLayout ,
-                loadedMaterials[mesh->materialIndex]->textureDescriptorSetLayout };
-
-            u32 descriptorSetLayoutSize = sizeof(layouts) / sizeof(layouts[0]);
-
-            mesh->initShaderModules(vulkanWindow->logicalDevice);
-
-            WillEngine::VulkanUtil::createPipelineLayout(vulkanWindow->logicalDevice, mesh->pipelineLayout,
-                descriptorSetLayoutSize, layouts);
-            WillEngine::VulkanUtil::createPipeline(vulkanWindow->logicalDevice, mesh->pipeline, mesh->pipelineLayout,
-                vulkanWindow->vulkanEngine->renderPass, mesh->vertShader, mesh->fragShader, mesh->primitive, vulkanWindow->vulkanEngine->swapchainExtent);
         
             mesh->dataUploaded();
         }

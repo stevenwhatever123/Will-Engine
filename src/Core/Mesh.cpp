@@ -9,15 +9,11 @@ Mesh::Mesh() :
 	uvs(),
 	indicies(),
 	indiciesSize(0),
-	vertShader(VK_NULL_HANDLE),
-	fragShader(VK_NULL_HANDLE),
 	positionBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
 	normalBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
 	uvBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
 	indexBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
-	primitive(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST),
-	pipelineLayout(VK_NULL_HANDLE),
-	pipeline(VK_NULL_HANDLE)
+	primitive(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 {
 
 }
@@ -155,21 +151,6 @@ void Mesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice&
 	vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
 }
 
-void Mesh::initShaderModules(VkDevice& logicalDevice)
-{
-	//const char* vertShaderPath = "C:/Users/Steven/Documents/GitHub/Will-Engine/shaders/compiled_shaders/shader.vert.spv";
-	//const char* fragShaderPath = "C:/Users/Steven/Documents/GitHub/Will-Engine/shaders/compiled_shaders/shader.frag.spv";
-
-	const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/shader.vert.spv";
-	const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/shader.frag.spv";
-
-	auto vertShaderCode = WillEngine::Utils::readSprivShader(vertShaderPath);
-	auto fragShaderCode = WillEngine::Utils::readSprivShader(fragShaderPath);
-
-	vertShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, vertShaderCode);
-	fragShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, fragShaderCode);
-}
-
 void Mesh::dataUploaded()
 {
 	positions.clear();
@@ -196,13 +177,4 @@ void Mesh::cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator)
 
 	// Index Buffer
 	vmaDestroyBuffer(vmaAllocator, indexBuffer.buffer, indexBuffer.allocation);
-
-	// Pipeline
-	vkDestroyPipeline(logicalDevice, pipeline, nullptr);
-
-	// Pipeline layout
-	vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
-
-	vkDestroyShaderModule(logicalDevice, vertShader, nullptr);
-	vkDestroyShaderModule(logicalDevice, fragShader, nullptr);
 }
