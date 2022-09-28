@@ -29,7 +29,7 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 std::tuple<std::vector<Mesh*>, std::vector<Material*>> 
 	WillEngine::Utils::extractScene(const aiScene* scene)
 {
-	aiVector3D* zero3D(0);
+	const aiVector3D zero3D(0.0f, 0.0f, 0.0f);
 
 	std::vector<Mesh*> meshes;
 	meshes.reserve(scene->mNumMeshes);
@@ -56,7 +56,7 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 
 		const aiVector3D* pVertex = currentAiMesh->mVertices;
 		const aiVector3D* pNormal = currentAiMesh->mNormals;
-		const aiVector3D* pUV = hasTexture ? currentAiMesh->mTextureCoords[0] : zero3D;
+		const aiVector3D* pUV = hasTexture ? currentAiMesh->mTextureCoords[0] : &zero3D;
 
 		for (u64 j = 0; j < currentAiMesh->mNumVertices; j++)
 		{
