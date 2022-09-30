@@ -35,6 +35,9 @@ public:
 	VkDescriptorSetLayout textureDescriptorSetLayout;
 	VkDescriptorSet textureDescriptorSet;
 
+	// Texture Descriptor Set for imgui UI
+	VkDescriptorSet imguiTextureDescriptorSet;
+
 	VkDescriptorSetLayout materialDescriptorSetLayout;
 	VkDescriptorSet materialDescriptorSet;
 

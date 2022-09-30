@@ -14,6 +14,7 @@ Material::Material() :
 	imageView(VK_NULL_HANDLE),
 	textureDescriptorSetLayout(VK_NULL_HANDLE),
 	textureDescriptorSet(VK_NULL_HANDLE),
+	imguiTextureDescriptorSet(VK_NULL_HANDLE),
 	materialDescriptorSetLayout(VK_NULL_HANDLE),
 	materialDescriptorSet(VK_NULL_HANDLE)
 {
@@ -60,6 +61,9 @@ void Material::initDescriptorSet(VkDevice& logicalDevice, VkDescriptorPool& desc
 	
 	// Allocate descriptor set
 	WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, textureDescriptorSetLayout, textureDescriptorSet);
+
+	// Descriptor Set for imgui texture
+	imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(sampler, imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 	// Update Descriptor Set
 	updateTextureDesciptorSet(logicalDevice, textureDescriptorSet, sampler);

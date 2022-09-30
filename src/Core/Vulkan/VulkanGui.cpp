@@ -102,8 +102,6 @@ void VulkanGui::init(GLFWwindow* window, VkInstance& instance, VkDevice& logical
 	vkDeviceWaitIdle(logicalDevice);
 
 	ImGui_ImplVulkan_DestroyFontUploadObjects();
-
-	// Vulkan window for Imgui
 }
 
 void VulkanGui::cleanUp(VkDevice& logicalDevice)
@@ -115,7 +113,7 @@ void VulkanGui::cleanUp(VkDevice& logicalDevice)
 	ImGui::DestroyContext();
 }
 
-void VulkanGui::update()
+void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& materials)
 {
 	ImGuiIO& io = ImGui::GetIO();
 
@@ -123,21 +121,33 @@ void VulkanGui::update()
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 
-	if (!io.WantCaptureKeyboard)
+	if(show_demo_window)
+		ImGui::ShowDemoWindow(&show_demo_window);
+
+	ImGui::Begin("Meshes Viewer");
+
+	for (u32 i = 0; i < meshes.size(); i++)
 	{
-		if (ImGui::IsKeyPressed(GLFW_KEY_F10))
+		ImGui::PushID(i);
+
+		if (ImGui::TreeNode(meshes[i]->name.c_str()))
 		{
-			printf("Hello\n");
+			ImGui::Text("Material: %s", materials[meshes[i]->materialIndex]->name.c_str());
+
+			ImGui::Image((ImTextureID) materials[meshes[i]->materialIndex]->imguiTextureDescriptorSet, ImVec2(200, 200));
+
+			ImGui::TreePop();
 		}
+
+		ImGui::PopID();
 	}
 
-	ImGui::ShowDemoWindow(&show_demo_window);
-
-	ImGui::Render();
+	ImGui::End();
 }
 
 void VulkanGui::renderUI(VkCommandBuffer& commandBuffer, VkExtent2D extent)
 {
+	ImGui::Render();
 	// Record ImGui rendering command
 	ImDrawData* draw_data = ImGui::GetDrawData();
 	const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);

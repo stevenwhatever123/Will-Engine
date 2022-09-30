@@ -188,9 +188,6 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, 
 	VkQueue graphicsQueue)
 {
-	// Update ImGui UI
-	updateGui();
-
 	// Acquire next image of the swapchain
 	u32 imageIndex = 0;
 	const VkResult res = vkAcquireNextImageKHR(logicalDevice, swapchain, std::numeric_limits<u64>::max(), imageAvailable, VK_NULL_HANDLE, &imageIndex);
@@ -221,6 +218,9 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 
 	// Make sure command buffer finishes executing
 	vkResetCommandBuffer(commandBuffers[imageIndex], 0);
+
+	// Update ImGui UI
+	updateGui();
 
 	recordCommands(commandBuffers[imageIndex], renderPass, framebuffers[imageIndex], swapchainExtent);
 
@@ -505,18 +505,7 @@ void VulkanEngine::createSwapchainFramebuffer(VkDevice& logicalDevice, std::vect
 
 void VulkanEngine::createCommandPool(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, VkCommandPool& commandPool)
 {
-	std::optional<u32> graphicsFamilyIndex = WillEngine::VulkanUtil::findQueueFamilies(physicalDevice, VK_QUEUE_GRAPHICS_BIT, surface);
-
-	if (!graphicsFamilyIndex.has_value())
-		throw std::runtime_error("Cannot retrieve graphics family index");
-
-	VkCommandPoolCreateInfo poolInfo{};
-	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	poolInfo.queueFamilyIndex = graphicsFamilyIndex.value();
-
-	if (vkCreateCommandPool(logicalDevice, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create command pool");
+	commandPool = WillEngine::VulkanUtil::createCommandPool(logicalDevice, physicalDevice, surface);
 }
 
 void VulkanEngine::createCommandBuffer(VkDevice& logicalDevice, std::vector<VkCommandBuffer>& commandBuffers)
@@ -526,15 +515,6 @@ void VulkanEngine::createCommandBuffer(VkDevice& logicalDevice, std::vector<VkCo
 	for (u32 i = 0; i < commandBuffers.size(); i++)
 	{
 		commandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPool);
-
-		//VkCommandBufferAllocateInfo allocateInfo{};
-		//allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		//allocateInfo.commandPool = commandPool;
-		//allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		//allocateInfo.commandBufferCount = 1;
-
-		//if (vkAllocateCommandBuffers(logicalDevice, &allocateInfo, &commandBuffers[i]) != VK_SUCCESS)
-		//	throw std::runtime_error("Failed to allocate command buffers");
 	}
 }
 
@@ -621,7 +601,7 @@ void VulkanEngine::initGui(GLFWwindow* window, VkInstance& instance, VkDevice& l
 
 void VulkanEngine::updateGui()
 {
-	vulkanGui->update();
+	vulkanGui->update(meshes, materials);
 }
 
 void VulkanEngine::updateSceneUniform(Camera* camera)
