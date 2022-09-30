@@ -20,6 +20,10 @@ private:
 
 public:
 
+	bool updateTexture = false;
+	u32 selectedMaterialIndex = 0;
+	std::string textureFilepath = "";
+
 	std::vector<Mesh*> meshes;
 	std::vector<Material*> materials;
 
@@ -140,7 +144,7 @@ public:
 
 	void initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue, VkSurfaceKHR& surface);
 
-	void updateGui();
+	void updateGui(VkDevice& logicalDevice, VkQueue& graphicsQueue);
 
 	// Update
 
@@ -158,4 +162,6 @@ private:
 	VkSurfaceFormatKHR selectSwapchainSurfaceFormat(std::vector<VkSurfaceFormatKHR>& availableSurfaceFormats);
 
 	VkPresentModeKHR selectSwapchainPresentMode(std::vector<VkPresentModeKHR>& presentModes);
+
+	void changeMaterialTexture(VkDevice& logicalDevice, VkQueue& graphicsQueue, bool& updateTexture, u32 materialIndex, std::string& filename);
 };

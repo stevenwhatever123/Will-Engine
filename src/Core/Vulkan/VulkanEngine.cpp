@@ -219,8 +219,14 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	// Make sure command buffer finishes executing
 	vkResetCommandBuffer(commandBuffers[imageIndex], 0);
 
+	// Update Texture
+	if (updateTexture)
+	{
+		changeMaterialTexture(logicalDevice, graphicsQueue, updateTexture, selectedMaterialIndex, textureFilepath);
+	}
+
 	// Update ImGui UI
-	updateGui();
+	updateGui(logicalDevice, graphicsQueue);
 
 	recordCommands(commandBuffers[imageIndex], renderPass, framebuffers[imageIndex], swapchainExtent);
 
@@ -430,15 +436,12 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 
 	if (extentChanged)
 	{
-		for (auto mesh : meshes)
-		{
-			// Destroy old pipeline
-			vkDestroyPipeline(logicalDevice, defaultPipeline, nullptr);
+		// Destroy old pipeline
+		vkDestroyPipeline(logicalDevice, defaultPipeline, nullptr);
 
-			// Create new pipeline
-			WillEngine::VulkanUtil::createPipeline(logicalDevice, defaultPipeline, defaultPipelineLayout, renderPass, defaultVertShader,
-				defaultFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
-		}
+		// Create new pipeline
+		WillEngine::VulkanUtil::createPipeline(logicalDevice, defaultPipeline, defaultPipelineLayout, renderPass, defaultVertShader,
+			defaultFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
 	}
 
 	//vkDeviceWaitIdle(logicalDevice);
@@ -599,9 +602,9 @@ void VulkanEngine::initGui(GLFWwindow* window, VkInstance& instance, VkDevice& l
 		swapchainExtent);
 }
 
-void VulkanEngine::updateGui()
+void VulkanEngine::updateGui(VkDevice& logicalDevice, VkQueue& graphicsQueue)
 {
-	vulkanGui->update(meshes, materials);
+	vulkanGui->update(meshes, materials, updateTexture, selectedMaterialIndex, textureFilepath);
 }
 
 void VulkanEngine::updateSceneUniform(Camera* camera)
@@ -747,4 +750,34 @@ VkPresentModeKHR VulkanEngine::selectSwapchainPresentMode(std::vector<VkPresentM
 
 	// Use FIFO if MAILBOX is not availabe
 	return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkQueue& graphicsQueue, bool& updateTexture, u32 materialIndex, std::string& filename)
+{
+	vkDeviceWaitIdle(logicalDevice);
+
+	// Delete old data
+	materials[materialIndex]->cleanUp(logicalDevice, vmaAllocator, descriptorPool);
+
+	materials[materialIndex]->texture_path = filename;
+
+	// Create new data
+	Image* textureImage = new Image();
+	textureImage->readImage(filename.c_str(), materials[materialIndex]->width, materials[materialIndex]->height,
+		materials[materialIndex]->numChannels), materials[materialIndex]->textureImage = textureImage;
+
+	materials[materialIndex]->vulkanImage = WillEngine::VulkanUtil::createImage(logicalDevice, vmaAllocator,
+		materials[materialIndex]->vulkanImage.image, VK_FORMAT_R8G8B8A8_SRGB, materials[materialIndex]->width,
+		materials[materialIndex]->height);
+
+	WillEngine::VulkanUtil::loadTextureImage(logicalDevice, vmaAllocator,
+		commandPool, graphicsQueue, materials[materialIndex]->vulkanImage, 1, materials[materialIndex]->width,
+		materials[materialIndex]->height, materials[materialIndex]->textureImage->data);
+
+	// Free the image from the cpu
+	materials[materialIndex]->freeTextureImage();
+
+	materials[materialIndex]->initDescriptorSet(logicalDevice, descriptorPool, sampler);
+
+	updateTexture = false;
 }

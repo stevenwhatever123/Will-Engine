@@ -113,7 +113,7 @@ void VulkanGui::cleanUp(VkDevice& logicalDevice)
 	ImGui::DestroyContext();
 }
 
-void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& materials)
+void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& materials, bool& updateTexture, u32& materialIndex, std::string& textureFilepath)
 {
 	ImGuiIO& io = ImGui::GetIO();
 
@@ -128,8 +128,6 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 
 	for (u32 i = 0; i < meshes.size(); i++)
 	{
-		ImGui::PushID(i);
-
 		if (ImGui::TreeNode(meshes[i]->name.c_str()))
 		{
 			ImGui::Text("Material: %s", materials[meshes[i]->materialIndex]->name.c_str());
@@ -138,8 +136,42 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 
 			ImGui::TreePop();
 		}
+	}
+	ImGui::End();
 
-		ImGui::PopID();
+
+
+	ImGui::Begin("Material Viewer");
+
+	for (u32 i = 0; i < materials.size(); i++)
+	{
+		if (ImGui::TreeNode(materials[i]->name.c_str()))
+		{
+			if (ImGui::ImageButton((ImTextureID)materials[i]->imguiTextureDescriptorSet, ImVec2(200, 200)))
+			{
+				bool readSuccess;
+				std::string filename;
+
+				std::tie(readSuccess, filename) = WillEngine::Utils::selectFile();
+
+				if (!readSuccess)
+				{
+					printf("Failed to read %s\n", filename.c_str());
+
+					updateTexture = false;
+					materialIndex = 0;
+					textureFilepath = "";
+				}
+				else
+				{
+					updateTexture = true;
+					materialIndex = i;
+					textureFilepath = filename;
+				}
+			}
+
+			ImGui::TreePop();
+		}
 	}
 
 	ImGui::End();

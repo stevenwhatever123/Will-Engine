@@ -31,6 +31,8 @@ void Material::cleanUp(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkDe
 	//if (!hasTexture())
 	//	return;
 
+	
+
 	vmaDestroyImage(vmaAllocator, vulkanImage.image, vulkanImage.allocation);
 
 	vkDestroyImageView(logicalDevice, imageView, nullptr);
