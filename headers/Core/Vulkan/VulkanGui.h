@@ -4,6 +4,10 @@ class VulkanGui
 {
 private:
 
+	VkDescriptorPool imguiDescriptorPool = VK_NULL_HANDLE;
+
+	VkCommandBuffer imguiCommandBuffer = VK_NULL_HANDLE;
+
 public:
 
 	bool show_demo_window = true;
@@ -15,8 +19,12 @@ public:
 	VulkanGui();
 	~VulkanGui();
 
-	void init(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, u32 queueFamily,
-		VkDescriptorPool& descriptorPool, u32 imageCount, VkRenderPass& renderPass);
+	void init(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface,
+		u32 queueFamily, VkCommandPool& commandPool, VkDescriptorPool& descriptorPool, u32 imageCount, VkRenderPass& renderPass, VkExtent2D extent);
+
+	void cleanUp(VkDevice& logicalDevice);
 
 	void update();
+
+	void renderUI(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 };

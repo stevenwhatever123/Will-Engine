@@ -90,7 +90,7 @@ public:
 	VkSampler sampler;
 
 	// GUI
-	VulkanGui* Gui;
+	VulkanGui* vulkanGui;
 
 private:
 
@@ -138,7 +138,9 @@ public:
 
 	// GUI
 
-	void initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue);
+	void initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue, VkSurfaceKHR& surface);
+
+	void updateGui();
 
 	// Update
 
