@@ -285,7 +285,7 @@ void VulkanWindow::createSurface()
 void VulkanWindow::initVulkanEngine()
 {
     vulkanEngine = new VulkanEngine();
-    vulkanEngine->init(window, instance, logicalDevice, physicalDevice, surface);
+    vulkanEngine->init(window, instance, logicalDevice, physicalDevice, surface, graphicsQueue);
 }
 
 //=============================================================================================

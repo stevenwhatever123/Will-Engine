@@ -3,6 +3,8 @@
 #include "Core/Material.h"
 #include "Core/Camera.h"
 
+#include "Core/Vulkan/VulkanGui.h"
+
 #include "Utils/VulkanUtil.h"
 
 struct RendObj
@@ -87,6 +89,9 @@ public:
 	// Image Sampler
 	VkSampler sampler;
 
+	// GUI
+	VulkanGui* Gui;
+
 private:
 
 	mat4 sceneMatrix;
@@ -96,7 +101,7 @@ public:
 	VulkanEngine();
 	~VulkanEngine();
 
-	void init(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface);
+	void init(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue& queue);
 	void cleanup(VkDevice& logicalDevice);
 
 	void update(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue graphicsQueue);
@@ -130,6 +135,10 @@ public:
 	void createSceneUniformBuffers(VkDevice& logicalDevice, VulkanAllocatedMemory& uniformBuffer);
 
 	void updateSceneDescriptorSet(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkBuffer& descriptorBuffer);
+
+	// GUI
+
+	void initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue);
 
 	// Update
 

@@ -22,11 +22,12 @@ include "premake/premake_glfw.lua"
 include "premake/premake_assimp.lua"
 include "premake/premake_glm.lua"
 include "premake/premake_glad.lua"
-include "premake/premake_imgui.lua"
 
 include "premake/premake_volk.lua"
 include "premake/premake_vma.lua"
 include "premake/premake_glslang.lua"
+
+include "premake/premake_imgui.lua"
 
 project "WillEngine"
 	kind "ConsoleApp"
@@ -96,6 +97,13 @@ project "WillEngine"
 		["Headers/Core/OpenGL"]			= {"headers/Core/OpenGL/*.h"},
 		["Headers/Core/Vulkan"]			= {"headers/Core/Vulkan/*.h"},
 
+		["Headers/imgui"] = {
+				"libs/imgui/*.h",
+				"libs/imgui/backends/imgui_impl_opengl3.h",
+				"libs/imgui/backends/imgui_impl_glfw.h",
+				"libs/imgui/backends/imgui_impl_vulkan.h",
+			},
+
 		["Source Files"]				= {"src/*.cpp"},
 		["Source Files/Managers"]		= {"src/Managers/*.cpp"},
 		["Source Files/Utils"]			= {"src/Utils/*.cpp"},
@@ -104,7 +112,10 @@ project "WillEngine"
 		["Source Files/Core/Vulkan"]	= {"src/Core/Vulkan/*.cpp"},
 
 		["Source Files/imgui"] = {
-				"libs/imgui/*.cpp"
+				"libs/imgui/*.cpp",
+				"libs/imgui/backends/imgui_impl_opengl3.cpp",
+				"libs/imgui/backends/imgui_impl_glfw.cpp",
+				"libs/imgui/backends/imgui_impl_vulkan.cpp",
 			},
 
 		["Shaders"]						= {"shaders/*.vert"},
@@ -120,6 +131,12 @@ project "WillEngine"
 		"*.cpp",
 		"shaders/*.vert",
 		"shaders/*.frag",
+		"libs/imgui/backends/imgui_impl_opengl3.h",
+		"libs/imgui/backends/imgui_impl_glfw.h",
+		"libs/imgui/backends/imgui_impl_vulkan.h",
+		"libs/imgui/backends/imgui_impl_opengl3.cpp",
+		"libs/imgui/backends/imgui_impl_glfw.cpp",
+		"libs/imgui/backends/imgui_impl_vulkan.cpp"
 	}
 
 	pchheader "pch.h"

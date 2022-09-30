@@ -1,4 +1,5 @@
 #include "pch.h"
+
 #include "Core/Vulkan/VulkanEngine.h"
 
 VulkanEngine::VulkanEngine() :
@@ -24,11 +25,12 @@ VulkanEngine::VulkanEngine() :
 	defaultPipeline(VK_NULL_HANDLE),
 	sceneDescriptorSetLayout(VK_NULL_HANDLE),
 	sceneDescriptorSet(VK_NULL_HANDLE),
-	sceneUniformBuffer({VK_NULL_HANDLE, VK_NULL_HANDLE}),
+	sceneUniformBuffer({ VK_NULL_HANDLE, VK_NULL_HANDLE }),
 	textureDescriptorSetLayout(VK_NULL_HANDLE),
 	defaultVertShader(VK_NULL_HANDLE),
 	defaultFragShader(VK_NULL_HANDLE),
 	sampler(VK_NULL_HANDLE),
+	Gui(nullptr),
 	sceneMatrix(1)
 {
 
@@ -39,7 +41,7 @@ VulkanEngine::~VulkanEngine()
 
 }
 
-void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface)
+void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue& queue)
 {
 	createVmaAllocator(instance, physicalDevice, logicalDevice);
 
@@ -92,6 +94,9 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 		renderPass, defaultVertShader, defaultFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
 
 	WillEngine::VulkanUtil::createDefaultSampler(logicalDevice, sampler);
+
+	// Gui
+	initGui(window, instance, logicalDevice, physicalDevice, queue);
 }
 
 void VulkanEngine::cleanup(VkDevice& logicalDevice)
@@ -589,6 +594,18 @@ void VulkanEngine::updateSceneDescriptorSet(VkDevice& logicalDevice, VkDescripto
 	writeSet.pBufferInfo = &bufferInfo;
 
 	vkUpdateDescriptorSets(logicalDevice, 1, &writeSet, 0, nullptr);
+}
+
+void VulkanEngine::initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue)
+{
+	Gui = new VulkanGui();
+
+	std::optional<u32> graphicsFamilyIndicies = WillEngine::VulkanUtil::findQueueFamilies(physicalDevice, VK_QUEUE_GRAPHICS_BIT, VK_NULL_HANDLE);
+
+	if (!graphicsFamilyIndicies.has_value())
+		std::runtime_error("Failed to get graphics queue family index");
+
+	Gui->init(window, instance, logicalDevice, physicalDevice, graphicsFamilyIndicies.value(), descriptorPool, numSwapchainImage, renderPass);
 }
 
 void VulkanEngine::updateSceneUniform(Camera* camera)

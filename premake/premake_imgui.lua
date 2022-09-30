@@ -10,23 +10,31 @@ project "imgui"
 		"",
 		"../libs/glfw/include",
 		"../libs/imgui/",
+		"../libs/vulkan/include/",
+		"../libs/volk/",
+	}
+
+	dependson
+	{
+		"vulkan",
+		"volk",
 	}
 
 	links
 	{
 		"glfw",
+		"vulkan",
+		"volk",
 	}
 
 	vpaths {
 
 		['Header Files'] = {
-			"../libs/imgui/*.h"
+			"../libs/imgui/*.h",
 		},
 
 		["Source Files"] = {
 			"../libs/imgui/*.cpp",
-			"../libs/imgui/backends/imgui_impl_opengl3.cpp",
-			"../libs/imgui/backends/imgui_impl_glfw.cpp"
 		}
 	}
 
@@ -34,8 +42,6 @@ project "imgui"
 	{
 		"../libs/imgui/*.cpp",
 		"../libs/imgui/*.h",
-		"../libs/imgui/backends/imgui_impl_opengl3.cpp",
-		"../libs/imgui/backends/imgui_impl_glfw.cpp"
 	}
 
 	defines {
