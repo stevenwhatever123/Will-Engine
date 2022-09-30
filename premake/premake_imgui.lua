@@ -31,10 +31,16 @@ project "imgui"
 
 		['Header Files'] = {
 			"../libs/imgui/*.h",
+			"../libs/imgui/backends/imgui_impl_opengl3.h",
+			"../libs/imgui/backends/imgui_impl_glfw.h",
+			"../libs/imgui/backends/imgui_impl_vulkan.h",
 		},
 
 		["Source Files"] = {
 			"../libs/imgui/*.cpp",
+			"../libs/imgui/backends/imgui_impl_opengl3.cpp",
+			"../libs/imgui/backends/imgui_impl_glfw.cpp",
+			"../libs/imgui/backends/imgui_impl_vulkan.cpp",
 		}
 	}
 
@@ -42,6 +48,13 @@ project "imgui"
 	{
 		"../libs/imgui/*.cpp",
 		"../libs/imgui/*.h",
+
+		"../libs/imgui/backends/imgui_impl_opengl3.h",
+		"../libs/imgui/backends/imgui_impl_glfw.h",
+		"../libs/imgui/backends/imgui_impl_vulkan.h",
+		"../libs/imgui/backends/imgui_impl_opengl3.cpp",
+		"../libs/imgui/backends/imgui_impl_glfw.cpp",
+		"../libs/imgui/backends/imgui_impl_vulkan.cpp"
 	}
 
 	defines {

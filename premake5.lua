@@ -97,26 +97,12 @@ project "WillEngine"
 		["Headers/Core/OpenGL"]			= {"headers/Core/OpenGL/*.h"},
 		["Headers/Core/Vulkan"]			= {"headers/Core/Vulkan/*.h"},
 
-		["Headers/imgui"] = {
-				"libs/imgui/*.h",
-				"libs/imgui/backends/imgui_impl_opengl3.h",
-				"libs/imgui/backends/imgui_impl_glfw.h",
-				"libs/imgui/backends/imgui_impl_vulkan.h",
-			},
-
 		["Source Files"]				= {"src/*.cpp"},
 		["Source Files/Managers"]		= {"src/Managers/*.cpp"},
 		["Source Files/Utils"]			= {"src/Utils/*.cpp"},
 		["Source Files/Core"]			= {"src/Core/*.cpp"},
 		["Source Files/Core/OpenGL"]	= {"src/Core/OpenGL/*.cpp"},
 		["Source Files/Core/Vulkan"]	= {"src/Core/Vulkan/*.cpp"},
-
-		["Source Files/imgui"] = {
-				"libs/imgui/*.cpp",
-				"libs/imgui/backends/imgui_impl_opengl3.cpp",
-				"libs/imgui/backends/imgui_impl_glfw.cpp",
-				"libs/imgui/backends/imgui_impl_vulkan.cpp",
-			},
 
 		["Shaders"]						= {"shaders/*.vert"},
 		["Shaders"]						= {"shaders/*.frag"},
@@ -131,12 +117,6 @@ project "WillEngine"
 		"*.cpp",
 		"shaders/*.vert",
 		"shaders/*.frag",
-		"libs/imgui/backends/imgui_impl_opengl3.h",
-		"libs/imgui/backends/imgui_impl_glfw.h",
-		"libs/imgui/backends/imgui_impl_vulkan.h",
-		"libs/imgui/backends/imgui_impl_opengl3.cpp",
-		"libs/imgui/backends/imgui_impl_glfw.cpp",
-		"libs/imgui/backends/imgui_impl_vulkan.cpp"
 	}
 
 	pchheader "pch.h"
