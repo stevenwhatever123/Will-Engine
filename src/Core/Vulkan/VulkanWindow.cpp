@@ -132,13 +132,6 @@ void VulkanWindow::createInstance()
     std::vector<VkExtensionProperties> suppportedExtensions(supportedExtensionCount);
 
     vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionCount, suppportedExtensions.data());
-
-    //printf("Available extensions:\n");
-
-    //for (const auto& extension : suppportedExtensions)
-    //{
-    //    printf("\t %s\n", extension.extensionName);
-    //}
 }
 
 void VulkanWindow::generateDebugMessageInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)

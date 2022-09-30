@@ -50,7 +50,6 @@ void VulkanGui::init(GLFWwindow* window, VkInstance& instance, VkDevice& logical
 	ImGui::CreateContext();
 
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.WantCaptureMouse = true;
 
 	ImGui::StyleColorsDark();
 
@@ -118,19 +117,27 @@ void VulkanGui::cleanUp(VkDevice& logicalDevice)
 
 void VulkanGui::update()
 {
+	ImGuiIO& io = ImGui::GetIO();
 
-}
-
-void VulkanGui::renderUI(VkCommandBuffer& commandBuffer, VkExtent2D extent)
-{
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 
+	if (!io.WantCaptureKeyboard)
+	{
+		if (ImGui::IsKeyPressed(GLFW_KEY_F10))
+		{
+			printf("Hello\n");
+		}
+	}
+
 	ImGui::ShowDemoWindow(&show_demo_window);
 
 	ImGui::Render();
+}
 
+void VulkanGui::renderUI(VkCommandBuffer& commandBuffer, VkExtent2D extent)
+{
 	// Record ImGui rendering command
 	ImDrawData* draw_data = ImGui::GetDrawData();
 	const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);

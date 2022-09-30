@@ -188,6 +188,9 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, 
 	VkQueue graphicsQueue)
 {
+	// Update ImGui UI
+	updateGui();
+
 	// Acquire next image of the swapchain
 	u32 imageIndex = 0;
 	const VkResult res = vkAcquireNextImageKHR(logicalDevice, swapchain, std::numeric_limits<u64>::max(), imageAvailable, VK_NULL_HANDLE, &imageIndex);
