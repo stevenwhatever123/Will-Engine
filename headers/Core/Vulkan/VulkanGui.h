@@ -26,7 +26,7 @@ public:
 
 	void cleanUp(VkDevice& logicalDevice);
 
-	void update(std::vector<Mesh*>& meshes, std::vector<Material*>& materials, bool& updateTexture, u32& materialIndex, std::string& textureFilepath);
+	void update(std::vector<Mesh*>& meshes, std::vector<Material*>& materials, bool& updateTexture, bool& updateColor, u32& materialIndex, std::string& textureFilepath);
 
 	void renderUI(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 };

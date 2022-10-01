@@ -113,7 +113,7 @@ void VulkanGui::cleanUp(VkDevice& logicalDevice)
 	ImGui::DestroyContext();
 }
 
-void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& materials, bool& updateTexture, u32& materialIndex, std::string& textureFilepath)
+void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& materials, bool& updateTexture, bool& updateColor, u32& materialIndex, std::string& textureFilepath)
 {
 	ImGuiIO& io = ImGui::GetIO();
 
@@ -147,26 +147,38 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 	{
 		if (ImGui::TreeNode(materials[i]->name.c_str()))
 		{
-			if (ImGui::ImageButton((ImTextureID)materials[i]->imguiTextureDescriptorSet, ImVec2(200, 200)))
+
+			if (materials[i]->hasTexture())
 			{
-				bool readSuccess;
-				std::string filename;
-
-				std::tie(readSuccess, filename) = WillEngine::Utils::selectFile();
-
-				if (!readSuccess)
+				if (ImGui::ImageButton((ImTextureID)materials[i]->imguiTextureDescriptorSet, ImVec2(200, 200)))
 				{
-					printf("Failed to read %s\n", filename.c_str());
+					bool readSuccess;
+					std::string filename;
 
-					updateTexture = false;
-					materialIndex = 0;
-					textureFilepath = "";
+					std::tie(readSuccess, filename) = WillEngine::Utils::selectFile();
+
+					if (!readSuccess)
+					{
+						printf("Failed to read %s\n", filename.c_str());
+
+						updateTexture = false;
+						materialIndex = 0;
+						textureFilepath = "";
+					}
+					else
+					{
+						updateTexture = true;
+						materialIndex = i;
+						textureFilepath = filename;
+					}
 				}
-				else
+			}
+			else
+			{
+				if (ImGui::ColorPicker4("Mesh Color", glm::value_ptr(materials[i]->color)))
 				{
-					updateTexture = true;
+					updateColor = true;
 					materialIndex = i;
-					textureFilepath = filename;
 				}
 			}
 

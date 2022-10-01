@@ -220,9 +220,9 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	vkResetCommandBuffer(commandBuffers[imageIndex], 0);
 
 	// Update Texture
-	if (updateTexture)
+	if (updateTexture || updateColor)
 	{
-		changeMaterialTexture(logicalDevice, graphicsQueue, updateTexture, selectedMaterialIndex, textureFilepath);
+		changeMaterialTexture(logicalDevice, graphicsQueue, updateTexture, updateColor, selectedMaterialIndex, textureFilepath);
 	}
 
 	// Update ImGui UI
@@ -604,7 +604,7 @@ void VulkanEngine::initGui(GLFWwindow* window, VkInstance& instance, VkDevice& l
 
 void VulkanEngine::updateGui(VkDevice& logicalDevice, VkQueue& graphicsQueue)
 {
-	vulkanGui->update(meshes, materials, updateTexture, selectedMaterialIndex, textureFilepath);
+	vulkanGui->update(meshes, materials, updateTexture, updateColor, selectedMaterialIndex, textureFilepath);
 }
 
 void VulkanEngine::updateSceneUniform(Camera* camera)
@@ -752,32 +752,67 @@ VkPresentModeKHR VulkanEngine::selectSwapchainPresentMode(std::vector<VkPresentM
 	return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkQueue& graphicsQueue, bool& updateTexture, u32 materialIndex, std::string& filename)
+void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkQueue& graphicsQueue, bool& updateTexture, bool& updateColor, u32 materialIndex, std::string& filename)
 {
 	vkDeviceWaitIdle(logicalDevice);
 
-	// Delete old data
-	materials[materialIndex]->cleanUp(logicalDevice, vmaAllocator, descriptorPool);
+	if (updateTexture)
+	{
+		// Delete old data
+		materials[materialIndex]->cleanUp(logicalDevice, vmaAllocator, descriptorPool);
 
-	materials[materialIndex]->texture_path = filename;
+		materials[materialIndex]->texture_path = filename;
 
-	// Create new data
-	Image* textureImage = new Image();
-	textureImage->readImage(filename.c_str(), materials[materialIndex]->width, materials[materialIndex]->height,
-		materials[materialIndex]->numChannels), materials[materialIndex]->textureImage = textureImage;
+		// Create new data
+		Image* textureImage = new Image();
+		textureImage->readImage(filename.c_str(), materials[materialIndex]->width, materials[materialIndex]->height,
+			materials[materialIndex]->numChannels);
+		
+		materials[materialIndex]->textureImage = textureImage;
 
-	materials[materialIndex]->vulkanImage = WillEngine::VulkanUtil::createImage(logicalDevice, vmaAllocator,
-		materials[materialIndex]->vulkanImage.image, VK_FORMAT_R8G8B8A8_SRGB, materials[materialIndex]->width,
-		materials[materialIndex]->height);
+		materials[materialIndex]->vulkanImage = WillEngine::VulkanUtil::createImage(logicalDevice, vmaAllocator,
+			materials[materialIndex]->vulkanImage.image, VK_FORMAT_R8G8B8A8_SRGB, materials[materialIndex]->width,
+			materials[materialIndex]->height);
 
-	WillEngine::VulkanUtil::loadTextureImage(logicalDevice, vmaAllocator,
-		commandPool, graphicsQueue, materials[materialIndex]->vulkanImage, 1, materials[materialIndex]->width,
-		materials[materialIndex]->height, materials[materialIndex]->textureImage->data);
+		WillEngine::VulkanUtil::loadTextureImage(logicalDevice, vmaAllocator,
+			commandPool, graphicsQueue, materials[materialIndex]->vulkanImage, 1, materials[materialIndex]->width,
+			materials[materialIndex]->height, materials[materialIndex]->textureImage->data);
 
-	// Free the image from the cpu
-	materials[materialIndex]->freeTextureImage();
+		// Free the image from the cpu
+		materials[materialIndex]->freeTextureImage();
 
-	materials[materialIndex]->initDescriptorSet(logicalDevice, descriptorPool, sampler);
+		materials[materialIndex]->initDescriptorSet(logicalDevice, descriptorPool, sampler);
 
-	updateTexture = false;
+		updateTexture = false;
+	}
+
+	if (updateColor)
+	{
+		// Delete old data
+		materials[materialIndex]->cleanUp(logicalDevice, vmaAllocator, descriptorPool);
+
+		// Create new data
+		Image* textureImage = new Image();
+
+		materials[materialIndex]->width = 1;
+		materials[materialIndex]->height = 1;
+		materials[materialIndex]->textureImage->setImageColor(materials[materialIndex]->color);
+		
+		materials[materialIndex]->textureImage = textureImage;
+
+		materials[materialIndex]->vulkanImage = WillEngine::VulkanUtil::createImage(logicalDevice, vmaAllocator,
+			materials[materialIndex]->vulkanImage.image, VK_FORMAT_R8G8B8A8_SRGB, materials[materialIndex]->width,
+			materials[materialIndex]->height);
+
+		WillEngine::VulkanUtil::loadTextureImage(logicalDevice, vmaAllocator,
+			commandPool, graphicsQueue, materials[materialIndex]->vulkanImage, 1, materials[materialIndex]->width,
+			materials[materialIndex]->height, materials[materialIndex]->textureImage->data);
+
+		// Free the image from the cpu
+		materials[materialIndex]->freeTextureImage();
+
+		materials[materialIndex]->initDescriptorSet(logicalDevice, descriptorPool, sampler);
+
+		updateColor = false;
+	}
 }

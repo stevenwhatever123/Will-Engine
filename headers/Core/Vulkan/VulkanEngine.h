@@ -21,6 +21,7 @@ private:
 public:
 
 	bool updateTexture = false;
+	bool updateColor = false;
 	u32 selectedMaterialIndex = 0;
 	std::string textureFilepath = "";
 
@@ -163,5 +164,5 @@ private:
 
 	VkPresentModeKHR selectSwapchainPresentMode(std::vector<VkPresentModeKHR>& presentModes);
 
-	void changeMaterialTexture(VkDevice& logicalDevice, VkQueue& graphicsQueue, bool& updateTexture, u32 materialIndex, std::string& filename);
+	void changeMaterialTexture(VkDevice& logicalDevice, VkQueue& graphicsQueue, bool& updateTexture, bool& updateColor, u32 materialIndex, std::string& filename);
 };

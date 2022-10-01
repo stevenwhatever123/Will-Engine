@@ -23,6 +23,7 @@ public:
 	i32 windowWidth, windowHeight;
 	//i32 imguiWidth, imguiHeight;
 
+	f64 lastMouseX, lastMouseY;
 	f64 mouseX, mouseY;			// Current mouse xy position
 
 	f64 currentTime;
@@ -39,6 +40,9 @@ public:
 	u32 keys[256];
 	bool leftMouseClicked;
 	bool rightMouseClicked;
+
+	f32 movementSpeed = 100.0f;
+	f32 mouseSpeed = 100.0f;
 
 public:
 

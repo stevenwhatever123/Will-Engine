@@ -4,6 +4,8 @@ class Camera
 private:
 	
 	vec3 position;
+	vec3 positionShift;
+
 	vec3 lookAt;
 
 	// Field of view
@@ -25,6 +27,8 @@ public:
 	void moveForward(const f32 value);
 	void moveRight(const f32 value);
 	void moveUp(const f32 value);
+
+	void rotate(const f32 xValue, const f32 yValue, const f32 zValue);
 
 	void updateCameraMatrix();
 	mat4 getCameraMatrix() const;

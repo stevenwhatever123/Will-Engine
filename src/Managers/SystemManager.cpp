@@ -6,6 +6,8 @@ SystemManager::SystemManager() :
     vulkanWindow(nullptr),
     windowWidth(0),
     windowHeight(0),
+    lastMouseX(0),
+    lastMouseY(0),
     mouseX(0),
     mouseY(0),
     currentTime(0),
@@ -79,6 +81,9 @@ void SystemManager::update()
 
 void SystemManager::updateInputs()
 {
+    lastMouseX = mouseX;
+    lastMouseY = mouseY;
+
     /* Poll for and process events */
     glfwPollEvents();
 
@@ -138,14 +143,23 @@ void SystemManager::updateInputs()
 
 void SystemManager::updateCamera()
 {
-    f32 speed = 50.0f;
+    if (keys['W']) { camera->moveForward(movementSpeed * (f32) deltaTime); }
+    if (keys['S']) { camera->moveForward(-movementSpeed * (f32) deltaTime); }
+    if (keys['A']) { camera->moveRight(-movementSpeed * (f32) deltaTime); }
+    if (keys['D']) { camera->moveRight(movementSpeed * (f32) deltaTime); }
+    if (keys['E']) { camera->moveUp(movementSpeed * (f32) deltaTime); }
+    if (keys['Q']) { camera->moveUp(-movementSpeed * (f32) deltaTime); }
 
-    if (keys['W']) { camera->moveForward(speed * (f32) deltaTime); }
-    if (keys['S']) { camera->moveForward(-speed * (f32) deltaTime); }
-    if (keys['A']) { camera->moveRight(-speed * (f32) deltaTime); }
-    if (keys['D']) { camera->moveRight(speed * (f32) deltaTime); }
-    if (keys['E']) { camera->moveUp(speed * (f32) deltaTime); }
-    if (keys['Q']) { camera->moveUp(-speed * (f32) deltaTime); }
+    if (rightMouseClicked)
+    {
+        f32 xDistance = mouseX - lastMouseX;
+        f32 yDistance = mouseY - lastMouseY;
+
+        f32 mouseMovementY = -yDistance * mouseSpeed * (f32) deltaTime;
+        f32 mouseMoveMentX = -xDistance * mouseSpeed * (f32) deltaTime;
+
+        camera->rotate(mouseMovementY, mouseMoveMentX, 0);
+    }
 
     camera->updateCameraMatrix();
 }
