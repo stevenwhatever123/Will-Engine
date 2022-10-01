@@ -42,10 +42,14 @@ void Image::readImage(const char* path, i32& width, i32& height, i32& numChannel
 	}
 }
 
-void Image::freeImage()
+void Image::freeImage(bool hasTexture)
 {
-	if (data)
+	if (hasTexture)
+	{
 		stbi_image_free(data);
+	}
 	else
+	{
 		free(data);
+	}
 }

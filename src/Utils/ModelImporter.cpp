@@ -146,6 +146,7 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 			if (!material->textureImage->data)
 			{
 				material->has_texture = false;
+				material->texture_path = "";
 
 				material->width = 1;
 				material->height = 1;

@@ -6,6 +6,7 @@ Material::Material() :
 	name(""),
 	has_texture(false),
 	texture_path(""),
+	useTexture(false),
 	width(1),
 	height(1),
 	numChannels(4),
@@ -31,8 +32,6 @@ void Material::cleanUp(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkDe
 	//if (!hasTexture())
 	//	return;
 
-	
-
 	vmaDestroyImage(vmaAllocator, vulkanImage.image, vulkanImage.allocation);
 
 	vkDestroyImageView(logicalDevice, imageView, nullptr);
@@ -49,7 +48,7 @@ void Material::setTextureImage(Image* image)
 
 void Material::freeTextureImage()
 {
-	textureImage->freeImage();
+	textureImage->freeImage(hasTexture());
 	delete this->textureImage;
 }
 

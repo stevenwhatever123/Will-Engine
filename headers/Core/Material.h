@@ -22,6 +22,8 @@ public:
 	bool has_texture;
 	std::string texture_path;
 
+	bool useTexture;
+
 	// Texture details
 
 	i32 width, height, numChannels;

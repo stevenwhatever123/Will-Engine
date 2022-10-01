@@ -147,8 +147,26 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 	{
 		if (ImGui::TreeNode(materials[i]->name.c_str()))
 		{
+			bool lastUseTexture = materials[i]->useTexture;
+			ImGui::Checkbox("Use Texture", &materials[i]->useTexture);
 
-			if (materials[i]->hasTexture())
+			bool checkBoxChanged = (lastUseTexture == true && materials[i]->useTexture == false) || (lastUseTexture == false && materials[i]->useTexture == true);
+
+			if (checkBoxChanged)
+			{
+				if (materials[i]->useTexture)
+				{
+					updateTexture = true;
+					materialIndex = i;
+				}
+				else
+				{
+					updateColor = true;
+					materialIndex = i;
+				}
+			}
+
+			if (materials[i]->hasTexture() || materials[i]->useTexture)
 			{
 				if (ImGui::ImageButton((ImTextureID)materials[i]->imguiTextureDescriptorSet, ImVec2(200, 200)))
 				{
