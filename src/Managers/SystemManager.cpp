@@ -44,11 +44,13 @@ void SystemManager::initCamera()
 void SystemManager::initVulkanWindow()
 {
     vulkanWindow = new VulkanWindow();
-    vulkanWindow->init(windowWidth, windowHeight);
+    vulkanWindow->createWindow(windowWidth, windowHeight);
 
     // Bind input manager to the window
     inputManager = new InputManager();
     inputManager->init(vulkanWindow->window);
+
+    vulkanWindow->initVulkan();
 }
 
 void SystemManager::update()

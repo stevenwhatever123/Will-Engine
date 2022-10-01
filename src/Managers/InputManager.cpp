@@ -31,45 +31,45 @@ void InputManager::init(GLFWwindow* systemWindow)
     glfwSetKeyCallback(systemWindow, key_callback);
 
 
-    //// Mouse key handler
-    //auto mouse_key_callback = [](GLFWwindow* window, i32 key, i32 action, i32 mods)
-    //{
-    //    glfwGetWindowUserPointer(window);
+    // Mouse key handler
+    auto mouse_key_callback = [](GLFWwindow* window, i32 key, i32 action, i32 mods)
+    {
+        glfwGetWindowUserPointer(window);
 
-    //    SystemManager* system = (SystemManager*)glfwGetWindowUserPointer(window);
+        SystemManager* system = (SystemManager*)glfwGetWindowUserPointer(window);
 
-    //    if (key == GLFW_MOUSE_BUTTON_LEFT)
-    //    {
-    //        if (action == GLFW_PRESS) system->leftMouseClicked = 1;
-    //        else if (action == GLFW_RELEASE) system->leftMouseClicked = 0;
-    //    }
-    //    if (key == GLFW_MOUSE_BUTTON_RIGHT)
-    //    {
-    //        if (action == GLFW_PRESS) system->rightMouseClicked = 1;
-    //        else if (action == GLFW_RELEASE) system->rightMouseClicked = 0;
-    //    }
-    //};
-    //glfwSetMouseButtonCallback(systemWindow, mouse_key_callback);
+        if (key == GLFW_MOUSE_BUTTON_LEFT)
+        {
+            if (action == GLFW_PRESS) system->leftMouseClicked = 1;
+            else if (action == GLFW_RELEASE) system->leftMouseClicked = 0;
+        }
+        if (key == GLFW_MOUSE_BUTTON_RIGHT)
+        {
+            if (action == GLFW_PRESS) system->rightMouseClicked = 1;
+            else if (action == GLFW_RELEASE) system->rightMouseClicked = 0;
+        }
+    };
+    glfwSetMouseButtonCallback(systemWindow, mouse_key_callback);
 
 
-    //// Mouse movement handler
-    //auto mouse_pos_callback = [](GLFWwindow* window, double xpos, double ypos)
-    //{
-    //    glfwGetWindowUserPointer(window);
+    // Mouse movement handler
+    auto mouse_pos_callback = [](GLFWwindow* window, double xpos, double ypos)
+    {
+        glfwGetWindowUserPointer(window);
 
-    //    SystemManager* system = (SystemManager*)glfwGetWindowUserPointer(window);
+        SystemManager* system = (SystemManager*)glfwGetWindowUserPointer(window);
 
-    //    if (system->leftMouseClicked)
-    //    {
-    //        double lastMouseX = system->mouseX;
-    //        double lastMouseY = system->mouseY;
+        if (system->leftMouseClicked)
+        {
+            double lastMouseX = system->mouseX;
+            double lastMouseY = system->mouseY;
 
-    //        double rotateX = xpos - lastMouseX;
-    //        double rotateY = ypos - lastMouseY;
-    //    }
+            double rotateX = xpos - lastMouseX;
+            double rotateY = ypos - lastMouseY;
+        }
 
-    //    system->mouseX = xpos;
-    //    system->mouseY = ypos;
-    //};
-    //glfwSetCursorPosCallback(systemWindow, mouse_pos_callback);
+        system->mouseX = xpos;
+        system->mouseY = ypos;
+    };
+    glfwSetCursorPosCallback(systemWindow, mouse_pos_callback);
 }

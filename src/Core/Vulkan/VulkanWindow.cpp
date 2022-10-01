@@ -26,7 +26,7 @@ VulkanWindow::~VulkanWindow()
 
 }
 
-void VulkanWindow::init(i32 windowWidth, i32 windowHeight)
+void VulkanWindow::createWindow(i32 windowWidth, i32 windowHeight)
 {
     closeWindow = false;
 
@@ -39,9 +39,10 @@ void VulkanWindow::init(i32 windowWidth, i32 windowHeight)
 
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
+}
 
-    //glfwSetWindowUserPointer(window, this);
-
+void VulkanWindow::initVulkan()
+{
     if (glfwVulkanSupported())
     {
         createInstance();

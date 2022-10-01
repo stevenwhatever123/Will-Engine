@@ -50,7 +50,8 @@ public:
 	VulkanWindow();
 	~VulkanWindow();
 
-	void init(i32 windowWidth, i32 windowHeight);
+	void createWindow(i32 windowWidth, i32 windowHeight);
+	void initVulkan();
 	void cleanup();
 	void update();
 
