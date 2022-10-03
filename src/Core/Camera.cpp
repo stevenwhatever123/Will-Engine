@@ -3,7 +3,7 @@
 
 Camera::Camera(vec3 pos, vec3 lookAt):
 	position(pos),
-	positionShift(0),
+	rotation(0),
 	lookAt(lookAt),
 	fov(90),
 	forward(glm::normalize(lookAt - pos)),
@@ -38,8 +38,25 @@ void Camera::moveUp(const f32 value)
 
 void Camera::rotate(const f32 xValue, const f32 yValue, const f32 zValue)
 {
-	glm::mat4 rotationMatrixX = glm::rotate(mat4(1), glm::radians(xValue), glm::normalize(glm::cross(glm::normalize(forward), glm::normalize(up))));
-	forward = glm::vec3(rotationMatrixX * glm::vec4(forward, 1));
+	// Keep track of how much we're rotating
+	rotation.x += xValue;
+	rotation.y += yValue;
+	rotation.z += zValue;
+
+	if (rotation.x > 89.9f)
+	{
+		rotation.x = 89.9f;
+	}
+	else if (rotation.x < -89.9f)
+	{
+		rotation.x = -89.9f;
+	}
+	else
+	{
+		glm::vec3 rightVector = glm::normalize(glm::cross(glm::normalize(forward), glm::normalize(up)));
+		glm::mat4 rotationMatrixX = glm::rotate(mat4(1), glm::radians(xValue), rightVector);
+		forward = glm::vec3(rotationMatrixX * glm::vec4(forward, 1));
+	}
 
 	glm::mat4 rotationMatrixY = glm::rotate(mat4(1), glm::radians(yValue), glm::normalize(glm::normalize(up)));
 	forward = glm::vec3(rotationMatrixY * glm::vec4(forward, 1));

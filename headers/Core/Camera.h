@@ -4,7 +4,7 @@ class Camera
 private:
 	
 	vec3 position;
-	vec3 positionShift;
+	vec3 rotation;
 
 	vec3 lookAt;
 
