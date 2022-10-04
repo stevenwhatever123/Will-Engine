@@ -109,17 +109,26 @@ void SystemManager::updateInputs()
 
         for (Material* material : loadedMaterials)
         {
-            material->vulkanImage = WillEngine::VulkanUtil::createImage(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
-                material->vulkanImage.image, VK_FORMAT_R8G8B8A8_SRGB, material->width, material->height);
+            material->mipLevels = WillEngine::VulkanUtil::calculateMiplevels(material->width, material->height);
 
-            WillEngine::VulkanUtil::loadTextureImage(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
-                vulkanWindow->vulkanEngine->commandPool, vulkanWindow->graphicsQueue, material->vulkanImage, 1, material->width, material->height, material->textureImage->data);
+            material->vulkanImage = WillEngine::VulkanUtil::createImage(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
+                material->vulkanImage.image, VK_FORMAT_R8G8B8A8_SRGB, material->width, material->height, material->mipLevels);
+
+            if (material->mipLevels > 1)
+            {
+                WillEngine::VulkanUtil::loadTextureImageWithMipmap(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
+                    vulkanWindow->vulkanEngine->commandPool, vulkanWindow->graphicsQueue, material->vulkanImage, material->mipLevels, material->width, material->height, material->textureImage->data);
+            }
+            else
+            {
+                WillEngine::VulkanUtil::loadTextureImage(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
+                    vulkanWindow->vulkanEngine->commandPool, vulkanWindow->graphicsQueue, material->vulkanImage, 1, material->width, material->height, material->textureImage->data);
+            }
 
             // Free the image from the cpu
             material->freeTextureImage();
 
-            material->initDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->descriptorPool, 
-                vulkanWindow->vulkanEngine->sampler);
+            material->initDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->descriptorPool);
         }
 
         for (Mesh* mesh : loadedMeshes)

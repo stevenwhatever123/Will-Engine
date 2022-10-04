@@ -220,6 +220,7 @@ void VulkanWindow::createLogicalDevice()
 
     // Device Features
     VkPhysicalDeviceFeatures deviceFeatures{};
+    deviceFeatures.samplerAnisotropy = VK_TRUE;
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 

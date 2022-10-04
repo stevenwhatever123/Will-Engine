@@ -25,13 +25,14 @@ public:
 	bool useTexture;
 
 	// Texture details
-
 	i32 width, height, numChannels;
 	Image* textureImage;
+	u32 mipLevels;
 
 	// Texture image in vulkan
 	VulkanAllocatedImage vulkanImage;
 	VkImageView imageView;
+	VkSampler textureSampler;
 
 	// Descriptor Set / Uniform Buffer for vulkan
 	VkDescriptorSetLayout textureDescriptorSetLayout;
@@ -55,9 +56,9 @@ public:
 	void freeTextureImage();
 
 	// Init
-	void initDescriptorSet(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool, VkSampler& sampler);
+	void initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkDescriptorPool& descriptorPool);
 
-	void updateTextureDesciptorSet(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkSampler& sampler);
+	void updateTextureDesciptorSet(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet);
 
 	// Getters
 	const bool hasTexture() { return has_texture; }

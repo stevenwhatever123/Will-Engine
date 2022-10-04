@@ -119,6 +119,7 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 			if (ret != AI_SUCCESS) continue;
 
 			material->has_texture = true;
+			material->useTexture = true;
 			material->texture_path = texturePath.C_Str();
 
 			printf("Texture Path %s\n", material->texture_path.c_str());
@@ -146,6 +147,7 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 			if (!material->textureImage->data)
 			{
 				material->has_texture = false;
+				material->useTexture = false;
 				material->texture_path = "";
 
 				material->width = 1;

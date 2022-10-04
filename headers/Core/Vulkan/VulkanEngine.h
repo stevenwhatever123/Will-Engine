@@ -91,9 +91,6 @@ public:
 	VkShaderModule defaultVertShader;
 	VkShaderModule defaultFragShader;
 
-	// Image Sampler
-	VkSampler sampler;
-
 	// GUI
 	VulkanGui* vulkanGui;
 
@@ -164,5 +161,6 @@ private:
 
 	VkPresentModeKHR selectSwapchainPresentMode(std::vector<VkPresentModeKHR>& presentModes);
 
-	void changeMaterialTexture(VkDevice& logicalDevice, VkQueue& graphicsQueue, bool& updateTexture, bool& updateColor, u32 materialIndex, std::string filename);
+	void changeMaterialTexture(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& graphicsQueue, bool& updateTexture, 
+		bool& updateColor, u32 materialIndex, std::string filename);
 };

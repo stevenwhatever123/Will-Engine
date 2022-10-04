@@ -10,5 +10,8 @@ layout(location = 0) out vec4 oColor;
 
 void main()
 {
-	oColor = texture(texColor, texCoord);
+	float mipmapLevel = textureQueryLod(texColor, texCoord).x;
+
+	oColor = textureLod(texColor, texCoord, mipmapLevel);
+	//oColor = texture(texColor, texCoord);
 }

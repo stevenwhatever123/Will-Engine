@@ -11,8 +11,10 @@ Material::Material() :
 	height(1),
 	numChannels(4),
 	textureImage(new Image()),
+	mipLevels(1),
 	vulkanImage({ VK_NULL_HANDLE, VK_NULL_HANDLE }),
 	imageView(VK_NULL_HANDLE),
+	textureSampler(VK_NULL_HANDLE),
 	textureDescriptorSetLayout(VK_NULL_HANDLE),
 	textureDescriptorSet(VK_NULL_HANDLE),
 	imguiTextureDescriptorSet(VK_NULL_HANDLE),
@@ -29,12 +31,11 @@ Material::~Material()
 
 void Material::cleanUp(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkDescriptorPool& descriptorPool)
 {
-	//if (!hasTexture())
-	//	return;
-
 	vmaDestroyImage(vmaAllocator, vulkanImage.image, vulkanImage.allocation);
 
 	vkDestroyImageView(logicalDevice, imageView, nullptr);
+
+	vkDestroySampler(logicalDevice, textureSampler, nullptr);
 
 	vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &textureDescriptorSet);
 
@@ -52,8 +53,11 @@ void Material::freeTextureImage()
 	delete this->textureImage;
 }
 
-void Material::initDescriptorSet(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool, VkSampler& sampler)
+void Material::initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkDescriptorPool& descriptorPool)
 {
+	// Create texture sampler
+	WillEngine::VulkanUtil::createTextureSampler(logicalDevice, physicalDevice, textureSampler, mipLevels);
+
 	// Initialise Descriptor set layout first
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 
@@ -64,16 +68,16 @@ void Material::initDescriptorSet(VkDevice& logicalDevice, VkDescriptorPool& desc
 	WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, textureDescriptorSetLayout, textureDescriptorSet);
 
 	// Descriptor Set for imgui texture
-	imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(sampler, imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(textureSampler, imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 	// Update Descriptor Set
-	updateTextureDesciptorSet(logicalDevice, textureDescriptorSet, sampler);
+	updateTextureDesciptorSet(logicalDevice, textureDescriptorSet);
 }
 
-void Material::updateTextureDesciptorSet(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkSampler& sampler)
+void Material::updateTextureDesciptorSet(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet)
 {
 	VkDescriptorImageInfo imageInfo{};
-	imageInfo.sampler = sampler;
+	imageInfo.sampler = textureSampler;
 	imageInfo.imageView = imageView;
 	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 

@@ -29,7 +29,6 @@ VulkanEngine::VulkanEngine() :
 	textureDescriptorSetLayout(VK_NULL_HANDLE),
 	defaultVertShader(VK_NULL_HANDLE),
 	defaultFragShader(VK_NULL_HANDLE),
-	sampler(VK_NULL_HANDLE),
 	vulkanGui(nullptr),
 	sceneMatrix(1)
 {
@@ -93,8 +92,6 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	WillEngine::VulkanUtil::createPipeline(logicalDevice, defaultPipeline, defaultPipelineLayout,
 		renderPass, defaultVertShader, defaultFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
 
-	WillEngine::VulkanUtil::createDefaultSampler(logicalDevice, sampler);
-
 	// Gui
 	initGui(window, instance, logicalDevice, physicalDevice, queue, surface);
 }
@@ -129,8 +126,6 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 		material->cleanUp(logicalDevice, vmaAllocator, descriptorPool);
 		delete material;
 	}
-
-	vkDestroySampler(logicalDevice, sampler, nullptr);
 
 	// Destroy all data from a mesh
 	for (auto* mesh : meshes)
@@ -222,7 +217,7 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	// Update Texture
 	if (updateTexture || updateColor)
 	{
-		changeMaterialTexture(logicalDevice, graphicsQueue, updateTexture, updateColor, selectedMaterialIndex, textureFilepath);
+		changeMaterialTexture(logicalDevice, physicalDevice, graphicsQueue, updateTexture, updateColor, selectedMaterialIndex, textureFilepath);
 		textureFilepath = "";
 	}
 
@@ -753,7 +748,8 @@ VkPresentModeKHR VulkanEngine::selectSwapchainPresentMode(std::vector<VkPresentM
 	return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkQueue& graphicsQueue, bool& updateTexture, bool& updateColor, u32 materialIndex, std::string filename)
+void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& graphicsQueue, bool& updateTexture, 
+	bool& updateColor, u32 materialIndex, std::string filename)
 {
 	vkDeviceWaitIdle(logicalDevice);
 
@@ -800,13 +796,16 @@ void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkQueue& graph
 		updateColor = false;
 	}
 
+	// Recalculate mip levels
+	materials[materialIndex]->mipLevels = WillEngine::VulkanUtil::calculateMiplevels(materials[materialIndex]->width, materials[materialIndex]->height);
+
 	// Delete old data
 	materials[materialIndex]->cleanUp(logicalDevice, vmaAllocator, descriptorPool);
 
 	// Reupload the data to the GPU
 	materials[materialIndex]->vulkanImage = WillEngine::VulkanUtil::createImage(logicalDevice, vmaAllocator,
 		materials[materialIndex]->vulkanImage.image, VK_FORMAT_R8G8B8A8_SRGB, materials[materialIndex]->width,
-		materials[materialIndex]->height);
+		materials[materialIndex]->height, materials[materialIndex]->mipLevels);
 
 	WillEngine::VulkanUtil::loadTextureImage(logicalDevice, vmaAllocator,
 		commandPool, graphicsQueue, materials[materialIndex]->vulkanImage, 1, materials[materialIndex]->width,
@@ -816,5 +815,5 @@ void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkQueue& graph
 	materials[materialIndex]->freeTextureImage();
 
 	// Re initialise the descriptor set
-	materials[materialIndex]->initDescriptorSet(logicalDevice, descriptorPool, sampler);
+	materials[materialIndex]->initDescriptorSet(logicalDevice, physicalDevice, descriptorPool);
 }

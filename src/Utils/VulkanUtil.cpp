@@ -90,7 +90,7 @@ VkExtent2D WillEngine::VulkanUtil::getSwapchainExtent(GLFWwindow* window, VkSurf
     return currentExtent;
 }
 
-VulkanAllocatedImage WillEngine::VulkanUtil::createImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkImage& image, VkFormat format, u32 width, u32 height)
+VulkanAllocatedImage WillEngine::VulkanUtil::createImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkImage& image, VkFormat format, u32 width, u32 height, u32 mipLevel)
 {
     // Image Info
     VkImageCreateInfo imageInfo{};
@@ -100,11 +100,11 @@ VulkanAllocatedImage WillEngine::VulkanUtil::createImage(VkDevice& logicalDevice
     imageInfo.extent.width = width;
     imageInfo.extent.height = height;
     imageInfo.extent.depth = 1;
-    imageInfo.mipLevels = 1;
+    imageInfo.mipLevels = mipLevel;
     imageInfo.arrayLayers = 1;
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
@@ -193,6 +193,125 @@ void WillEngine::VulkanUtil::loadTextureImage(VkDevice& logicalDevice, VmaAlloca
     vkFreeCommandBuffers(logicalDevice, commandPool, 1, &commandBuffer);
 }
 
+void WillEngine::VulkanUtil::loadTextureImageWithMipmap(VkDevice& logicalDevice, VmaAllocator vmaAllocator, VkCommandPool& commandPool, VkQueue& queue,
+    VulkanAllocatedImage& vulkanImage, u32 mipLevels, u32 width, u32 height, unsigned char* textureImage)
+{
+    VkCommandBuffer commandBuffer = createCommandBuffer(logicalDevice, commandPool);
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = 0;
+    beginInfo.pInheritanceInfo = nullptr;
+
+    if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
+        throw std::runtime_error("Failed to begin Command Buffer");
+
+    imageBarrier(commandBuffer, vulkanImage.image, 0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT , 0, mipLevels, 0, 1 }, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+    // Create staging buffers for image upload
+    auto sizeInBytes = width * height * 4;
+
+    // Staging Buffer
+    VulkanAllocatedMemory stagingBuffer = createBuffer(vmaAllocator, sizeInBytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+    // Copying the texture to the staging buffer
+    void* ptr = nullptr;
+    if (vmaMapMemory(vmaAllocator, stagingBuffer.allocation, &ptr) != VK_SUCCESS)
+        throw std::runtime_error("Vma failed to map memory");
+    std::memcpy(ptr, textureImage, sizeInBytes);
+
+    vmaUnmapMemory(vmaAllocator, stagingBuffer.allocation);
+
+    // Copy data from staging to the actual buffer
+    VkBufferImageCopy copy{};
+    copy.bufferOffset = 0;
+    copy.bufferRowLength = 0;
+    copy.bufferImageHeight = 0;
+    copy.imageSubresource = VkImageSubresourceLayers{
+        VK_IMAGE_ASPECT_COLOR_BIT , 0, 0, 1
+    };
+    copy.imageOffset = VkOffset3D{ 0, 0, 0 };
+    copy.imageExtent = VkExtent3D{ width, height, 1 };
+
+    vkCmdCopyBufferToImage(commandBuffer, stagingBuffer.buffer, vulkanImage.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+
+    imageBarrier(commandBuffer, vulkanImage.image, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT , 0, mipLevels, 0, 1 }, VK_QUEUE_FAMILY_IGNORED,
+        VK_QUEUE_FAMILY_IGNORED, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+    i32 currentWidth = width;
+    i32 currentHeight = height;
+
+    // Compute each mip level
+    for (u32 level = 1; level < mipLevels; level++)
+    {
+        imageBarrier(commandBuffer, vulkanImage.image, 0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT , level - 1, 1, 0, 1 }, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+        VkImageBlit imageBlit{};
+        imageBlit.srcOffsets[0] = {0, 0, 0};
+        imageBlit.srcOffsets[1] = { currentWidth, currentHeight, 1 };
+        imageBlit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageBlit.srcSubresource.mipLevel = level - 1;
+        imageBlit.srcSubresource.baseArrayLayer = 0;
+        imageBlit.srcSubresource.layerCount = 1;
+        imageBlit.dstOffsets[0] = {0, 0, 0};
+        imageBlit.dstOffsets[1] = { currentWidth > 1 ? currentWidth / 2 : 1, currentHeight > 1 ? currentHeight / 2 : 1, 1 };
+        imageBlit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageBlit.dstSubresource.mipLevel = level;
+        imageBlit.dstSubresource.baseArrayLayer = 0;
+        imageBlit.dstSubresource.layerCount = 1;
+
+        vkCmdBlitImage(commandBuffer, vulkanImage.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, vulkanImage.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, 
+            &imageBlit, VK_FILTER_LINEAR);
+
+        imageBarrier(commandBuffer, vulkanImage.image, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT , level - 1, 1, 0, 1 }, VK_QUEUE_FAMILY_IGNORED,
+            VK_QUEUE_FAMILY_IGNORED, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+        if (currentWidth > 1) currentWidth /= 2;
+        if (currentHeight > 1) currentHeight /= 2;
+    }
+
+    // Transition the barrier back from VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    imageBarrier(commandBuffer, vulkanImage.image, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT , 0, mipLevels, 0, 1 }, VK_QUEUE_FAMILY_IGNORED,
+        VK_QUEUE_FAMILY_IGNORED, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+    // End Command Buffer
+    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
+        throw std::runtime_error("Failed to end command buffer");
+
+    VkFence uploadComplete = createFence(logicalDevice, false);
+
+    // Submit the recorded commands
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+
+    if (vkQueueSubmit(queue, 1, &submitInfo, uploadComplete) != VK_SUCCESS)
+        throw std::runtime_error("Failed to submit commands");
+
+    if (vkWaitForFences(logicalDevice, 1, &uploadComplete, VK_TRUE, std::numeric_limits<u64>::max()) != VK_SUCCESS)
+        throw std::runtime_error("Failed to wait for fence");
+
+    // Clean up staging buffers
+    vmaDestroyBuffer(vmaAllocator, stagingBuffer.buffer, stagingBuffer.allocation);
+
+    // Clean up command buffer and fence
+    vkDestroyFence(logicalDevice, uploadComplete, nullptr);
+    vkFreeCommandBuffers(logicalDevice, commandPool, 1, &commandBuffer);
+}
+
+u32 WillEngine::VulkanUtil::calculateMiplevels(u32 width, u32 height)
+{
+    return static_cast<u32>(std::floor(std::log2(std::max(width, height)))) + 1;
+}
+
 void WillEngine::VulkanUtil::createImageView(VkDevice& logicalDevice, VkImage& image, VkImageView& imageView, VkFormat format, VkImageAspectFlags aspectMask)
 {
     VkImageViewCreateInfo imageViewInfo{};
@@ -224,6 +343,29 @@ void WillEngine::VulkanUtil::createDefaultSampler(VkDevice& logicalDevice, VkSam
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
+
+    if (vkCreateSampler(logicalDevice, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create sampler");
+}
+
+void WillEngine::VulkanUtil::createTextureSampler(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSampler& sampler, u32 mipLevels)
+{
+    VkPhysicalDeviceProperties properties{};
+    vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = static_cast<f32>(mipLevels);
+    samplerInfo.anisotropyEnable = VK_TRUE;
+    samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+    samplerInfo.compareEnable = VK_TRUE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 
     if (vkCreateSampler(logicalDevice, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
         throw std::runtime_error("Failed to create sampler");
