@@ -62,7 +62,7 @@ void Material::initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& phys
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	// Create a sampler and image view for the texture image
-	WillEngine::VulkanUtil::createImageView(logicalDevice, vulkanImage.image, imageView, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+	WillEngine::VulkanUtil::createImageView(logicalDevice, vulkanImage.image, imageView, mipLevels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 	
 	// Allocate descriptor set
 	WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, textureDescriptorSetLayout, textureDescriptorSet);

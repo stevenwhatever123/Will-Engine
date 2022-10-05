@@ -41,7 +41,8 @@ namespace WillEngine::VulkanUtil
 
 	u32 calculateMiplevels(u32 width, u32 height);
 
-	void createImageView(VkDevice& logicalDevice, VkImage& image, VkImageView& imageView, VkFormat format, VkImageAspectFlags aspectMask);
+	void createImageView(VkDevice& logicalDevice, VkImage& image, VkImageView& imageView, u32 mipLevels, VkFormat format, 
+		VkImageAspectFlags aspectMask);
 
 	// Samplers
 	void createDefaultSampler(VkDevice& logicalDevice, VkSampler& sampler);

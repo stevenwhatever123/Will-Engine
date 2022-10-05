@@ -372,7 +372,8 @@ void VulkanEngine::createSwapchainImageViews(VkDevice& logicalDevice)
 
 	for (u32 i = 0; i < swapchainImageViews.size(); i++)
 	{
-		WillEngine::VulkanUtil::createImageView(logicalDevice, swapchainImages[i], swapchainImageViews[i], swapchainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+		WillEngine::VulkanUtil::createImageView(logicalDevice, swapchainImages[i], swapchainImageViews[i], 1, swapchainImageFormat, 
+			VK_IMAGE_ASPECT_COLOR_BIT);
 	}
 }
 
@@ -468,7 +469,7 @@ void VulkanEngine::createDepthBuffer(VkDevice& logicalDevice, VmaAllocator& vmaA
 		throw std::runtime_error("Failed to create depth image");
 
 	// Create depth buffer image view
-	WillEngine::VulkanUtil::createImageView(logicalDevice, depthImage.image, depthImageView, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+	WillEngine::VulkanUtil::createImageView(logicalDevice, depthImage.image, depthImageView, 1, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
 void VulkanEngine::createSwapchainFramebuffer(VkDevice& logicalDevice, std::vector<VkImageView>& swapchainImageViews,

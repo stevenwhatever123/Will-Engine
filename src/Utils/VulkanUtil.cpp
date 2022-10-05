@@ -312,7 +312,8 @@ u32 WillEngine::VulkanUtil::calculateMiplevels(u32 width, u32 height)
     return static_cast<u32>(std::floor(std::log2(std::max(width, height)))) + 1;
 }
 
-void WillEngine::VulkanUtil::createImageView(VkDevice& logicalDevice, VkImage& image, VkImageView& imageView, VkFormat format, VkImageAspectFlags aspectMask)
+void WillEngine::VulkanUtil::createImageView(VkDevice& logicalDevice, VkImage& image, VkImageView& imageView, u32 mipLevels, 
+    VkFormat format, VkImageAspectFlags aspectMask)
 {
     VkImageViewCreateInfo imageViewInfo{};
     imageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -322,9 +323,9 @@ void WillEngine::VulkanUtil::createImageView(VkDevice& logicalDevice, VkImage& i
     imageViewInfo.components = VkComponentMapping{};
     imageViewInfo.subresourceRange.aspectMask = aspectMask;
     imageViewInfo.subresourceRange.baseMipLevel = 0;
-    imageViewInfo.subresourceRange.layerCount = 1;
+    imageViewInfo.subresourceRange.layerCount = VK_REMAINING_MIP_LEVELS;
     imageViewInfo.subresourceRange.baseArrayLayer = 0;
-    imageViewInfo.subresourceRange.levelCount = 1;
+    imageViewInfo.subresourceRange.levelCount = mipLevels;
 
     //VK_IMAGE_ASPECT_COLOR_BIT
 
@@ -360,7 +361,7 @@ void WillEngine::VulkanUtil::createTextureSampler(VkDevice& logicalDevice, VkPhy
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.minLod = 0.0f;
+    samplerInfo.minLod = static_cast<f32>(mipLevels / 2);
     samplerInfo.maxLod = static_cast<f32>(mipLevels);
     samplerInfo.anisotropyEnable = VK_TRUE;
     samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
