@@ -12,6 +12,9 @@ public:
 	std::string name;
 	u32 materialIndex;
 
+	vec3 transformPosition;
+	mat4 modelMatrix;
+
 	std::vector<vec3> positions;
 	std::vector<vec3> normals;
 	std::vector<vec2> uvs;
@@ -37,6 +40,8 @@ public:
 	void uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkSurfaceKHR& surface, VkQueue& queue);
 
 	void dataUploaded();
+
+	void updateModelMatrix();
 
 	void cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator);
 };

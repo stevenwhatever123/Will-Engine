@@ -86,9 +86,17 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 
 	u32 descriptorSetLayoutSize = sizeof(layouts) / sizeof(layouts[0]);
 
-	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, defaultPipelineLayout,
-		descriptorSetLayoutSize, layouts);
+	// Push constant object for model matrix to be used in vertex shader
+	VkPushConstantRange pushConstant{};
+	pushConstant.offset = 0;
+	pushConstant.size = sizeof(mat4);
+	pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
+	// Create pipeline layout with our just createdpush constant
+	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, defaultPipelineLayout,
+		descriptorSetLayoutSize, layouts, &pushConstant, 1);
+
+	// Create pipeline
 	WillEngine::VulkanUtil::createPipeline(logicalDevice, defaultPipeline, defaultPipelineLayout,
 		renderPass, defaultVertShader, defaultFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
 
@@ -670,6 +678,10 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& 
 
 		// Bind Texture
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 1, 1, &materials[mesh->materialIndex]->textureDescriptorSet, 0, nullptr);
+
+		// Push constant
+		mesh->updateModelMatrix();
+		vkCmdPushConstants(commandBuffer, defaultPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mesh->modelMatrix), &mesh->modelMatrix);
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 	}

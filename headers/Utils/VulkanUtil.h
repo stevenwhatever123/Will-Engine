@@ -80,7 +80,7 @@ namespace WillEngine::VulkanUtil
 
 	// Pipeline
 	void createPipelineLayout(VkDevice& logicalDevice, VkPipelineLayout& pipelineLayout, u32 size,
-		VkDescriptorSetLayout* descriptorSetLayout);
+		VkDescriptorSetLayout* descriptorSetLayout, VkPushConstantRange* pushConstant, u32 pushConstantCount);
 
 	void createPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass, 
 		VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D swapchainExtent);

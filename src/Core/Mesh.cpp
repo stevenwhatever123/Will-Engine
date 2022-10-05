@@ -4,6 +4,8 @@
 Mesh::Mesh() :
 	name(""),
 	materialIndex(0),
+	transformPosition(0),
+	modelMatrix(1),
 	positions(),
 	normals(),
 	uvs(),
@@ -162,6 +164,11 @@ void Mesh::dataUploaded()
 	normals.shrink_to_fit();
 	uvs.shrink_to_fit();
 	indicies.shrink_to_fit();
+}
+
+void Mesh::updateModelMatrix()
+{
+	modelMatrix = glm::translate(mat4(1), transformPosition);
 }
 
 void Mesh::cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator)

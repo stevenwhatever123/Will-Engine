@@ -130,6 +130,8 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 	{
 		if (ImGui::TreeNode(meshes[i]->name.c_str()))
 		{
+			ImGui::DragFloat3("Position", &meshes[i]->transformPosition.x, 0.1f);
+
 			ImGui::Text("Material: %s", materials[meshes[i]->materialIndex]->name.c_str());
 
 			ImGui::Image((ImTextureID) materials[meshes[i]->materialIndex]->imguiTextureDescriptorSet, ImVec2(200, 200));
