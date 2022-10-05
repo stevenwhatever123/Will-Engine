@@ -90,7 +90,7 @@ VkExtent2D WillEngine::VulkanUtil::getSwapchainExtent(GLFWwindow* window, VkSurf
     return currentExtent;
 }
 
-VulkanAllocatedImage WillEngine::VulkanUtil::createImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkImage& image, VkFormat format, u32 width, u32 height, u32 mipLevel)
+VulkanAllocatedImage WillEngine::VulkanUtil::createImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkImage& image, VkFormat format, u32 width, u32 height, u32 mipLevels)
 {
     // Image Info
     VkImageCreateInfo imageInfo{};
@@ -100,7 +100,7 @@ VulkanAllocatedImage WillEngine::VulkanUtil::createImage(VkDevice& logicalDevice
     imageInfo.extent.width = width;
     imageInfo.extent.height = height;
     imageInfo.extent.depth = 1;
-    imageInfo.mipLevels = mipLevel;
+    imageInfo.mipLevels = mipLevels;
     imageInfo.arrayLayers = 1;
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -361,7 +361,7 @@ void WillEngine::VulkanUtil::createTextureSampler(VkDevice& logicalDevice, VkPhy
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.minLod = static_cast<f32>(mipLevels / 2);
+    samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = static_cast<f32>(mipLevels);
     samplerInfo.anisotropyEnable = VK_TRUE;
     samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
