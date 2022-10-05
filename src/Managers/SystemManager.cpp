@@ -114,16 +114,8 @@ void SystemManager::updateInputs()
             material->vulkanImage = WillEngine::VulkanUtil::createImage(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
                 material->vulkanImage.image, VK_FORMAT_R8G8B8A8_SRGB, material->width, material->height, material->mipLevels);
 
-            if (material->mipLevels > 1)
-            {
-                WillEngine::VulkanUtil::loadTextureImageWithMipmap(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
-                    vulkanWindow->vulkanEngine->commandPool, vulkanWindow->graphicsQueue, material->vulkanImage, material->mipLevels, material->width, material->height, material->textureImage->data);
-            }
-            else
-            {
-                WillEngine::VulkanUtil::loadTextureImage(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
-                    vulkanWindow->vulkanEngine->commandPool, vulkanWindow->graphicsQueue, material->vulkanImage, 1, material->width, material->height, material->textureImage->data);
-            }
+            WillEngine::VulkanUtil::loadTextureImageWithMipmap(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
+                vulkanWindow->vulkanEngine->commandPool, vulkanWindow->graphicsQueue, material->vulkanImage, material->mipLevels, material->width, material->height, material->textureImage->data);
 
             // Free the image from the cpu
             material->freeTextureImage();
