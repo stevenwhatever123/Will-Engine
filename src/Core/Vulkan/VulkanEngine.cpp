@@ -808,9 +808,18 @@ void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkPhysicalDevi
 		materials[materialIndex]->vulkanImage.image, VK_FORMAT_R8G8B8A8_SRGB, materials[materialIndex]->width,
 		materials[materialIndex]->height, materials[materialIndex]->mipLevels);
 
-	WillEngine::VulkanUtil::loadTextureImage(logicalDevice, vmaAllocator,
-		commandPool, graphicsQueue, materials[materialIndex]->vulkanImage, 1, materials[materialIndex]->width,
-		materials[materialIndex]->height, materials[materialIndex]->textureImage->data);
+	if (materials[materialIndex]->mipLevels > 1)
+	{
+		WillEngine::VulkanUtil::loadTextureImageWithMipmap(logicalDevice, vmaAllocator,
+			commandPool, graphicsQueue, materials[materialIndex]->vulkanImage, materials[materialIndex]->mipLevels, 
+			materials[materialIndex]->width, materials[materialIndex]->height, materials[materialIndex]->textureImage->data);
+	}
+	else
+	{
+		WillEngine::VulkanUtil::loadTextureImage(logicalDevice, vmaAllocator,
+			commandPool, graphicsQueue, materials[materialIndex]->vulkanImage, 1, materials[materialIndex]->width,
+			materials[materialIndex]->height, materials[materialIndex]->textureImage->data);
+	}
 
 	// Free the image from the cpu
 	materials[materialIndex]->freeTextureImage();
