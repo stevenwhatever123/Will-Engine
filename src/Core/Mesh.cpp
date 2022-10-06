@@ -151,10 +151,8 @@ void Mesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice&
 	vkDestroyFence(logicalDevice, uploadComplete, nullptr);
 	vkFreeCommandBuffers(logicalDevice, commandPool, 1, &commandBuffer);
 	vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
-}
 
-void Mesh::dataUploaded()
-{
+	// Remove unnecessary data from memory
 	positions.clear();
 	normals.clear();
 	uvs.clear();

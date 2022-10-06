@@ -148,7 +148,10 @@ public:
 
 	void updateSceneUniform(Camera* camera);
 
-	void recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& renderpass, VkFramebuffer& framebuffer, VkExtent2D& extent);
+	void recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D& extent);
+
+	void renderPasses(VkCommandBuffer& commandBuffer);
+	void UIPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 
 	void submitCommands(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, 
 		VkQueue& graphicsQueue, VkFence& fence);

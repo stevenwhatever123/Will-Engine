@@ -109,26 +109,14 @@ void SystemManager::updateInputs()
 
         for (Material* material : loadedMaterials)
         {
-            material->mipLevels = WillEngine::VulkanUtil::calculateMiplevels(material->width, material->height);
-
-            material->vulkanImage = WillEngine::VulkanUtil::createImage(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
-                material->vulkanImage.image, VK_FORMAT_R8G8B8A8_SRGB, material->width, material->height, material->mipLevels);
-
-            WillEngine::VulkanUtil::loadTextureImageWithMipmap(vulkanWindow->logicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
-                vulkanWindow->vulkanEngine->commandPool, vulkanWindow->graphicsQueue, material->vulkanImage, material->mipLevels, material->width, material->height, material->textureImage->data);
-
-            // Free the image from the cpu
-            material->freeTextureImage();
-
-            material->initDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->descriptorPool);
+            material->initDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
+                vulkanWindow->vulkanEngine->commandPool, vulkanWindow->vulkanEngine->descriptorPool, vulkanWindow->graphicsQueue);
         }
 
         for (Mesh* mesh : loadedMeshes)
         {
             mesh->uploadDataToPhysicalDevice(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator, vulkanWindow->surface,
                 vulkanWindow->graphicsQueue);
-        
-            mesh->dataUploaded();
         }
 
         // Modify mesh's material index based on the current size of materials

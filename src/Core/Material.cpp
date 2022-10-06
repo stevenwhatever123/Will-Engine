@@ -53,8 +53,23 @@ void Material::freeTextureImage()
 	delete this->textureImage;
 }
 
-void Material::initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkDescriptorPool& descriptorPool)
+void Material::initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
+	VkDescriptorPool& descriptorPool, VkQueue& graphicsQueue)
 {
+	// Calculate mip levels
+	mipLevels = WillEngine::VulkanUtil::calculateMiplevels(width, height);
+
+	// Create vulkan image
+	vulkanImage = WillEngine::VulkanUtil::createImage(logicalDevice, vmaAllocator,
+		vulkanImage.image, VK_FORMAT_R8G8B8A8_SRGB, width, height, mipLevels);
+
+	// Load image to physical device with mipmapping
+	WillEngine::VulkanUtil::loadTextureImageWithMipmap(logicalDevice, vmaAllocator,
+		commandPool, graphicsQueue, vulkanImage, mipLevels, width, height, textureImage->data);
+
+	// Free the image from memory
+	freeTextureImage();
+
 	// Create texture sampler
 	WillEngine::VulkanUtil::createTextureSampler(logicalDevice, physicalDevice, textureSampler, mipLevels);
 

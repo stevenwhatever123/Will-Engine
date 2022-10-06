@@ -107,7 +107,7 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 
 		material->name = materialName.C_Str();
 
-		printf("Texture name: %s\n", material->name.c_str());
+		//printf("Texture name: %s\n", material->name.c_str());
 
 		i32 numTextures = currentAiMaterial->GetTextureCount(aiTextureType_DIFFUSE);
 		aiString texturePath;
@@ -122,7 +122,7 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 			material->useTexture = true;
 			material->texture_path = texturePath.C_Str();
 
-			printf("Texture Path %s\n", material->texture_path.c_str());
+			//printf("Texture Path %s\n", material->texture_path.c_str());
 		}
 
 		// Color
@@ -156,8 +156,8 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 			}
 		}
 
-		printf("Color: %f, %f, %f\n", material->color.x, material->color.y, 
-			material->color.z);
+		//printf("Color: %f, %f, %f\n", material->color.x, material->color.y, 
+		//	material->color.z);
 
 		materials.emplace_back(material);
 	}

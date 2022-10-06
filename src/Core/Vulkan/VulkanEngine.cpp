@@ -623,7 +623,7 @@ void VulkanEngine::updateSceneUniform(Camera* camera)
 	sceneMatrix = camera->getProjectionMatrix(swapchainExtent.width, swapchainExtent.height) * camera->getCameraMatrix() * model;
 }
 
-void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& renderpass, VkFramebuffer& framebuffer, VkExtent2D& extent)
+void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D& extent)
 {
 	// Begin command buffer
 	VkCommandBufferBeginInfo commandBeginInfo{};
@@ -656,9 +656,26 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& 
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	//=============================
-	// Record rendering command here
+	// ========================================================
+	// Recording all the rendering command
 
+	// Rendering pass
+	renderPasses(commandBuffer);
+
+	// UI rendering pass
+	UIPasses(commandBuffer, extent);
+
+	// ========================================================
+
+	// End Render Pass
+	vkCmdEndRenderPass(commandBuffer);
+
+	// End command buffer
+	vkEndCommandBuffer(commandBuffer);
+}
+
+void VulkanEngine::renderPasses(VkCommandBuffer& commandBuffer)
+{
 	// Bind default pipeline
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipeline);
 
@@ -685,18 +702,12 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& 
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 	}
+}
 
+void VulkanEngine::UIPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent)
+{
 	// ImGui UI rendering
 	vulkanGui->renderUI(commandBuffer, extent);
-
-	//=============================
-
-
-	// End Render Pass
-	vkCmdEndRenderPass(commandBuffer);
-
-	// End command buffer
-	vkEndCommandBuffer(commandBuffer);
 }
 
 void VulkanEngine::submitCommands(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore,
@@ -809,24 +820,9 @@ void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkPhysicalDevi
 		updateColor = false;
 	}
 
-	// Recalculate mip levels
-	materials[materialIndex]->mipLevels = WillEngine::VulkanUtil::calculateMiplevels(materials[materialIndex]->width, materials[materialIndex]->height);
-
 	// Delete old data
 	materials[materialIndex]->cleanUp(logicalDevice, vmaAllocator, descriptorPool);
 
-	// Reupload the data to the GPU
-	materials[materialIndex]->vulkanImage = WillEngine::VulkanUtil::createImage(logicalDevice, vmaAllocator,
-		materials[materialIndex]->vulkanImage.image, VK_FORMAT_R8G8B8A8_SRGB, materials[materialIndex]->width,
-		materials[materialIndex]->height, materials[materialIndex]->mipLevels);
-
-	WillEngine::VulkanUtil::loadTextureImageWithMipmap(logicalDevice, vmaAllocator,
-		commandPool, graphicsQueue, materials[materialIndex]->vulkanImage, materials[materialIndex]->mipLevels,
-		materials[materialIndex]->width, materials[materialIndex]->height, materials[materialIndex]->textureImage->data);
-
-	// Free the image from the cpu
-	materials[materialIndex]->freeTextureImage();
-
 	// Re initialise the descriptor set
-	materials[materialIndex]->initDescriptorSet(logicalDevice, physicalDevice, descriptorPool);
+	materials[materialIndex]->initDescriptorSet(logicalDevice, physicalDevice, vmaAllocator, commandPool, descriptorPool, graphicsQueue);
 }

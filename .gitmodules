@@ -7,9 +7,6 @@
 [submodule "libs/glm"]
 	path = libs/glm
 	url = https://github.com/g-truc/glm
-[submodule "libs/imgui"]
-	path = libs/imgui
-	url = https://github.com/ocornut/imgui
 [submodule "libs/volk"]
 	path = libs/volk
 	url = https://github.com/zeux/volk

@@ -39,8 +39,6 @@ public:
 
 	void uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkSurfaceKHR& surface, VkQueue& queue);
 
-	void dataUploaded();
-
 	void updateModelMatrix();
 
 	void cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator);

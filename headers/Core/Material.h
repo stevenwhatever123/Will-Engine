@@ -56,7 +56,8 @@ public:
 	void freeTextureImage();
 
 	// Init
-	void initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkDescriptorPool& descriptorPool);
+	void initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
+		VkDescriptorPool& descriptorPool, VkQueue& graphicsQueue);
 
 	void updateTextureDesciptorSet(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet);
 
