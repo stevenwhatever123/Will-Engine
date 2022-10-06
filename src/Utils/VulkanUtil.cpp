@@ -508,18 +508,18 @@ void WillEngine::VulkanUtil::initShaderModule(VkDevice& logicalDevice, VkShaderM
 }
 
 void WillEngine::VulkanUtil::createDescriptorSetLayout(VkDevice& logicalDevice, VkDescriptorSetLayout& descriptorSetLayout,
-    VkDescriptorType descriptorType, VkShaderStageFlags shaderStage)
+    VkDescriptorType descriptorType, VkShaderStageFlags shaderStage, u32 binding)
 {
-    VkDescriptorSetLayoutBinding binding[1]{};
-    binding[0].binding = 0;
-    binding[0].descriptorType = descriptorType;
-    binding[0].descriptorCount = 1;
-    binding[0].stageFlags = shaderStage;
+    VkDescriptorSetLayoutBinding layoutBinding[1]{};
+    layoutBinding[0].binding = binding;
+    layoutBinding[0].descriptorType = descriptorType;
+    layoutBinding[0].descriptorCount = 1;
+    layoutBinding[0].stageFlags = shaderStage;
 
     VkDescriptorSetLayoutCreateInfo descriptorInfo{};
     descriptorInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    descriptorInfo.bindingCount = sizeof(binding) / sizeof(binding[0]);
-    descriptorInfo.pBindings = binding;
+    descriptorInfo.bindingCount = sizeof(layoutBinding) / sizeof(layoutBinding[0]);
+    descriptorInfo.pBindings = layoutBinding;
 
     if (vkCreateDescriptorSetLayout(logicalDevice, &descriptorInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
         throw std::runtime_error("Failed to create descriptor set layout");
@@ -536,6 +536,42 @@ void WillEngine::VulkanUtil::allocDescriptorSet(VkDevice& logicalDevice, VkDescr
 
     if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSet) != VK_SUCCESS)
         throw std::runtime_error("Failed to allocate Descriptor Sets");
+}
+
+void WillEngine::VulkanUtil::writeDescriptorSetBuffer(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkBuffer& descriptorBuffer, u32 binding)
+{
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = descriptorBuffer;
+    bufferInfo.range = VK_WHOLE_SIZE;
+
+    VkWriteDescriptorSet writeSet{};
+    writeSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writeSet.dstSet = descriptorSet;
+    writeSet.dstBinding = binding;
+    writeSet.descriptorCount = 1;
+    writeSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    writeSet.pBufferInfo = &bufferInfo;
+
+    vkUpdateDescriptorSets(logicalDevice, 1, &writeSet, 0, nullptr);
+}
+
+void WillEngine::VulkanUtil::writeDescriptorSetImage(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkSampler& sampler, VkImageView& imageView,
+    VkImageLayout imageLayout, u32 binding)
+{
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.sampler = sampler;
+    imageInfo.imageView = imageView;
+    imageInfo.imageLayout = imageLayout;
+
+    VkWriteDescriptorSet writeSet{};
+    writeSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writeSet.dstSet = descriptorSet;
+    writeSet.dstBinding = binding;
+    writeSet.descriptorCount = 1;
+    writeSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    writeSet.pImageInfo = &imageInfo;
+
+    vkUpdateDescriptorSets(logicalDevice, 1, &writeSet, 0, nullptr);
 }
 
 void WillEngine::VulkanUtil::createPipelineLayout(VkDevice& logicalDevice, VkPipelineLayout& pipelineLayout, u32 size,

@@ -14,12 +14,14 @@ layout(push_constant) uniform modelMatrix
 	mat4 modelTransformation;
 } ;
 
-layout(location = 0) out vec3 oNormal;
-layout(location = 1) out vec2 oTexCoord;
+layout(location = 0) out vec4 oPosition;
+layout(location = 1) out vec4 oNormal;
+layout(location = 2) out vec2 oTexCoord;
 
 void main()
 {
-	oNormal = normal;
+	oPosition = modelTransformation * vec4(position, 1);
+	oNormal = vec4(normal, 1);
 	oTexCoord = texCoord;
 
 	gl_Position = cameraProjectionMatrix * modelTransformation * vec4(position, 1);

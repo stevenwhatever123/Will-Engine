@@ -13,3 +13,6 @@
 [submodule "libs/glslang"]
 	path = libs/glslang
 	url = https://github.com/KhronosGroup/glslang
+[submodule "libs/imgui"]
+	path = libs/imgui
+	url = https://github.com/ocornut/imgui

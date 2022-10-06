@@ -113,7 +113,8 @@ void VulkanGui::cleanUp(VkDevice& logicalDevice)
 	ImGui::DestroyContext();
 }
 
-void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& materials, bool& updateTexture, bool& updateColor, u32& materialIndex, std::string& textureFilepath)
+void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& materials, std::vector<Light*>& lights, bool& updateTexture, bool& updateColor, 
+	u32& materialIndex, std::string& textureFilepath)
 {
 	ImGuiIO& io = ImGui::GetIO();
 
@@ -212,6 +213,28 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 	}
 
 	ImGui::End();
+
+
+
+	if (lights.size() > 0)
+	{
+		ImGui::Begin("Light Control");
+
+		for (u32 i = 0; i < lights.size(); i++)
+		{
+			ImGui::PushID(i);
+
+			ImGui::DragFloat3("", &lights[i]->position.x, 0.1f);
+
+			ImGui::SameLine();
+
+			ImGui::Text("Light %u", i);
+
+			ImGui::PopID();
+		}
+
+		ImGui::End();
+	}
 }
 
 void VulkanGui::renderUI(VkCommandBuffer& commandBuffer, VkExtent2D extent)

@@ -1,12 +1,11 @@
 #pragma once
 #include "Managers/FileManager.h"
 #include "Managers/InputManager.h"
-#include "Core/OpenGL/GLWindow.h"
-#include "Core/OpenGL/GLRenderer.h"
-#include "Core/OpenGL/GLImGuiUI.h"
 #include "Core/Vulkan/VulkanWindow.h"
 #include "Core/Camera.h"
 #include "Core/Mesh.h"
+#include "Core/Material.h"
+#include "Core/Light.h"
 #include "Utils/Logging.h"
 #include "Utils/ModelImporter.h"
 
@@ -16,6 +15,8 @@ private:
 
 	std::vector<Mesh*> meshes;
 	std::vector<Material*> materials;
+
+	std::vector<Light*> lights;
 
 public:
 
@@ -52,12 +53,14 @@ public:
 	// Initialise
 	void init(i32 windowWidth, i32 windowHeight);
 	void initCamera();
+	void initLight();
 
 	// Vulkan init
 	void initVulkanWindow();
 
 	// Updates
 	void update();
+
 	void updateInputs();
 	void updateCamera();
 

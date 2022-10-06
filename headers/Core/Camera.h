@@ -1,10 +1,12 @@
 #pragma once
 class Camera
 {
-private:
+public:
 	
 	vec3 position;
 	vec3 rotation;
+
+private:
 
 	vec3 lookAt;
 
@@ -16,8 +18,6 @@ private:
 
 	// The view matrix
 	mat4 cameraMatrix;
-
-public:
 
 public:
 

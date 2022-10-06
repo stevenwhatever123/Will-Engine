@@ -1,6 +1,8 @@
 #pragma once
+#include "Core/Camera.h"
 #include "Core/Mesh.h"
 #include "Core/Material.h"
+#include "Core/Light.h"
 #include "Core/Camera.h"
 
 #include "Core/Vulkan/VulkanGui.h"
@@ -25,8 +27,12 @@ public:
 	u32 selectedMaterialIndex = 0;
 	std::string textureFilepath = "";
 
+	Camera* camera;
+
 	std::vector<Mesh*> meshes;
 	std::vector<Material*> materials;
+
+	std::vector<Light*> lights;
 
 public:
 
@@ -84,6 +90,18 @@ public:
 	// Scene Uniform buffer
 	VulkanAllocatedMemory sceneUniformBuffer;
 
+	// Light Descriptor sets
+	VkDescriptorSetLayout lightDescriptorSetLayout;
+	VkDescriptorSet lightDescriptorSet;
+	// Lights Uniform buffer
+	VulkanAllocatedMemory lightUniformBuffer;
+
+	// Camera Descriptor sets
+	VkDescriptorSetLayout cameraDescriptorSetLayout;
+	VkDescriptorSet cameraDescriptorSet;
+	// Camera Uniform buffer
+	VulkanAllocatedMemory cameraUniformBuffer;
+
 	// Texture Descriptor sets
 	VkDescriptorSetLayout textureDescriptorSetLayout;
 
@@ -134,12 +152,11 @@ public:
 
 	void createDescriptionPool(VkDevice& logicalDevice);
 
-	void createSceneUniformBuffers(VkDevice& logicalDevice, VulkanAllocatedMemory& uniformBuffer);
-
-	void updateSceneDescriptorSet(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkBuffer& descriptorBuffer);
+	void initUniformBuffer(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool, VulkanAllocatedMemory& uniformBuffer,VkDescriptorSet& descriptorSet, 
+		VkDescriptorSetLayout& descriptorSetLayout, u32 binding, u32 bufferSize, VkShaderStageFlagBits shaderStage);
+	void createUniformBuffer(VkDevice& logicalDevice, VulkanAllocatedMemory& uniformBuffer, u32 bufferSize);
 
 	// GUI
-
 	void initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue, VkSurfaceKHR& surface);
 
 	void updateGui(VkDevice& logicalDevice, VkQueue& graphicsQueue);
@@ -147,6 +164,7 @@ public:
 	// Update
 
 	void updateSceneUniform(Camera* camera);
+	void updateLightUniform(Camera* camera);
 
 	void recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D& extent);
 

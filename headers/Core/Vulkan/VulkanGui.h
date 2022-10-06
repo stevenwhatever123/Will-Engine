@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Mesh.h"
 #include "Core/Material.h"
+#include "Core/Light.h"
 
 class VulkanGui
 {
@@ -26,7 +27,8 @@ public:
 
 	void cleanUp(VkDevice& logicalDevice);
 
-	void update(std::vector<Mesh*>& meshes, std::vector<Material*>& materials, bool& updateTexture, bool& updateColor, u32& materialIndex, std::string& textureFilepath);
+	void update(std::vector<Mesh*>& meshes, std::vector<Material*>& materials, std::vector<Light*>& lights, bool& updateTexture, bool& updateColor, 
+		u32& materialIndex, std::string& textureFilepath);
 
 	void renderUI(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 };

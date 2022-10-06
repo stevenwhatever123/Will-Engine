@@ -59,7 +59,7 @@ public:
 	void initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
 		VkDescriptorPool& descriptorPool, VkQueue& graphicsQueue);
 
-	void updateTextureDesciptorSet(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet);
+	void writeTextureDesciptorSet(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet);
 
 	// Getters
 	const bool hasTexture() { return has_texture; }

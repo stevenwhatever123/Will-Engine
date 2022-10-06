@@ -3,6 +3,9 @@
 #include "Managers/SystemManager.h"
 
 SystemManager::SystemManager() :
+    meshes(),
+    materials(),
+    lights(),
     vulkanWindow(nullptr),
     windowWidth(0),
     windowHeight(0),
@@ -28,9 +31,16 @@ void SystemManager::init(i32 windowWidth, i32 windowHeight)
     this->windowHeight = windowHeight;
 
     initCamera();
+    initLight();
 
     initVulkanWindow();
     glfwSetWindowUserPointer(vulkanWindow->window, this);
+
+    // Add light to vulkan engine
+    vulkanWindow->vulkanEngine->lights.push_back(lights[0]);
+
+    // Add camera to vulkan engine
+    vulkanWindow->vulkanEngine->camera = camera;
 
     // Init time
     currentTime = glfwGetTime();
@@ -41,6 +51,12 @@ void SystemManager::init(i32 windowWidth, i32 windowHeight)
 void SystemManager::initCamera()
 {
     camera = new Camera(vec3(0, 0, 0), vec3(0, 0, -1));
+}
+
+void SystemManager::initLight()
+{
+    Light* light = new Light();
+    lights.push_back(light);
 }
 
 void SystemManager::initVulkanWindow()
@@ -76,6 +92,7 @@ void SystemManager::update()
     }
 
     vulkanWindow->vulkanEngine->updateSceneUniform(camera);
+    vulkanWindow->vulkanEngine->updateLightUniform(camera);
     vulkanWindow->update();
 }
 

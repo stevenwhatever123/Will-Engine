@@ -74,7 +74,9 @@ void Material::initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& phys
 	WillEngine::VulkanUtil::createTextureSampler(logicalDevice, physicalDevice, textureSampler, mipLevels);
 
 	// Initialise Descriptor set layout first
-	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	// Binding set to 1
+	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+		VK_SHADER_STAGE_FRAGMENT_BIT, 1);
 
 	// Create a sampler and image view for the texture image
 	WillEngine::VulkanUtil::createImageView(logicalDevice, vulkanImage.image, imageView, mipLevels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
@@ -85,26 +87,9 @@ void Material::initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& phys
 	// Descriptor Set for imgui texture
 	imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(textureSampler, imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-	// Update Descriptor Set
-	updateTextureDesciptorSet(logicalDevice, textureDescriptorSet);
-}
-
-void Material::updateTextureDesciptorSet(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet)
-{
-	VkDescriptorImageInfo imageInfo{};
-	imageInfo.sampler = textureSampler;
-	imageInfo.imageView = imageView;
-	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-	VkWriteDescriptorSet writeSet{};
-	writeSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	writeSet.dstSet = descriptorSet;
-	writeSet.dstBinding = 0;
-	writeSet.descriptorCount = 1;
-	writeSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	writeSet.pImageInfo = &imageInfo;
-
-	vkUpdateDescriptorSets(logicalDevice, 1, &writeSet, 0, nullptr);
+	// Write Descriptor Set
+	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSampler, imageView,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
 }
 
 const char* Material::getTexturePath()
