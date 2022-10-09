@@ -126,18 +126,49 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 		}
 
 		// Color
-		aiColor3D color(0, 0, 0);
-		ret = currentAiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, color);
+		// Emissive
+		aiColor3D emissiveColor(0, 0, 0);
+		ret = currentAiMaterial->Get(AI_MATKEY_COLOR_EMISSIVE, emissiveColor);
 		if (ret != AI_SUCCESS) continue;
 
-		material->color.x = color.r;
-		material->color.y = color.g;
-		material->color.z = color.b;
-		material->color.w = 1.0f;
+		material->materialUniform.emissiveColor.x = emissiveColor.r;
+		material->materialUniform.emissiveColor.y = emissiveColor.g;
+		material->materialUniform.emissiveColor.z = emissiveColor.b;
+		material->materialUniform.emissiveColor.w = 1.0f;
+
+		// Ambient
+		aiColor3D ambientColor(0, 0, 0);
+		ret = currentAiMaterial->Get(AI_MATKEY_COLOR_AMBIENT, ambientColor);
+		if (ret != AI_SUCCESS) continue;
+
+		material->materialUniform.ambientColor.x = ambientColor.r;
+		material->materialUniform.ambientColor.y = ambientColor.g;
+		material->materialUniform.ambientColor.z = ambientColor.b;
+		material->materialUniform.ambientColor.w = 1.0f;
+
+		// Diffuse
+		aiColor3D diffuseColor(0, 0, 0);
+		ret = currentAiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, diffuseColor);
+		if (ret != AI_SUCCESS) continue;
+
+		material->materialUniform.diffuseColor.x = diffuseColor.r;
+		material->materialUniform.diffuseColor.y = diffuseColor.g;
+		material->materialUniform.diffuseColor.z = diffuseColor.b;
+		material->materialUniform.diffuseColor.w = 1.0f;
+
+		// Specular
+		aiColor3D specularColor(0, 0, 0);
+		ret = currentAiMaterial->Get(AI_MATKEY_COLOR_SPECULAR, specularColor);
+		if (ret != AI_SUCCESS) continue;
+
+		material->materialUniform.specularColor.x = specularColor.r;
+		material->materialUniform.specularColor.y = specularColor.g;
+		material->materialUniform.specularColor.z = specularColor.b;
+		material->materialUniform.specularColor.w = 1.0f;
 
 		material->width = 1;
 		material->height = 1;
-		material->textureImage->setImageColor(material->color);
+		material->textureImage->setImageColor(material->materialUniform.diffuseColor);
 
 		if (material->hasTexture())
 		{
@@ -152,7 +183,7 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 
 				material->width = 1;
 				material->height = 1;
-				material->textureImage->setImageColor(material->color);
+				material->textureImage->setImageColor(material->materialUniform.diffuseColor);
 			}
 		}
 

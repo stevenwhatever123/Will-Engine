@@ -6,8 +6,10 @@
 struct MaterialUniform
 {
 	// std140 layout
-	vec4 color;
-	u32 has_texture;			// Boolean 4 byte layout
+	vec4 emissiveColor;
+	vec4 ambientColor;
+	vec4 diffuseColor;
+	vec4 specularColor;
 };
 
 class Material
@@ -16,7 +18,7 @@ public:
 
 	std::string name;
 
-	vec4 color;
+	MaterialUniform materialUniform;
 
 	// Texture?
 	bool has_texture;

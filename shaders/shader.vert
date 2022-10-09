@@ -12,7 +12,7 @@ layout(set = 0, binding = 0) uniform sceneMatrix
 layout(push_constant) uniform modelMatrix
 {
 	mat4 modelTransformation;
-} ;
+};
 
 layout(location = 0) out vec4 oPosition;
 layout(location = 1) out vec4 oNormal;

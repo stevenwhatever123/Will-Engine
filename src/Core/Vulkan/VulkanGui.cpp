@@ -201,7 +201,7 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 			}
 			else
 			{
-				if (ImGui::ColorPicker4("Mesh Color", glm::value_ptr(materials[i]->color)))
+				if (ImGui::ColorPicker4("Mesh Color", glm::value_ptr(materials[i]->materialUniform.diffuseColor)))
 				{
 					updateColor = true;
 					materialIndex = i;

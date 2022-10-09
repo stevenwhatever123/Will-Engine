@@ -93,15 +93,21 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	VkDescriptorSetLayout layouts[] = { sceneDescriptorSetLayout, lightDescriptorSetLayout, cameraDescriptorSetLayout, textureDescriptorSetLayout };
 	u32 descriptorSetLayoutSize = sizeof(layouts) / sizeof(layouts[0]);
 
+	VkPushConstantRange pushConstants[2];
 	// Push constant object for model matrix to be used in vertex shader
-	VkPushConstantRange pushConstant{};
-	pushConstant.offset = 0;
-	pushConstant.size = sizeof(mat4);
-	pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	pushConstants[0].offset = 0;
+	pushConstants[0].size = sizeof(mat4);
+	pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	// Push constant object for uniform material to be used in fragment shader
+	pushConstants[1].offset = sizeof(mat4);
+	pushConstants[1].size = sizeof(vec4) * 4;
+	pushConstants[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-	// Create pipeline layout with our just createdpush constant
+	u32 pushConstantCount = sizeof(pushConstants) / sizeof(pushConstants[0]);
+
+	// Create pipeline layout with our just created push constant
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, defaultPipelineLayout,
-		descriptorSetLayoutSize, layouts, &pushConstant, 1);
+		descriptorSetLayoutSize, layouts, pushConstantCount, pushConstants);
 
 	// Create pipeline
 	WillEngine::VulkanUtil::createPipeline(logicalDevice, defaultPipeline, defaultPipelineLayout,
@@ -727,9 +733,13 @@ void VulkanEngine::renderPasses(VkCommandBuffer& commandBuffer)
 		// Bind Texture
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 3, 1, &materials[mesh->materialIndex]->textureDescriptorSet, 0, nullptr);
 
-		// Push constant
+		// Push constant for model matrix
 		mesh->updateModelMatrix();
 		vkCmdPushConstants(commandBuffer, defaultPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mesh->modelMatrix), &mesh->modelMatrix);
+
+		// Push constant for material uniform
+		vkCmdPushConstants(commandBuffer, defaultPipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(mat4),
+			sizeof(materials[mesh->materialIndex]->materialUniform), &materials[mesh->materialIndex]->materialUniform);
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 	}
@@ -844,7 +854,7 @@ void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkPhysicalDevi
 
 		materials[materialIndex]->width = 1;
 		materials[materialIndex]->height = 1;
-		materials[materialIndex]->textureImage->setImageColor(materials[materialIndex]->color);
+		materials[materialIndex]->textureImage->setImageColor(materials[materialIndex]->materialUniform.diffuseColor);
 
 		materials[materialIndex]->has_texture = false;
 

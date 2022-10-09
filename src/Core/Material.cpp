@@ -2,7 +2,7 @@
 #include "Core/Material.h"
 
 Material::Material() :
-	color(0),
+	materialUniform({}),
 	name(""),
 	has_texture(false),
 	texture_path(""),
@@ -100,8 +100,8 @@ const char* Material::getTexturePath()
 MaterialUniform Material::getMaterialUniform()
 {
 	MaterialUniform material_uniform{};
-	material_uniform.has_texture = (u32)this->has_texture;
-	material_uniform.color = this->color;
+	//material_uniform.has_texture = (u32)this->has_texture;
+	//material_uniform.color = this->color;
 
 	return material_uniform;
 }

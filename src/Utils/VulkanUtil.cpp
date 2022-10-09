@@ -575,7 +575,7 @@ void WillEngine::VulkanUtil::writeDescriptorSetImage(VkDevice& logicalDevice, Vk
 }
 
 void WillEngine::VulkanUtil::createPipelineLayout(VkDevice& logicalDevice, VkPipelineLayout& pipelineLayout, u32 size,
-    VkDescriptorSetLayout* descriptorSetLayout, VkPushConstantRange* pushConstant, u32 pushConstantCount)
+    VkDescriptorSetLayout* descriptorSetLayout, u32 pushConstantCount, VkPushConstantRange* pushConstant)
 {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
