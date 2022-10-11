@@ -74,7 +74,7 @@ namespace WillEngine::VulkanUtil
 
 	// Descriptors related
 	void createDescriptorSetLayout(VkDevice& logicalDevice, VkDescriptorSetLayout& descriptorSetLayout,VkDescriptorType descriptorType, 
-		VkShaderStageFlags shaderStage, u32 binding);
+		VkShaderStageFlags shaderStage, u32 binding, u32 descriptorCount);
 
 	void allocDescriptorSet(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool, VkDescriptorSetLayout& descriptorSetInfo,
 		VkDescriptorSet& descriptorSet);

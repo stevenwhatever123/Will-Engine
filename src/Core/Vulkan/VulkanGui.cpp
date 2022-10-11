@@ -155,6 +155,30 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 	{
 		if (ImGui::TreeNode(materials[i]->name.c_str()))
 		{
+			ImGui::PushID(i);
+
+			if (ImGui::BeginTable("Phong material", 1, ImGuiTableFlags_BordersV))
+			{
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Phong material properties");
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::DragFloat3("Emissive", &materials[i]->phongMaterialUniform.emissiveColor.x, 0.1f);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::DragFloat3("Ambient", &materials[i]->phongMaterialUniform.ambientColor.x, 0.1f);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::DragFloat3("Diffuse", &materials[i]->phongMaterialUniform.diffuseColor.x, 0.1f);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::DragFloat3("Specular", &materials[i]->phongMaterialUniform.specularColor.x, 0.1f);
+
+				ImGui::EndTable();
+			}
+
 			bool lastUseTexture = materials[i]->useTexture;
 			ImGui::Checkbox("Use Texture", &materials[i]->useTexture);
 
@@ -201,12 +225,14 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 			}
 			else
 			{
-				if (ImGui::ColorPicker4("Mesh Color", glm::value_ptr(materials[i]->materialUniform.diffuseColor)))
+				if (ImGui::ColorPicker4("Mesh Color", glm::value_ptr(materials[i]->phongMaterialUniform.diffuseColor)))
 				{
 					updateColor = true;
 					materialIndex = i;
 				}
 			}
+
+			ImGui::PopID();
 
 			ImGui::TreePop();
 		}

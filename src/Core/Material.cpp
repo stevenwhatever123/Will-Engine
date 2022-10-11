@@ -2,7 +2,7 @@
 #include "Core/Material.h"
 
 Material::Material() :
-	materialUniform({}),
+	phongMaterialUniform({}),
 	name(""),
 	has_texture(false),
 	texture_path(""),
@@ -76,7 +76,7 @@ void Material::initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& phys
 	// Initialise Descriptor set layout first
 	// Binding set to 1
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
-		VK_SHADER_STAGE_FRAGMENT_BIT, 1);
+		VK_SHADER_STAGE_FRAGMENT_BIT, 1, 1);
 
 	// Create a sampler and image view for the texture image
 	WillEngine::VulkanUtil::createImageView(logicalDevice, vulkanImage.image, imageView, mipLevels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
@@ -97,9 +97,9 @@ const char* Material::getTexturePath()
 	return texture_path.c_str();
 }
 
-MaterialUniform Material::getMaterialUniform()
+PhongMaterialUniform Material::getMaterialUniform()
 {
-	MaterialUniform material_uniform{};
+	PhongMaterialUniform material_uniform{};
 	//material_uniform.has_texture = (u32)this->has_texture;
 	//material_uniform.color = this->color;
 

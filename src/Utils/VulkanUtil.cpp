@@ -494,9 +494,6 @@ VkShaderModule WillEngine::VulkanUtil::createShaderModule(VkDevice& logicalDevic
 
 void WillEngine::VulkanUtil::initShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader)
 {
-    //const char* vertShaderPath = "C:/Users/Steven/Documents/GitHub/Will-Engine/shaders/compiled_shaders/shader.vert.spv";
-    //const char* fragShaderPath = "C:/Users/Steven/Documents/GitHub/Will-Engine/shaders/compiled_shaders/shader.frag.spv";
-
     const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/shader.vert.spv";
     const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/shader.frag.spv";
 
@@ -508,12 +505,12 @@ void WillEngine::VulkanUtil::initShaderModule(VkDevice& logicalDevice, VkShaderM
 }
 
 void WillEngine::VulkanUtil::createDescriptorSetLayout(VkDevice& logicalDevice, VkDescriptorSetLayout& descriptorSetLayout,
-    VkDescriptorType descriptorType, VkShaderStageFlags shaderStage, u32 binding)
+    VkDescriptorType descriptorType, VkShaderStageFlags shaderStage, u32 binding, u32 descriptorCount)
 {
     VkDescriptorSetLayoutBinding layoutBinding[1]{};
     layoutBinding[0].binding = binding;
     layoutBinding[0].descriptorType = descriptorType;
-    layoutBinding[0].descriptorCount = 1;
+    layoutBinding[0].descriptorCount = descriptorCount;
     layoutBinding[0].stageFlags = shaderStage;
 
     VkDescriptorSetLayoutCreateInfo descriptorInfo{};

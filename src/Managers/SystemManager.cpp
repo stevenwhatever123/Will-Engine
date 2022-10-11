@@ -122,7 +122,7 @@ void SystemManager::updateInputs()
 
         std::tie(loadedMeshes, loadedMaterials) = WillEngine::Utils::readModel(filename.c_str());
 
-        u32 currentMaterialSize = materials.size();
+        u32 currentMaterialSize = vulkanWindow->vulkanEngine->materials.size();
 
         for (Material* material : loadedMaterials)
         {

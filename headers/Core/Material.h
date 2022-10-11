@@ -3,7 +3,7 @@
 
 #include "Utils/VulkanUtil.h"
 
-struct MaterialUniform
+struct PhongMaterialUniform
 {
 	// std140 layout
 	vec4 emissiveColor;
@@ -12,13 +12,18 @@ struct MaterialUniform
 	vec4 specularColor;
 };
 
+struct BRDFMaterialUniform
+{
+
+};
+
 class Material
 {
 public:
 
 	std::string name;
 
-	MaterialUniform materialUniform;
+	PhongMaterialUniform phongMaterialUniform;
 
 	// Texture?
 	bool has_texture;
@@ -66,5 +71,5 @@ public:
 	// Getters
 	const bool hasTexture() { return has_texture; }
 	const char* getTexturePath();
-	MaterialUniform getMaterialUniform();
+	PhongMaterialUniform getMaterialUniform();
 };

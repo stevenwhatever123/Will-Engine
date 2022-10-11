@@ -72,19 +72,20 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 
 	createDescriptionPool(logicalDevice);
 
-	// Scene Descriptors with binding 0 in vertex shader
+	// Scene Descriptors for scene matrix with binding 0 in vertex shader
 	initUniformBuffer(logicalDevice, descriptorPool, sceneUniformBuffer, sceneDescriptorSet, sceneDescriptorSetLayout, 0, sizeof(mat4), VK_SHADER_STAGE_VERTEX_BIT);
 
-	// Light Descriptors with binding 0 in fragment shader
-	initUniformBuffer(logicalDevice, descriptorPool, lightUniformBuffer, lightDescriptorSet, lightDescriptorSetLayout, 0, sizeof(vec4), VK_SHADER_STAGE_FRAGMENT_BIT);
+	// Light Descriptors for light with binding 0 in fragment shader
+	initUniformBuffer(logicalDevice, descriptorPool, lightUniformBuffer, lightDescriptorSet, lightDescriptorSetLayout, 0, 
+		sizeof(LightUniform), VK_SHADER_STAGE_FRAGMENT_BIT);
 
-	// Camera Descriptors with binding 0 in fragment shader
+	// Camera Descriptors for camera position with binding 0 in fragment shader
 	initUniformBuffer(logicalDevice, descriptorPool, cameraUniformBuffer, cameraDescriptorSet, cameraDescriptorSetLayout, 0, sizeof(vec4), VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	// Texture Descriptor with binding 1 in fragment shader
 	// We only need to know the layout of the descriptor
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		VK_SHADER_STAGE_FRAGMENT_BIT, 1);
+		VK_SHADER_STAGE_FRAGMENT_BIT, 1, 1);
 
 	// Shader Modules
 	WillEngine::VulkanUtil::initShaderModule(logicalDevice, defaultVertShader, defaultFragShader);
@@ -595,7 +596,7 @@ void VulkanEngine::initUniformBuffer(VkDevice& logicalDevice, VkDescriptorPool& 
 	createUniformBuffer(logicalDevice, uniformBuffer, bufferSize);
 
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, descriptorSetLayout, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-		shaderStage, binding);
+		shaderStage, binding, 1);
 
 	WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, descriptorSetLayout, descriptorSet);
 
@@ -642,7 +643,7 @@ void VulkanEngine::updateLightUniform(Camera* camera)
 	// Update Light's Position
 	for (auto light : lights)
 	{
-		light->transformedPosition = vec4(light->position.x, light->position.y, light->position.z, 1);
+		light->lightUniform.transformedPosition = vec4(light->position.x, light->position.y, light->position.z, 1);
 	}
 }
 
@@ -660,7 +661,7 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& 
 	vkCmdUpdateBuffer(commandBuffer, sceneUniformBuffer.buffer, 0, sizeof(mat4), &sceneMatrix);
 
 	// Update light uniform buffers
-	vkCmdUpdateBuffer(commandBuffer, lightUniformBuffer.buffer, 0, sizeof(vec4), &lights[0]->transformedPosition);
+	vkCmdUpdateBuffer(commandBuffer, lightUniformBuffer.buffer, 0, sizeof(lights[0]->lightUniform), &lights[0]->lightUniform);
 
 	vec4 cameraPosition = vec4(camera->position, 1);
 
@@ -739,7 +740,7 @@ void VulkanEngine::renderPasses(VkCommandBuffer& commandBuffer)
 
 		// Push constant for material uniform
 		vkCmdPushConstants(commandBuffer, defaultPipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(mat4),
-			sizeof(materials[mesh->materialIndex]->materialUniform), &materials[mesh->materialIndex]->materialUniform);
+			sizeof(materials[mesh->materialIndex]->phongMaterialUniform), &materials[mesh->materialIndex]->phongMaterialUniform);
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 	}
@@ -854,7 +855,8 @@ void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkPhysicalDevi
 
 		materials[materialIndex]->width = 1;
 		materials[materialIndex]->height = 1;
-		materials[materialIndex]->textureImage->setImageColor(materials[materialIndex]->materialUniform.diffuseColor);
+
+		materials[materialIndex]->textureImage->setImageColor(materials[materialIndex]->phongMaterialUniform.diffuseColor);
 
 		materials[materialIndex]->has_texture = false;
 

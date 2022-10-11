@@ -8,6 +8,8 @@ layout(location = 2) in vec2 texCoord;
 layout(set = 1, binding = 0) uniform light
 {
 	vec4 lightPosition;
+	vec4 lightColor;
+	vec4 lightAmbient;
 };
 
 layout(set = 2, binding = 0) uniform camera
@@ -30,14 +32,11 @@ layout(location = 0) out vec4 oColor;
 
 void main()
 {
-	// Let's assume the color of the light is white
-	vec4 lightColor = vec4(1, 1, 1, 1);
-
 	// Emissive
 	vec4 emissive = emissiveColor;
 
 	// Ambient
-    vec4 ambient = ambientColor;
+    vec4 ambient = lightAmbient * ambientColor;
 
 	// Specular
 	vec4 lightDirection = normalize(lightPosition - position);
@@ -53,7 +52,8 @@ void main()
 	vec4 diffuse = lightColor * diffuseColor * lightCosTheta;
 
 	vec4 objectColor = texture(texColor, texCoord);
-    vec4 result = (ambient + diffuse + specular) * objectColor;
+    //vec4 result = (emissive + ambient + diffuse + specular) * objectColor;
+    vec4 result = objectColor;
 
 	oColor = result;
 }

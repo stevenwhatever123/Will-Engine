@@ -162,7 +162,6 @@ public:
 	void updateGui(VkDevice& logicalDevice, VkQueue& graphicsQueue);
 
 	// Update
-
 	void updateSceneUniform(Camera* camera);
 	void updateLightUniform(Camera* camera);
 

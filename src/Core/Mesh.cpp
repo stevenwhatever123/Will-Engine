@@ -167,6 +167,7 @@ void Mesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice&
 void Mesh::updateModelMatrix()
 {
 	modelMatrix = glm::translate(mat4(1), transformPosition);
+	//modelMatrix = glm::scale(mat4(1), vec3(100, 100, 100));
 }
 
 void Mesh::cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator)
