@@ -94,15 +94,15 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	VkDescriptorSetLayout layouts[] = { sceneDescriptorSetLayout, lightDescriptorSetLayout, cameraDescriptorSetLayout, textureDescriptorSetLayout };
 	u32 descriptorSetLayoutSize = sizeof(layouts) / sizeof(layouts[0]);
 
-	VkPushConstantRange pushConstants[2];
+	VkPushConstantRange pushConstants[1];
 	// Push constant object for model matrix to be used in vertex shader
 	pushConstants[0].offset = 0;
 	pushConstants[0].size = sizeof(mat4);
 	pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 	// Push constant object for uniform material to be used in fragment shader
-	pushConstants[1].offset = sizeof(mat4);
-	pushConstants[1].size = sizeof(vec4) * 4;
-	pushConstants[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	//pushConstants[1].offset = sizeof(mat4);
+	//pushConstants[1].size = sizeof(vec4) * 4;
+	//pushConstants[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
 	u32 pushConstantCount = sizeof(pushConstants) / sizeof(pushConstants[0]);
 

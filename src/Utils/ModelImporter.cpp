@@ -107,23 +107,91 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 
 		material->name = materialName.C_Str();
 
-		//printf("Texture name: %s\n", material->name.c_str());
-
-		i32 numTextures = currentAiMaterial->GetTextureCount(aiTextureType_DIFFUSE);
-		aiString texturePath;
-
-		if (numTextures)
+		// Texture path
+		// Emissive
+		i32 numEmissiveTextures = currentAiMaterial->GetTextureCount(aiTextureType_EMISSIVE);
+		aiString emissiveTexturePath;
+		if (numEmissiveTextures)
 		{
-			ret = currentAiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), texturePath);
+			ret = currentAiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_EMISSIVE, 0), emissiveTexturePath);
 
-			if (ret != AI_SUCCESS) continue;
-
-			material->textures[2].has_texture = true;
-			material->textures[2].useTexture = true;
-			material->textures[2].texture_path = texturePath.C_Str();
-
-			//printf("Texture Path %s\n", material->texture_path.c_str());
+			if (ret == AI_SUCCESS)
+			{
+				material->textures[0].has_texture = true;
+				material->textures[0].useTexture = true;
+				material->textures[0].texture_path = emissiveTexturePath.C_Str();
+			}
 		}
+		else
+		{
+			material->textures[0].has_texture = false;
+			material->textures[0].useTexture = false;
+			material->textures[0].texture_path = "";
+		}
+		
+		// Ambient
+		i32 numAmbientTextures = currentAiMaterial->GetTextureCount(aiTextureType_AMBIENT);
+		aiString ambientTexturePath;
+		if (numAmbientTextures)
+		{
+			ret = currentAiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_AMBIENT, 0), ambientTexturePath);
+
+			if (ret == AI_SUCCESS)
+			{
+				material->textures[1].has_texture = true;
+				material->textures[1].useTexture = true;
+				material->textures[1].texture_path = ambientTexturePath.C_Str();
+			}
+		}
+		else
+		{
+			material->textures[1].has_texture = false;
+			material->textures[1].useTexture = false;
+			material->textures[1].texture_path = "";
+		}
+
+		// Diffuse
+		i32 numDiffuseTextures = currentAiMaterial->GetTextureCount(aiTextureType_DIFFUSE);
+		aiString diffuseTexturePath;
+		if (numDiffuseTextures)
+		{
+			ret = currentAiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), diffuseTexturePath);
+
+			if (ret == AI_SUCCESS)
+			{
+				material->textures[2].has_texture = true;
+				material->textures[2].useTexture = true;
+				material->textures[2].texture_path = diffuseTexturePath.C_Str();
+			}
+		}
+		else
+		{
+			material->textures[2].has_texture = false;
+			material->textures[2].useTexture = false;
+			material->textures[2].texture_path = "";
+		}
+
+		// Specular
+		i32 numSpecularTextures = currentAiMaterial->GetTextureCount(aiTextureType_SPECULAR);
+		aiString specularTexturePath;
+		if (numSpecularTextures)
+		{
+			ret = currentAiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_SPECULAR, 0), specularTexturePath);
+
+			if (ret == AI_SUCCESS)
+			{
+				material->textures[3].has_texture = true;
+				material->textures[3].useTexture = true;
+				material->textures[3].texture_path = specularTexturePath.C_Str();
+			}
+		}
+		else
+		{
+			material->textures[3].has_texture = false;
+			material->textures[3].useTexture = false;
+			material->textures[3].texture_path = "";
+		}
+
 
 		// Color
 		// Emissive
@@ -154,11 +222,12 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 		material->phongMaterialUniform.specularColor.y = specularColor.g;
 		material->phongMaterialUniform.specularColor.z = specularColor.b;
 
-		for (u32 i = 0; i < material->textures.size(); i++)
+		for (u32 i = 0; i < 4; i++)
 		{
 			material->textures[i].width = 1;
 			material->textures[i].height = 1;
-			material->textures[i].textureImage = new Image();
+			Image* image = new Image();
+			material->setTextureImage(i, image);
 
 			switch (i)
 			{
@@ -208,9 +277,6 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 				}
 			}
 		}
-
-		//printf("Color: %f, %f, %f\n", material->color.x, material->color.y, 
-		//	material->color.z);
 
 		materials.emplace_back(material);
 	}

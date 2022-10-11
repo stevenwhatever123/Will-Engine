@@ -1,10 +1,26 @@
 #include "pch.h"
 #include "Core/Material.h"
 
+TextureDescriptorSet::TextureDescriptorSet():
+	has_texture(false),
+	texture_path(""),
+	width(1),
+	height(1),
+	numChannels(0),
+	textureImage(nullptr),
+	mipLevels(0),
+	vulkanImage({ VK_NULL_HANDLE,VK_NULL_HANDLE }),
+	imageView(VK_NULL_HANDLE),
+	textureSampler(VK_NULL_HANDLE),
+	imguiTextureDescriptorSet(VK_NULL_HANDLE)
+{
+
+}
+
 Material::Material() :
 	phongMaterialUniform({}),
 	name(""),
-	textures(4),
+	textures(),
 	textureDescriptorSetLayout(VK_NULL_HANDLE),
 	textureDescriptorSet(VK_NULL_HANDLE)
 {
@@ -43,36 +59,6 @@ void Material::freeTextureImage(u32 index)
 	delete this->textures[index].textureImage;
 }
 
-void Material::initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
-	VkDescriptorPool& descriptorPool, VkQueue& graphicsQueue)
-{
-	// Initiase Texture
-	for (u32 i = 0; i < textures.size(); i++)
-	{
-		initTexture(logicalDevice, physicalDevice, vmaAllocator, commandPool, graphicsQueue, i);
-	}
-
-	// Initialise Descriptor set layout first
-	// Binding set to 1
-	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
-		VK_SHADER_STAGE_FRAGMENT_BIT, 1, 4);
-	
-	// Allocate descriptor set
-	WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, textureDescriptorSetLayout, textureDescriptorSet);
-
-	// Write Descriptor Set
-	std::vector<VkSampler> textureSamplers(4);
-	std::vector<VkImageView> imageViews(4);
-	for (u32 i = 0; i < textures.size(); i++)
-	{
-		textureSamplers[i] = textures[i].textureSampler;
-		imageViews[i] = textures[i].imageView;
-	}
-
-	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers, imageViews,
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 4);
-}
-
 void Material::initTexture(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool, VkQueue& graphicsQueue, u32 index)
 {
 	// Calculate mip levels
@@ -101,6 +87,36 @@ void Material::initTexture(VkDevice& logicalDevice, VkPhysicalDevice& physicalDe
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
+void Material::initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
+	VkDescriptorPool& descriptorPool, VkQueue& graphicsQueue)
+{
+	// Initiase Texture
+	for (u32 i = 0; i < 4; i++)
+	{
+		initTexture(logicalDevice, physicalDevice, vmaAllocator, commandPool, graphicsQueue, i);
+	}
+
+	// Initialise Descriptor set layout first
+	// Binding set to 1 with 4 descriptor sets
+	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
+		VK_SHADER_STAGE_FRAGMENT_BIT, 1, 4);
+	
+	// Allocate memory for descriptor set
+	WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, textureDescriptorSetLayout, textureDescriptorSet);
+
+	// Write Descriptor Set
+	std::vector<VkSampler> textureSamplers(4);
+	std::vector<VkImageView> imageViews(4);
+	for (u32 i = 0; i < 4; i++)
+	{
+		textureSamplers[i] = textures[i].textureSampler;
+		imageViews[i] = textures[i].imageView;
+	}
+
+	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers, imageViews,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 4);
+}
+
 void Material::updateDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
 	VkDescriptorPool& descriptorPool, VkQueue& graphicsQueue, u32 index)
 {
@@ -117,7 +133,7 @@ void Material::updateDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& ph
 	// Write Descriptor Set
 	std::vector<VkSampler> textureSamplers(4);
 	std::vector<VkImageView> imageViews(4);
-	for (u32 i = 0; i < textures.size(); i++)
+	for (u32 i = 0; i < 4; i++)
 	{
 		textureSamplers[i] = textures[i].textureSampler;
 		imageViews[i] = textures[i].imageView;

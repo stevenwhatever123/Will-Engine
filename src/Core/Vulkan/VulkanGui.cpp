@@ -151,6 +151,8 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 
 	ImGui::Begin("Material Viewer");
 
+	std::string phongMaterials[4] = { "Emissive", "Ambient", "Diffuse", "Specular" };
+
 	for (u32 i = 0; i < materials.size(); i++)
 	{
 		if (ImGui::TreeNode(materials[i]->name.c_str()))
@@ -214,52 +216,63 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 				ImGui::EndTable();
 			}
 
-			bool lastUseTexture = materials[i]->textures[2].useTexture;
-			ImGui::Checkbox("Use Texture", &materials[i]->textures[2].useTexture);
-
-			bool checkBoxChanged = (lastUseTexture == true && materials[i]->textures[2].useTexture == false) 
-				|| (lastUseTexture == false && materials[i]->textures[2].useTexture == true);
-
-			if (checkBoxChanged)
+			for (u32 j = 0; j < 4; j++)
 			{
-				if (materials[i]->textures[2].useTexture)
+				ImGui::PushID(j);
+
+				ImGui::Text(phongMaterials[j].c_str());
+
+				bool lastUseTexture = materials[i]->textures[j].useTexture;
+				ImGui::Checkbox("Use Texture", &materials[i]->textures[j].useTexture);
+
+				bool checkBoxChanged = (lastUseTexture == true && materials[i]->textures[j].useTexture == false)
+					|| (lastUseTexture == false && materials[i]->textures[j].useTexture == true);
+
+				if (checkBoxChanged)
 				{
-					updateTexture = true;
-					materialIndex = i;
-					textureIndex = 2;
-				}
-				else
-				{
-					updateColor = true;
-					materialIndex = i;
-					textureIndex = 2;
-				}
-			}
-
-			if (materials[i]->hasTexture(2) || materials[i]->textures[2].useTexture)
-			{
-				if (ImGui::ImageButton((ImTextureID)materials[i]->textures[2].imguiTextureDescriptorSet, ImVec2(150, 150)))
-				{
-					bool readSuccess;
-					std::string filename;
-
-					std::tie(readSuccess, filename) = WillEngine::Utils::selectFile();
-
-					if (!readSuccess)
-					{
-						printf("Failed to read %s\n", filename.c_str());
-
-						updateTexture = false;
-						materialIndex = 0;
-						textureFilepath = "";
-					}
-					else
+					if (materials[i]->textures[j].useTexture)
 					{
 						updateTexture = true;
 						materialIndex = i;
-						textureFilepath = filename;
+						textureIndex = j;
+					}
+					else
+					{
+						updateColor = true;
+						materialIndex = i;
+						textureIndex = j;
 					}
 				}
+
+				if (materials[i]->hasTexture(j) || materials[i]->textures[j].useTexture)
+				{
+					if (ImGui::ImageButton((ImTextureID)materials[i]->textures[j].imguiTextureDescriptorSet, ImVec2(150, 150)))
+					{
+						bool readSuccess;
+						std::string filename;
+
+						std::tie(readSuccess, filename) = WillEngine::Utils::selectFile();
+
+						if (!readSuccess)
+						{
+							printf("Failed to read %s\n", filename.c_str());
+
+							updateTexture = false;
+							materialIndex = 0;
+							textureIndex = 0;
+							textureFilepath = "";
+						}
+						else
+						{
+							updateTexture = true;
+							materialIndex = i;
+							textureIndex = j;
+							textureFilepath = filename;
+						}
+					}
+				}
+
+				ImGui::PopID();
 			}
 
 			ImGui::PopID();

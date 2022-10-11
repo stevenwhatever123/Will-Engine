@@ -168,6 +168,7 @@ public:
 
 	void recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D& extent);
 
+	// Render passes
 	void renderPasses(VkCommandBuffer& commandBuffer);
 	void UIPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 
