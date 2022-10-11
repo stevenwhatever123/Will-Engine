@@ -85,7 +85,7 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	// Texture Descriptor with binding 1 in fragment shader
 	// We only need to know the layout of the descriptor
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		VK_SHADER_STAGE_FRAGMENT_BIT, 1, 1);
+		VK_SHADER_STAGE_FRAGMENT_BIT, 1, 4);
 
 	// Shader Modules
 	WillEngine::VulkanUtil::initShaderModule(logicalDevice, defaultVertShader, defaultFragShader);
@@ -823,23 +823,23 @@ void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkPhysicalDevi
 	{
 		// Load the texture first, if we cannot read the texture, we proceed to changing the color
 		Image* textureImage = new Image();
-		materials[materialIndex]->textureImage = textureImage;
+		materials[materialIndex]->textures[2].textureImage = textureImage;
 
 		// Don't update the texture path if it's the same one or an empty string
 		if (filename.compare("") != 0 &&
-			(materials[materialIndex]->texture_path.size() < 1 || materials[materialIndex]->texture_path.compare(filename) != 0))
+			(materials[materialIndex]->textures[2].texture_path.size() < 1 || materials[materialIndex]->textures[2].texture_path.compare(filename) != 0))
 		{
-			materials[materialIndex]->texture_path = filename;
+			materials[materialIndex]->textures[2].texture_path = filename;
 		}
 
-		materials[materialIndex]->textureImage->readImage(materials[materialIndex]->texture_path.c_str(), materials[materialIndex]->width, materials[materialIndex]->height,
-			materials[materialIndex]->numChannels);
+		materials[materialIndex]->textures[2].textureImage->readImage(materials[materialIndex]->textures[2].texture_path.c_str(), 
+			materials[materialIndex]->textures[2].width, materials[materialIndex]->textures[2].height, materials[materialIndex]->textures[2].numChannels);
 
 		// If we cannot load the texture, create a color texture
-		if (materials[materialIndex]->textureImage->data == NULL)
+		if (materials[materialIndex]->textures[2].textureImage->data == NULL)
 		{
 			delete textureImage;
-			materials[materialIndex]->texture_path = "";
+			materials[materialIndex]->textures[2].texture_path = "";
 			updateColor = true;
 		}
 		
@@ -851,21 +851,18 @@ void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkPhysicalDevi
 		// Create new data
 		Image* textureImage = new Image();
 
-		materials[materialIndex]->textureImage = textureImage;
+		materials[materialIndex]->textures[2].textureImage = textureImage;
 
-		materials[materialIndex]->width = 1;
-		materials[materialIndex]->height = 1;
+		materials[materialIndex]->textures[2].width = 1;
+		materials[materialIndex]->textures[2].height = 1;
 
-		materials[materialIndex]->textureImage->setImageColor(materials[materialIndex]->phongMaterialUniform.diffuseColor);
+		materials[materialIndex]->textures[2].textureImage->setImageColor(materials[materialIndex]->phongMaterialUniform.diffuseColor);
 
-		materials[materialIndex]->has_texture = false;
+		materials[materialIndex]->textures[2].has_texture = false;
 
 		updateColor = false;
 	}
 
-	// Delete old data
-	materials[materialIndex]->cleanUp(logicalDevice, vmaAllocator, descriptorPool);
-
-	// Re initialise the descriptor set
-	materials[materialIndex]->initDescriptorSet(logicalDevice, physicalDevice, vmaAllocator, commandPool, descriptorPool, graphicsQueue);
+	// Update the associated descriptor set
+	materials[materialIndex]->updateDescriptorSet(logicalDevice, physicalDevice, vmaAllocator, commandPool, descriptorPool, graphicsQueue, 2);
 }

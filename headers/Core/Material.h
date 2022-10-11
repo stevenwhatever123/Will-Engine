@@ -17,14 +17,8 @@ struct BRDFMaterialUniform
 
 };
 
-class Material
+struct TextureDescriptorSet
 {
-public:
-
-	std::string name;
-
-	PhongMaterialUniform phongMaterialUniform;
-
 	// Texture?
 	bool has_texture;
 	std::string texture_path;
@@ -41,15 +35,25 @@ public:
 	VkImageView imageView;
 	VkSampler textureSampler;
 
+	// Texture Descriptor Set for imgui UI
+	VkDescriptorSet imguiTextureDescriptorSet;
+};
+
+class Material
+{
+public:
+
+	std::string name;
+
+	PhongMaterialUniform phongMaterialUniform;
+
+	// The texture would always be in the layout of:
+	// 1. Emissive, 2. Ambient, 3. Diffuse, 4. Specular
+	std::vector<TextureDescriptorSet> textures;
+
 	// Descriptor Set / Uniform Buffer for vulkan
 	VkDescriptorSetLayout textureDescriptorSetLayout;
 	VkDescriptorSet textureDescriptorSet;
-
-	// Texture Descriptor Set for imgui UI
-	VkDescriptorSet imguiTextureDescriptorSet;
-
-	VkDescriptorSetLayout materialDescriptorSetLayout;
-	VkDescriptorSet materialDescriptorSet;
 
 public:
 	Material();
@@ -58,18 +62,21 @@ public:
 	void cleanUp(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkDescriptorPool& descriptorPool);
 
 	// Setters
-	void setTextureImage(Image* image);
+	void setTextureImage(u32 index, Image* image);
 
-	void freeTextureImage();
+	void freeTextureImage(u32 index);
 
 	// Init
 	void initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
 		VkDescriptorPool& descriptorPool, VkQueue& graphicsQueue);
 
-	void writeTextureDesciptorSet(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet);
+	void initTexture(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool, VkQueue& graphicsQueue, u32 index);
+
+	void updateDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
+		VkDescriptorPool& descriptorPool, VkQueue& graphicsQueue, u32 index);
 
 	// Getters
-	const bool hasTexture() { return has_texture; }
-	const char* getTexturePath();
+	const bool hasTexture(u32 index) { return textures[index].has_texture; }
+	const char* getTexturePath(u32 index);
 	PhongMaterialUniform getMaterialUniform();
 };

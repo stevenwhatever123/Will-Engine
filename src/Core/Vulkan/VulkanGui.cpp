@@ -138,7 +138,7 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 
 			ImGui::Text("Material: %s", materials[meshes[i]->materialIndex]->name.c_str());
 
-			ImGui::Image((ImTextureID) materials[meshes[i]->materialIndex]->imguiTextureDescriptorSet, ImVec2(200, 200));
+			ImGui::Image((ImTextureID) materials[meshes[i]->materialIndex]->textures[2].imguiTextureDescriptorSet, ImVec2(200, 200));
 
 			ImGui::TreePop();
 		}
@@ -179,14 +179,15 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 				ImGui::EndTable();
 			}
 
-			bool lastUseTexture = materials[i]->useTexture;
-			ImGui::Checkbox("Use Texture", &materials[i]->useTexture);
+			bool lastUseTexture = materials[i]->textures[2].useTexture;
+			ImGui::Checkbox("Use Texture", &materials[i]->textures[2].useTexture);
 
-			bool checkBoxChanged = (lastUseTexture == true && materials[i]->useTexture == false) || (lastUseTexture == false && materials[i]->useTexture == true);
+			bool checkBoxChanged = (lastUseTexture == true && materials[i]->textures[2].useTexture == false) 
+				|| (lastUseTexture == false && materials[i]->textures[2].useTexture == true);
 
 			if (checkBoxChanged)
 			{
-				if (materials[i]->useTexture)
+				if (materials[i]->textures[2].useTexture)
 				{
 					updateTexture = true;
 					materialIndex = i;
@@ -198,9 +199,9 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 				}
 			}
 
-			if (materials[i]->hasTexture() || materials[i]->useTexture)
+			if (materials[i]->hasTexture(2) || materials[i]->textures[2].useTexture)
 			{
-				if (ImGui::ImageButton((ImTextureID)materials[i]->imguiTextureDescriptorSet, ImVec2(200, 200)))
+				if (ImGui::ImageButton((ImTextureID)materials[i]->textures[2].imguiTextureDescriptorSet, ImVec2(200, 200)))
 				{
 					bool readSuccess;
 					std::string filename;

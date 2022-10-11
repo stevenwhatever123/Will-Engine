@@ -81,8 +81,8 @@ namespace WillEngine::VulkanUtil
 
 	void writeDescriptorSetBuffer(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkBuffer& descriptorBuffer, u32 binding);
 
-	void writeDescriptorSetImage(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkSampler& sampler, VkImageView& imageView,
-		VkImageLayout imageLayout, u32 binding);
+	void writeDescriptorSetImage(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, std::vector<VkSampler>& sampler,
+		std::vector<VkImageView>& imageView, VkImageLayout imageLayout, u32 binding, u32 descriptorCount);
 
 	// Pipeline
 	void createPipelineLayout(VkDevice& logicalDevice, VkPipelineLayout& pipelineLayout, u32 size,

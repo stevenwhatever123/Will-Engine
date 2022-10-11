@@ -552,21 +552,24 @@ void WillEngine::VulkanUtil::writeDescriptorSetBuffer(VkDevice& logicalDevice, V
     vkUpdateDescriptorSets(logicalDevice, 1, &writeSet, 0, nullptr);
 }
 
-void WillEngine::VulkanUtil::writeDescriptorSetImage(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkSampler& sampler, VkImageView& imageView,
-    VkImageLayout imageLayout, u32 binding)
+void WillEngine::VulkanUtil::writeDescriptorSetImage(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, std::vector<VkSampler>& sampler, 
+    std::vector<VkImageView>& imageView, VkImageLayout imageLayout, u32 binding, u32 descriptorCount)
 {
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.sampler = sampler;
-    imageInfo.imageView = imageView;
-    imageInfo.imageLayout = imageLayout;
+    std::vector<VkDescriptorImageInfo> imageInfos(descriptorCount);
+    for (u32 i = 0; i < descriptorCount; i++)
+    {
+        imageInfos[i].sampler = sampler[i];
+        imageInfos[i].imageView = imageView[i];
+        imageInfos[i].imageLayout = imageLayout;
+    }
 
     VkWriteDescriptorSet writeSet{};
     writeSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     writeSet.dstSet = descriptorSet;
     writeSet.dstBinding = binding;
-    writeSet.descriptorCount = 1;
+    writeSet.descriptorCount = descriptorCount;
     writeSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    writeSet.pImageInfo = &imageInfo;
+    writeSet.pImageInfo = imageInfos.data();
 
     vkUpdateDescriptorSets(logicalDevice, 1, &writeSet, 0, nullptr);
 }

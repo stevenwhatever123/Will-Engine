@@ -17,7 +17,7 @@ layout(set = 2, binding = 0) uniform camera
 	vec4 cameraPosition;
 };
 
-layout(set = 3, binding = 1) uniform sampler2D texColor;
+layout(set = 3, binding = 1) uniform sampler2D texColor[4];
 
 layout(push_constant, std140) uniform materialUniform
 {
@@ -51,7 +51,7 @@ void main()
 	float lightCosTheta = max(0, dot(normalize(normal), normalize(lightDirection)));
 	vec4 diffuse = lightColor * diffuseColor * lightCosTheta;
 
-	vec4 objectColor = texture(texColor, texCoord);
+	vec4 objectColor = texture(texColor[2], texCoord);
     //vec4 result = (emissive + ambient + diffuse + specular) * objectColor;
     vec4 result = objectColor;
 
