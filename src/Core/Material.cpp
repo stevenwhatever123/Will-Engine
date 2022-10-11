@@ -4,21 +4,9 @@
 Material::Material() :
 	phongMaterialUniform({}),
 	name(""),
-	textures(4)
-	//has_texture(false),
-	//texture_path(""),
-	//useTexture(false),
-	//width(1),
-	//height(1),
-	//numChannels(4),
-	//textureImage(new Image()),
-	//mipLevels(1),
-	//vulkanImage({ VK_NULL_HANDLE, VK_NULL_HANDLE }),
-	//imageView(VK_NULL_HANDLE),
-	//textureSampler(VK_NULL_HANDLE),
-	//textureDescriptorSetLayout(VK_NULL_HANDLE),
-	//textureDescriptorSet(VK_NULL_HANDLE),
-	//imguiTextureDescriptorSet(VK_NULL_HANDLE),
+	textures(4),
+	textureDescriptorSetLayout(VK_NULL_HANDLE),
+	textureDescriptorSet(VK_NULL_HANDLE)
 {
 
 }

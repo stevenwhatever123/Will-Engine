@@ -114,7 +114,7 @@ void VulkanGui::cleanUp(VkDevice& logicalDevice)
 }
 
 void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& materials, std::vector<Light*>& lights, bool& updateTexture, bool& updateColor, 
-	u32& materialIndex, std::string& textureFilepath)
+	u32& materialIndex, u32& textureIndex, std::string& textureFilepath)
 {
 	ImGuiIO& io = ImGui::GetIO();
 
@@ -165,16 +165,51 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::DragFloat3("Emissive", &materials[i]->phongMaterialUniform.emissiveColor.x, 0.1f);
+				vec4 emissiveTemp = materials[i]->phongMaterialUniform.emissiveColor;
+				ImGui::DragFloat3("Emissive", &materials[i]->phongMaterialUniform.emissiveColor.x, 0.01f, 0, 1);
+				vec4 emissiveDiff = glm::epsilonNotEqual(emissiveTemp, materials[i]->phongMaterialUniform.emissiveColor, 0.0001f);
+				if (emissiveDiff.x || emissiveDiff.y || emissiveDiff.z)
+				{
+					updateColor = true;
+					materialIndex = i;
+					textureIndex = 0;
+				}
+
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::DragFloat3("Ambient", &materials[i]->phongMaterialUniform.ambientColor.x, 0.1f);
+				vec4 ambientTemp = materials[i]->phongMaterialUniform.ambientColor;
+				ImGui::DragFloat3("Ambient", &materials[i]->phongMaterialUniform.ambientColor.x, 0.01f, 0, 1);
+				vec4 ambientDiff = glm::epsilonNotEqual(ambientTemp, materials[i]->phongMaterialUniform.ambientColor, 0.0001f);
+				if (ambientDiff.x || ambientDiff.y || ambientDiff.z)
+				{
+					updateColor = true;
+					materialIndex = i;
+					textureIndex = 1;
+				}
+
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::DragFloat3("Diffuse", &materials[i]->phongMaterialUniform.diffuseColor.x, 0.1f);
+				vec4 diffuseTemp = materials[i]->phongMaterialUniform.diffuseColor;
+				ImGui::DragFloat3("Diffuse", &materials[i]->phongMaterialUniform.diffuseColor.x, 0.01f, 0, 1);
+				vec4 diffuseDiff = glm::epsilonNotEqual(diffuseTemp, materials[i]->phongMaterialUniform.diffuseColor, 0.0001f);
+				if (diffuseDiff.x || diffuseDiff.y || diffuseDiff.z)
+				{
+					updateColor = true;
+					materialIndex = i;
+					textureIndex = 2;
+				}
+
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::DragFloat3("Specular", &materials[i]->phongMaterialUniform.specularColor.x, 0.1f);
+				vec4 specularTemp = materials[i]->phongMaterialUniform.specularColor;
+				ImGui::DragFloat3("Specular", &materials[i]->phongMaterialUniform.specularColor.x, 0.01f, 0, 1);
+				vec4 specularDiff = glm::epsilonNotEqual(specularTemp, materials[i]->phongMaterialUniform.specularColor, 0.0001f);
+				if (specularDiff.x || specularDiff.y || specularDiff.z)
+				{
+					updateColor = true;
+					materialIndex = i;
+					textureIndex = 3;
+				}
 
 				ImGui::EndTable();
 			}
@@ -191,17 +226,19 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 				{
 					updateTexture = true;
 					materialIndex = i;
+					textureIndex = 2;
 				}
 				else
 				{
 					updateColor = true;
 					materialIndex = i;
+					textureIndex = 2;
 				}
 			}
 
 			if (materials[i]->hasTexture(2) || materials[i]->textures[2].useTexture)
 			{
-				if (ImGui::ImageButton((ImTextureID)materials[i]->textures[2].imguiTextureDescriptorSet, ImVec2(200, 200)))
+				if (ImGui::ImageButton((ImTextureID)materials[i]->textures[2].imguiTextureDescriptorSet, ImVec2(150, 150)))
 				{
 					bool readSuccess;
 					std::string filename;
@@ -222,14 +259,6 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 						materialIndex = i;
 						textureFilepath = filename;
 					}
-				}
-			}
-			else
-			{
-				if (ImGui::ColorPicker4("Mesh Color", glm::value_ptr(materials[i]->phongMaterialUniform.diffuseColor)))
-				{
-					updateColor = true;
-					materialIndex = i;
 				}
 			}
 

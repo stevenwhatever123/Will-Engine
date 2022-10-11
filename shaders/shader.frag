@@ -19,19 +19,24 @@ layout(set = 2, binding = 0) uniform camera
 
 layout(set = 3, binding = 1) uniform sampler2D texColor[4];
 
-layout(push_constant, std140) uniform materialUniform
-{
-	// std140 layout
-	layout(offset = 64) vec4 emissiveColor;
-	layout(offset = 80) vec4 ambientColor;
-	layout(offset = 96) vec4 diffuseColor;
-	layout(offset = 112) vec4 specularColor;
-};
+//layout(push_constant, std140) uniform materialUniform
+//{
+//	// std140 layout
+////	layout(offset = 64) vec4 emissiveColor;
+////	layout(offset = 80) vec4 ambientColor;
+////	layout(offset = 96) vec4 diffuseColor;
+////	layout(offset = 112) vec4 specularColor;
+//};
 
 layout(location = 0) out vec4 oColor;
 
 void main()
 {
+	vec4 emissiveColor = texture(texColor[0], texCoord);
+	vec4 ambientColor = texture(texColor[1], texCoord);
+	vec4 diffuseColor = texture(texColor[2], texCoord);
+	vec4 specularColor = texture(texColor[3], texCoord);
+
 	// Emissive
 	vec4 emissive = emissiveColor;
 
@@ -51,9 +56,8 @@ void main()
 	float lightCosTheta = max(0, dot(normalize(normal), normalize(lightDirection)));
 	vec4 diffuse = lightColor * diffuseColor * lightCosTheta;
 
-	vec4 objectColor = texture(texColor[2], texCoord);
-    //vec4 result = (emissive + ambient + diffuse + specular) * objectColor;
-    vec4 result = objectColor;
+    vec4 result = emissive + ambient + diffuse + specular;
+    //vec4 result = objectColor;
 
 	oColor = result;
 }

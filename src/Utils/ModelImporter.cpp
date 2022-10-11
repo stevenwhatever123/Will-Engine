@@ -154,33 +154,58 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 		material->phongMaterialUniform.specularColor.y = specularColor.g;
 		material->phongMaterialUniform.specularColor.z = specularColor.b;
 
-		for (auto& texture : material->textures)
+		for (u32 i = 0; i < material->textures.size(); i++)
 		{
-			texture.width = 1;
-			texture.height = 1;
-			texture.textureImage = new Image();
-			texture.textureImage->setImageColor(material->phongMaterialUniform.diffuseColor);
-		}
-		//material->textures[2].width = 1;
-		//material->textures[2].height = 1;
-		//material->textures[2].textureImage = new Image();
-		//material->textures[2].textureImage->setImageColor(material->phongMaterialUniform.diffuseColor);
+			material->textures[i].width = 1;
+			material->textures[i].height = 1;
+			material->textures[i].textureImage = new Image();
 
-		if (material->hasTexture(2))
-		{
-			loadTexture(material);
-
-			// Use the color as the texture if we cannot load the texture
-			if (!material->textures[2].textureImage->data)
+			switch (i)
 			{
-				material->textures[2].has_texture = false;
-				material->textures[2].useTexture = false;
-				material->textures[2].texture_path = "";
+			case 0:
+				material->textures[i].textureImage->setImageColor(material->phongMaterialUniform.emissiveColor);
+				break;
+			case 1:
+				material->textures[i].textureImage->setImageColor(material->phongMaterialUniform.ambientColor);
+				break;
+			case 2:
+				material->textures[i].textureImage->setImageColor(material->phongMaterialUniform.diffuseColor);
+				break;
+			case 3:
+				material->textures[i].textureImage->setImageColor(material->phongMaterialUniform.specularColor);
+				break;
+			}
 
-				material->textures[2].width = 1;
-				material->textures[2].height = 1;
+			if (material->hasTexture(i))
+			{
+				loadTexture(i, material);
 
-				material->textures[2].textureImage->setImageColor(material->phongMaterialUniform.diffuseColor);
+				// Use the color as the texture if we cannot load the texture
+				if (!material->textures[i].textureImage->data)
+				{
+					material->textures[i].has_texture = false;
+					material->textures[i].useTexture = false;
+					material->textures[i].texture_path = "";
+
+					material->textures[i].width = 1;
+					material->textures[i].height = 1;
+
+					switch (i)
+					{
+					case 0:
+						material->textures[i].textureImage->setImageColor(material->phongMaterialUniform.emissiveColor);
+						break;
+					case 1:
+						material->textures[i].textureImage->setImageColor(material->phongMaterialUniform.ambientColor);
+						break;
+					case 2:
+						material->textures[i].textureImage->setImageColor(material->phongMaterialUniform.diffuseColor);
+						break;
+					case 3:
+						material->textures[i].textureImage->setImageColor(material->phongMaterialUniform.specularColor);
+						break;
+					}
+				}
 			}
 		}
 
@@ -193,11 +218,11 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 	return { meshes, materials };
 }
 
-void WillEngine::Utils::loadTexture(Material* material)
+void WillEngine::Utils::loadTexture(u32 index, Material* material)
 {
 	Image* image = new Image();
-	image->readImage(material->getTexturePath(2), material->textures[2].width, material->textures[2].height,
-		material->textures[2].numChannels);
+	image->readImage(material->getTexturePath(index), material->textures[index].width, material->textures[index].height,
+		material->textures[index].numChannels);
 
-	material->setTextureImage(2, image);
+	material->setTextureImage(index, image);
 }
