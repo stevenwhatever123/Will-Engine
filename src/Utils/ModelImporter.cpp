@@ -269,11 +269,11 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 				material->brdfTextures[j].textureImage->setImageColor(material->brdfMaterialUniform.albedo);
 				break;
 			case 3:
-				// Metallic should be imported from a texture
-				//material->brdfTextures[j].textureImage->setImageColor(material->brdfMaterialUniform.albedo);
+				// Metallic should be imported from a texture, here we use a default color
+				//material->brdfTextures[j].textureImage->setImageColor(material->phongMaterialUniform.specularColor);
 				break;
 			case 4:
-				// Roughness should be imported from a texture
+				// Roughness should be imported from a texture, here we use a default color
 				//material->brdfTextures[j].textureImage->setImageColor(material->brdfMaterialUniform.albedo);
 				break;
 			}
