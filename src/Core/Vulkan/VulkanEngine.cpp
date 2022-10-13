@@ -25,6 +25,8 @@ VulkanEngine::VulkanEngine() :
 	descriptorPool(VK_NULL_HANDLE),
 	defaultPipelineLayout(VK_NULL_HANDLE),
 	defaultPipeline(VK_NULL_HANDLE),
+	brdfMetallicPipelineLayout(VK_NULL_HANDLE),
+	brdfMetallicPipeline(VK_NULL_HANDLE),
 	sceneDescriptorSetLayout(VK_NULL_HANDLE),
 	sceneDescriptorSet(VK_NULL_HANDLE),
 	sceneUniformBuffer({ VK_NULL_HANDLE, VK_NULL_HANDLE }),
@@ -84,8 +86,12 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 
 	// Texture Descriptor with binding 1 in fragment shader
 	// We only need to know the layout of the descriptor
+	// Phong
+	//WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+	//	VK_SHADER_STAGE_FRAGMENT_BIT, 1, 4);
+	// BRDF
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		VK_SHADER_STAGE_FRAGMENT_BIT, 1, 4);
+		VK_SHADER_STAGE_FRAGMENT_BIT, 1, 5);
 
 	// Shader Modules
 	WillEngine::VulkanUtil::initShaderModule(logicalDevice, defaultVertShader, defaultFragShader);

@@ -81,9 +81,12 @@ public:
 
 	VkDescriptorPool descriptorPool;
 
-	// Pipeline and pipeline layout
+	// Pipeline and pipeline layout (Blinn Phong Shader)
 	VkPipelineLayout defaultPipelineLayout;
 	VkPipeline defaultPipeline;
+	// BRDF Metallic
+	VkPipelineLayout brdfMetallicPipelineLayout;
+	VkPipeline brdfMetallicPipeline;
 
 	// Scene Descriptor sets
 	VkDescriptorSetLayout sceneDescriptorSetLayout;

@@ -495,7 +495,7 @@ VkShaderModule WillEngine::VulkanUtil::createShaderModule(VkDevice& logicalDevic
 void WillEngine::VulkanUtil::initShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader)
 {
     const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/shader.vert.spv";
-    const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/shader.frag.spv";
+    const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/pbrShader.frag.spv";
 
     auto vertShaderCode = WillEngine::Utils::readSprivShader(vertShaderPath);
     auto fragShaderCode = WillEngine::Utils::readSprivShader(fragShaderPath);

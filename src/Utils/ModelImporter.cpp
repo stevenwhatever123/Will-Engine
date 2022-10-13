@@ -108,187 +108,211 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 		material->name = materialName.C_Str();
 
 		// Texture path
-		// Emissive
-		i32 numEmissiveTextures = currentAiMaterial->GetTextureCount(aiTextureType_EMISSIVE);
-		aiString emissiveTexturePath;
-		if (numEmissiveTextures)
-		{
-			ret = currentAiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_EMISSIVE, 0), emissiveTexturePath);
+		// Phong
+		aiTextureType phongTextureType[] = { aiTextureType_EMISSIVE, aiTextureType_AMBIENT, aiTextureType_DIFFUSE, aiTextureType_SPECULAR };
+		u32 phongTextureTypeSize = sizeof(phongTextureType) / sizeof(phongTextureType[0]);
 
-			if (ret == AI_SUCCESS)
+		for (u32 j = 0; j < phongTextureTypeSize; j++)
+		{
+			i32 numTextures = currentAiMaterial->GetTextureCount(phongTextureType[j]);
+			aiString texturePath;
+			if (numTextures)
 			{
-				material->textures[0].has_texture = true;
-				material->textures[0].useTexture = true;
-				material->textures[0].texture_path = emissiveTexturePath.C_Str();
+				ret = currentAiMaterial->Get(AI_MATKEY_TEXTURE(phongTextureType[j], 0), texturePath);
+
+				if (ret == AI_SUCCESS)
+				{
+					material->textures[j].has_texture = true;
+					material->textures[j].useTexture = true;
+					material->textures[j].texture_path = texturePath.C_Str();
+				}
+			}
+			else
+			{
+				material->textures[j].has_texture = false;
+				material->textures[j].useTexture = false;
+				material->textures[j].texture_path = "";
 			}
 		}
-		else
-		{
-			material->textures[0].has_texture = false;
-			material->textures[0].useTexture = false;
-			material->textures[0].texture_path = "";
-		}
-		
-		// Ambient
-		i32 numAmbientTextures = currentAiMaterial->GetTextureCount(aiTextureType_AMBIENT);
-		aiString ambientTexturePath;
-		if (numAmbientTextures)
-		{
-			ret = currentAiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_AMBIENT, 0), ambientTexturePath);
 
-			if (ret == AI_SUCCESS)
+		// BRDF Metallic
+		aiTextureType brdfMetallicTextureType[] = { aiTextureType_EMISSIVE, aiTextureType_AMBIENT, aiTextureType_BASE_COLOR, aiTextureType_METALNESS ,
+			aiTextureType_DIFFUSE_ROUGHNESS };
+		u32 metallicTextureTypeSize = sizeof(brdfMetallicTextureType) / sizeof(brdfMetallicTextureType[0]);
+
+		for (u32 j = 0; j < metallicTextureTypeSize; j++)
+		{
+			i32 numTextures = currentAiMaterial->GetTextureCount(brdfMetallicTextureType[j]);
+			aiString texturePath;
+			if (numTextures)
 			{
-				material->textures[1].has_texture = true;
-				material->textures[1].useTexture = true;
-				material->textures[1].texture_path = ambientTexturePath.C_Str();
+				ret = currentAiMaterial->Get(AI_MATKEY_TEXTURE(brdfMetallicTextureType[j], 0), texturePath);
+
+				if (ret == AI_SUCCESS)
+				{
+					material->brdfTextures[j].has_texture = true;
+					material->brdfTextures[j].useTexture = true;
+					material->brdfTextures[j].texture_path = texturePath.C_Str();
+				}
+			}
+			else
+			{
+				material->brdfTextures[j].has_texture = false;
+				material->brdfTextures[j].useTexture = false;
+				material->brdfTextures[j].texture_path = "";
 			}
 		}
-		else
-		{
-			material->textures[1].has_texture = false;
-			material->textures[1].useTexture = false;
-			material->textures[1].texture_path = "";
-		}
-
-		// Diffuse
-		i32 numDiffuseTextures = currentAiMaterial->GetTextureCount(aiTextureType_DIFFUSE);
-		aiString diffuseTexturePath;
-		if (numDiffuseTextures)
-		{
-			ret = currentAiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), diffuseTexturePath);
-
-			if (ret == AI_SUCCESS)
-			{
-				material->textures[2].has_texture = true;
-				material->textures[2].useTexture = true;
-				material->textures[2].texture_path = diffuseTexturePath.C_Str();
-			}
-		}
-		else
-		{
-			material->textures[2].has_texture = false;
-			material->textures[2].useTexture = false;
-			material->textures[2].texture_path = "";
-		}
-
-		// Specular
-		i32 numSpecularTextures = currentAiMaterial->GetTextureCount(aiTextureType_SPECULAR);
-		aiString specularTexturePath;
-		if (numSpecularTextures)
-		{
-			ret = currentAiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_SPECULAR, 0), specularTexturePath);
-
-			if (ret == AI_SUCCESS)
-			{
-				material->textures[3].has_texture = true;
-				material->textures[3].useTexture = true;
-				material->textures[3].texture_path = specularTexturePath.C_Str();
-			}
-		}
-		else
-		{
-			material->textures[3].has_texture = false;
-			material->textures[3].useTexture = false;
-			material->textures[3].texture_path = "";
-		}
-
 
 		// Color
 		// Emissive
-		aiColor3D emissiveColor(1, 1, 1);
-		ret = currentAiMaterial->Get(AI_MATKEY_COLOR_EMISSIVE, emissiveColor);
-		material->phongMaterialUniform.emissiveColor.x = emissiveColor.r;
-		material->phongMaterialUniform.emissiveColor.y = emissiveColor.g;
-		material->phongMaterialUniform.emissiveColor.z = emissiveColor.b;
+		// Phong
+		{
+			aiColor3D color(1, 1, 1);
+			ret = currentAiMaterial->Get(AI_MATKEY_COLOR_EMISSIVE, color);
+			material->phongMaterialUniform.emissiveColor.x = color.r;
+			material->phongMaterialUniform.emissiveColor.y = color.g;
+			material->phongMaterialUniform.emissiveColor.z = color.b;
+		}
 
 		// Ambient
-		aiColor3D ambientColor(1, 1, 1);
-		ret = currentAiMaterial->Get(AI_MATKEY_COLOR_AMBIENT, ambientColor);
-		material->phongMaterialUniform.ambientColor.x = ambientColor.r;
-		material->phongMaterialUniform.ambientColor.y = ambientColor.g;
-		material->phongMaterialUniform.ambientColor.z = ambientColor.b;
+		{
+			aiColor3D color(1, 1, 1);
+			ret = currentAiMaterial->Get(AI_MATKEY_COLOR_AMBIENT, color);
+			material->phongMaterialUniform.ambientColor.x = color.r;
+			material->phongMaterialUniform.ambientColor.y = color.g;
+			material->phongMaterialUniform.ambientColor.z = color.b;
+		}
 
 		// Diffuse
-		aiColor3D diffuseColor(1, 1, 1);
-		ret = currentAiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, diffuseColor);
-		material->phongMaterialUniform.diffuseColor.x = diffuseColor.r;
-		material->phongMaterialUniform.diffuseColor.y = diffuseColor.g;
-		material->phongMaterialUniform.diffuseColor.z = diffuseColor.b;
+		{
+			// Phong
+			aiColor3D color(1, 1, 1);
+			ret = currentAiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, color);
+			material->phongMaterialUniform.diffuseColor.x = color.r;
+			material->phongMaterialUniform.diffuseColor.y = color.g;
+			material->phongMaterialUniform.diffuseColor.z = color.b;
+			// BRDF
+			material->brdfMaterialUniform.albedo.x = color.r;
+			material->brdfMaterialUniform.albedo.y = color.g;
+			material->brdfMaterialUniform.albedo.z = color.b;
+		}
 
 		// Specular
-		aiColor3D specularColor(1, 1, 1);
-		ret = currentAiMaterial->Get(AI_MATKEY_COLOR_SPECULAR, specularColor);
-		material->phongMaterialUniform.specularColor.x = specularColor.r;
-		material->phongMaterialUniform.specularColor.y = specularColor.g;
-		material->phongMaterialUniform.specularColor.z = specularColor.b;
-
-		for (u32 i = 0; i < 4; i++)
 		{
-			material->textures[i].width = 1;
-			material->textures[i].height = 1;
-			Image* image = new Image();
-			material->setTextureImage(i, image);
+			aiColor3D color(1, 1, 1);
+			ret = currentAiMaterial->Get(AI_MATKEY_COLOR_SPECULAR, color);
+			material->phongMaterialUniform.specularColor.x = color.r;
+			material->phongMaterialUniform.specularColor.y = color.g;
+			material->phongMaterialUniform.specularColor.z = color.b;
+			// BRDF
+			// DO LATER
+		}
+		
 
-			switch (i)
+		// Load texture
+		// Phong
+		u32 phongTextureSize = sizeof(material->textures) / sizeof(material->textures[0]);
+		for (u32 j = 0; j < phongTextureSize; j++)
+		{
+			material->textures[j].width = 1;
+			material->textures[j].height = 1;
+
+			switch (j)
 			{
 			case 0:
-				material->textures[i].textureImage->setImageColor(material->phongMaterialUniform.emissiveColor);
+				material->textures[j].textureImage->setImageColor(material->phongMaterialUniform.emissiveColor);
 				break;
 			case 1:
-				material->textures[i].textureImage->setImageColor(material->phongMaterialUniform.ambientColor);
+				material->textures[j].textureImage->setImageColor(material->phongMaterialUniform.ambientColor);
 				break;
 			case 2:
-				material->textures[i].textureImage->setImageColor(material->phongMaterialUniform.diffuseColor);
+				material->textures[j].textureImage->setImageColor(material->phongMaterialUniform.diffuseColor);
 				break;
 			case 3:
-				material->textures[i].textureImage->setImageColor(material->phongMaterialUniform.specularColor);
+				material->textures[j].textureImage->setImageColor(material->phongMaterialUniform.specularColor);
 				break;
 			}
 
-			if (material->hasTexture(i))
+			if (material->hasTexture(j, material->textures))
 			{
-				loadTexture(i, material);
-
-				// Use the color as the texture if we cannot load the texture
-				if (!material->textures[i].textureImage->data)
+				if (checkTexturePathExist(j, material->textures))
 				{
-					material->textures[i].has_texture = false;
-					material->textures[i].useTexture = false;
-					material->textures[i].texture_path = "";
+					loadTexture(j, material, material->textures);
+				}
+				else
+				{
+					material->textures[j].has_texture = false;
+					material->textures[j].useTexture = false;
+					material->textures[j].texture_path = "";
 
-					material->textures[i].width = 1;
-					material->textures[i].height = 1;
-
-					switch (i)
-					{
-					case 0:
-						material->textures[i].textureImage->setImageColor(material->phongMaterialUniform.emissiveColor);
-						break;
-					case 1:
-						material->textures[i].textureImage->setImageColor(material->phongMaterialUniform.ambientColor);
-						break;
-					case 2:
-						material->textures[i].textureImage->setImageColor(material->phongMaterialUniform.diffuseColor);
-						break;
-					case 3:
-						material->textures[i].textureImage->setImageColor(material->phongMaterialUniform.specularColor);
-						break;
-					}
+					material->textures[j].width = 1;
+					material->textures[j].height = 1;
 				}
 			}
 		}
 
+		u32 brdfMetallicTextureSize = sizeof(material->brdfTextures) / sizeof(material->brdfTextures[0]);
+		for (u32 j = 0; j < brdfMetallicTextureSize; j++)
+		{
+			material->brdfTextures[j].width = 1;
+			material->brdfTextures[j].height = 1;
+
+			switch (j)
+			{
+			case 0:
+				material->brdfTextures[j].textureImage->setImageColor(material->phongMaterialUniform.emissiveColor);
+				break;
+			case 1:
+				material->brdfTextures[j].textureImage->setImageColor(material->phongMaterialUniform.ambientColor);
+				break;
+			case 2:
+				material->brdfTextures[j].textureImage->setImageColor(material->brdfMaterialUniform.albedo);
+				break;
+			case 3:
+				// Metallic should be imported from a texture
+				//material->brdfTextures[j].textureImage->setImageColor(material->brdfMaterialUniform.albedo);
+				break;
+			case 4:
+				// Roughness should be imported from a texture
+				//material->brdfTextures[j].textureImage->setImageColor(material->brdfMaterialUniform.albedo);
+				break;
+			}
+
+			if (material->hasTexture(j, material->brdfTextures))
+			{
+				if (checkTexturePathExist(j, material->brdfTextures))
+				{
+					loadTexture(j, material, material->brdfTextures);
+				}
+				else
+				{
+					material->brdfTextures[j].has_texture = false;
+					material->brdfTextures[j].useTexture = false;
+					material->brdfTextures[j].texture_path = "";
+
+					material->brdfTextures[j].width = 1;
+					material->brdfTextures[j].height = 1;
+				}
+			}
+		}
 		materials.emplace_back(material);
 	}
 
 	return { meshes, materials };
 }
 
-void WillEngine::Utils::loadTexture(u32 index, Material* material)
+void WillEngine::Utils::loadTexture(u32 index, Material* material, TextureDescriptorSet* textures)
 {
-	Image* image = new Image();
-	image->readImage(material->getTexturePath(index), material->textures[index].width, material->textures[index].height,
-		material->textures[index].numChannels);
+	// Clear old memory
+	textures[index].textureImage->freeImage(); 
+	delete textures[index].textureImage;
 
-	material->setTextureImage(index, image);
+	Image* image = new Image();
+	image->readImage(textures[index].texture_path.c_str(), textures[index].width, textures[index].height, textures[index].numChannels);
+	material->setTextureImage(index, image, textures);
+}
+
+bool WillEngine::Utils::checkTexturePathExist(u32 index, const TextureDescriptorSet* textures)
+{
+	return std::filesystem::exists(textures[index].texture_path.c_str());
 }

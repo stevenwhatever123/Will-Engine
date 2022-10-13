@@ -4,10 +4,11 @@
 TextureDescriptorSet::TextureDescriptorSet():
 	has_texture(false),
 	texture_path(""),
+	useTexture(false),
 	width(1),
 	height(1),
 	numChannels(0),
-	textureImage(nullptr),
+	textureImage(new Image),
 	mipLevels(0),
 	vulkanImage({ VK_NULL_HANDLE,VK_NULL_HANDLE }),
 	imageView(VK_NULL_HANDLE),
@@ -19,8 +20,10 @@ TextureDescriptorSet::TextureDescriptorSet():
 
 Material::Material() :
 	phongMaterialUniform({}),
+	brdfMaterialUniform({}),
 	name(""),
 	textures(),
+	brdfTextures(),
 	textureDescriptorSetLayout(VK_NULL_HANDLE),
 	textureDescriptorSet(VK_NULL_HANDLE)
 {
@@ -48,18 +51,19 @@ void Material::cleanUp(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkDe
 	vkDestroyDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, nullptr);
 }
 
-void Material::setTextureImage(u32 index, Image* image)
+void Material::setTextureImage(u32 index, Image* image, TextureDescriptorSet* textures)
 {
-	this->textures[index].textureImage = image;
+	textures[index].textureImage = image;
 }
 
-void Material::freeTextureImage(u32 index)
+void Material::freeTextureImage(u32 index, TextureDescriptorSet* textures)
 {
-	textures[index].textureImage->freeImage(hasTexture(index));
+	textures[index].textureImage->freeImage();
 	delete this->textures[index].textureImage;
 }
 
-void Material::initTexture(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool, VkQueue& graphicsQueue, u32 index)
+void Material::initTexture(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool, VkQueue& graphicsQueue, 
+	TextureDescriptorSet* textures, u32 index)
 {
 	// Calculate mip levels
 	textures[index].mipLevels = WillEngine::VulkanUtil::calculateMiplevels(textures[index].width, textures[index].height);
@@ -73,7 +77,7 @@ void Material::initTexture(VkDevice& logicalDevice, VkPhysicalDevice& physicalDe
 		commandPool, graphicsQueue, textures[index].vulkanImage, textures[index].mipLevels, textures[index].width, textures[index].height, textures[index].textureImage->data);
 
 	// Free the image from memory
-	freeTextureImage(index);
+	freeTextureImage(index, textures);
 
 	// Create texture sampler
 	WillEngine::VulkanUtil::createTextureSampler(logicalDevice, physicalDevice, textures[index].textureSampler, textures[index].mipLevels);
@@ -90,10 +94,12 @@ void Material::initTexture(VkDevice& logicalDevice, VkPhysicalDevice& physicalDe
 void Material::initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
 	VkDescriptorPool& descriptorPool, VkQueue& graphicsQueue)
 {
+	u32 textureSize = sizeof(textures) / sizeof(textures[0]);
+
 	// Initiase Texture
-	for (u32 i = 0; i < 4; i++)
+	for (u32 i = 0; i < textureSize; i++)
 	{
-		initTexture(logicalDevice, physicalDevice, vmaAllocator, commandPool, graphicsQueue, i);
+		initTexture(logicalDevice, physicalDevice, vmaAllocator, commandPool, graphicsQueue, textures, i);
 	}
 
 	// Initialise Descriptor set layout first
@@ -105,9 +111,9 @@ void Material::initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& phys
 	WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, textureDescriptorSetLayout, textureDescriptorSet);
 
 	// Write Descriptor Set
-	std::vector<VkSampler> textureSamplers(4);
-	std::vector<VkImageView> imageViews(4);
-	for (u32 i = 0; i < 4; i++)
+	std::vector<VkSampler> textureSamplers(textureSize);
+	std::vector<VkImageView> imageViews(textureSize);
+	for (u32 i = 0; i < textureSize; i++)
 	{
 		textureSamplers[i] = textures[i].textureSampler;
 		imageViews[i] = textures[i].imageView;
@@ -115,6 +121,38 @@ void Material::initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& phys
 
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers, imageViews,
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 4);
+}
+
+void Material::initBrdfDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
+	VkDescriptorPool& descriptorPool, VkQueue& graphicsQueue)
+{
+	u32 textureSize = sizeof(brdfTextures) / sizeof(brdfTextures[0]);
+
+	// Initiase Texture
+	for (u32 i = 0; i < textureSize; i++)
+	{
+		initTexture(logicalDevice, physicalDevice, vmaAllocator, commandPool, graphicsQueue, brdfTextures, i);
+	}
+
+	// Initialise Descriptor set layout first
+	// Binding set to 1 with 5 descriptor sets
+	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+		VK_SHADER_STAGE_FRAGMENT_BIT, 1, 5);
+
+	// Allocate memory for descriptor set
+	WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, textureDescriptorSetLayout, textureDescriptorSet);
+
+	// Write Descriptor Set
+	std::vector<VkSampler> textureSamplers(textureSize);
+	std::vector<VkImageView> imageViews(textureSize);
+	for (u32 i = 0; i < textureSize; i++)
+	{
+		textureSamplers[i] = brdfTextures[i].textureSampler;
+		imageViews[i] = brdfTextures[i].imageView;
+	}
+
+	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers, imageViews,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 5);
 }
 
 void Material::updateDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
@@ -128,19 +166,25 @@ void Material::updateDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& ph
 	vkDestroySampler(logicalDevice, textures[index].textureSampler, nullptr);
 
 	// Update the image and imageview associated to it
-	initTexture(logicalDevice, physicalDevice, vmaAllocator, commandPool, graphicsQueue, index);
+	initTexture(logicalDevice, physicalDevice, vmaAllocator, commandPool, graphicsQueue, textures, index);
 
 	// Write Descriptor Set
-	std::vector<VkSampler> textureSamplers(4);
-	std::vector<VkImageView> imageViews(4);
-	for (u32 i = 0; i < 4; i++)
+	u32 textureSize = sizeof(textures) / sizeof(textures[0]);
+	std::vector<VkSampler> textureSamplers(textureSize);
+	std::vector<VkImageView> imageViews(textureSize);
+	for (u32 i = 0; i < textureSize; i++)
 	{
 		textureSamplers[i] = textures[i].textureSampler;
 		imageViews[i] = textures[i].imageView;
 	}
 
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers, imageViews,
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 4);
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 5);
+}
+
+const bool Material::hasTexture(u32 index, TextureDescriptorSet* textures)
+{
+	return textures[index].has_texture;
 }
 
 const char* Material::getTexturePath(u32 index)

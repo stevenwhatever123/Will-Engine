@@ -6,9 +6,12 @@
 
 Image::Image()
 {
-	unsigned char pixels[] = { 0, 0, 0, 0 };
+	unsigned char pixel[] = { 0, 0, 0, 0 };
 
-	data = pixels;
+	// Allocate memory for this 1x1 texture
+	data = (unsigned char*)malloc(sizeof(pixel));
+
+	memcpy(data, pixel, sizeof(pixel));
 }
 
 Image::Image(unsigned char* color):
@@ -42,14 +45,7 @@ void Image::readImage(const char* path, i32& width, i32& height, i32& numChannel
 	}
 }
 
-void Image::freeImage(bool hasTexture)
+void Image::freeImage()
 {
-	if (hasTexture)
-	{
-		stbi_image_free(data);
-	}
-	else
-	{
-		free(data);
-	}
+	free(data);
 }

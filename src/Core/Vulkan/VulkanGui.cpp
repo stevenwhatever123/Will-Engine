@@ -244,7 +244,7 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 					}
 				}
 
-				if (materials[i]->hasTexture(j) || materials[i]->textures[j].useTexture)
+				if (materials[i]->hasTexture(j, materials[i]->textures) || materials[i]->textures[j].useTexture)
 				{
 					if (ImGui::ImageButton((ImTextureID)materials[i]->textures[j].imguiTextureDescriptorSet, ImVec2(150, 150)))
 					{
