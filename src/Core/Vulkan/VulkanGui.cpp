@@ -426,11 +426,11 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 		{
 			ImGui::PushID(i);
 
+			ImGui::Text("Light %u", i);
+
 			ImGui::DragFloat3("", &lights[i]->position.x, 0.1f);
 
-			ImGui::SameLine();
-
-			ImGui::Text("Light %u", i);
+			ImGui::DragFloat("Intensity", &lights[i]->lightUniform.intensity, 1);
 
 			ImGui::PopID();
 		}
