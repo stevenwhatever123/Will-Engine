@@ -45,6 +45,10 @@ void main()
 	float metallic = texture(texColor[3], texCoord).x;
 	float roughness = texture(texColor[4], texCoord).x;
 
+	// Discard this fragment if albedo's alpha is set to 0
+	if(albedo.w < 0.01)
+		discard;
+
 	// Emissive
 	vec4 emissive = emissiveColor;
 
