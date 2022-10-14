@@ -91,7 +91,7 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	//	VK_SHADER_STAGE_FRAGMENT_BIT, 1, 4);
 	// BRDF
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		VK_SHADER_STAGE_FRAGMENT_BIT, 1, 4);
+		VK_SHADER_STAGE_FRAGMENT_BIT, 1, 5);
 
 	// Shader Modules
 	WillEngine::VulkanUtil::initShaderModule(logicalDevice, defaultVertShader, defaultFragShader);

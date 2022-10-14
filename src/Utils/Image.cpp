@@ -35,6 +35,16 @@ void Image::setImageColor(vec4 color)
 	memcpy(data, colorToImage, sizeof(colorToImage));
 }
 
+void Image::setImageColor(f32 value)
+{
+	unsigned char valueToImage[] = { value * 255, 0, 0, 1 };
+
+	// Allocate memory for this 1x1 texture
+	data = (unsigned char*)malloc(sizeof(valueToImage));
+
+	memcpy(data, valueToImage, sizeof(valueToImage));
+}
+
 void Image::readImage(const char* path, i32& width, i32& height, i32& numChannels)
 {
 	data = stbi_load(path, &width, &height, &numChannels, 4);

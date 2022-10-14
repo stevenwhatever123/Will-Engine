@@ -152,6 +152,7 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 	ImGui::Begin("Material Viewer");
 
 	std::string phongMaterials[4] = { "Emissive", "Ambient", "Diffuse", "Specular" };
+	std::string brdfMaterials[5] = { "Emissive", "Ambient", "Albedo", "Metallic", "Roughness" };
 
 	for (u32 i = 0; i < materials.size(); i++)
 	{
@@ -216,21 +217,92 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 				ImGui::EndTable();
 			}
 
-			for (u32 j = 0; j < 4; j++)
+			// BRDF materials
+			if (ImGui::BeginTable("BRDF material", 1, ImGuiTableFlags_BordersV))
+			{
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("BRDF material properties");
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				vec4 emissiveTemp = materials[i]->phongMaterialUniform.emissiveColor;
+				ImGui::DragFloat3("Emissive", &materials[i]->phongMaterialUniform.emissiveColor.x, 0.01f, 0, 1);
+				vec4 emissiveDiff = glm::epsilonNotEqual(emissiveTemp, materials[i]->phongMaterialUniform.emissiveColor, 0.0001f);
+				if (emissiveDiff.x || emissiveDiff.y || emissiveDiff.z)
+				{
+					updateColor = true;
+					materialIndex = i;
+					textureIndex = 0;
+				}
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				vec4 ambientTemp = materials[i]->phongMaterialUniform.ambientColor;
+				ImGui::DragFloat3("Ambient", &materials[i]->phongMaterialUniform.ambientColor.x, 0.01f, 0, 1);
+				vec4 ambientDiff = glm::epsilonNotEqual(ambientTemp, materials[i]->phongMaterialUniform.ambientColor, 0.0001f);
+				if (ambientDiff.x || ambientDiff.y || ambientDiff.z)
+				{
+					updateColor = true;
+					materialIndex = i;
+					textureIndex = 1;
+				}
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				vec4 albedoTemp = materials[i]->brdfMaterialUniform.albedo;
+				ImGui::DragFloat3("Albedo", &materials[i]->brdfMaterialUniform.albedo.x, 0.01f, 0, 1);
+				vec4 albedoDiff = glm::epsilonNotEqual(albedoTemp, materials[i]->brdfMaterialUniform.albedo, 0.0001f);
+				if (albedoDiff.x || albedoDiff.y || albedoDiff.z)
+				{
+					updateColor = true;
+					materialIndex = i;
+					textureIndex = 2;
+				}
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				f32 metallicTemp = materials[i]->brdfMaterialUniform.metallic;
+				ImGui::DragFloat("Metallic", &materials[i]->brdfMaterialUniform.metallic, 0.01f, 0, 1);
+				f32 metallicDiff = glm::epsilonNotEqual(metallicTemp, materials[i]->brdfMaterialUniform.metallic, 0.0001f);
+				if (metallicDiff)
+				{
+					updateColor = true;
+					materialIndex = i;
+					textureIndex = 3;
+				}
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				f32 roughnessTemp = materials[i]->brdfMaterialUniform.roughness;
+				ImGui::DragFloat("Roughness", &materials[i]->brdfMaterialUniform.roughness, 0.01f, 0, 1);
+				f32 roughnessDiff = glm::epsilonNotEqual(roughnessTemp, materials[i]->brdfMaterialUniform.roughness, 0.0001f);
+				if (roughnessDiff)
+				{
+					updateColor = true;
+					materialIndex = i;
+					textureIndex = 3;
+				}
+
+				ImGui::EndTable();
+			}
+
+			// BRDF materials
+			for (u32 j = 0; j < 5; j++)
 			{
 				ImGui::PushID(j);
 
-				ImGui::Text(phongMaterials[j].c_str());
+				ImGui::Text(brdfMaterials[j].c_str());
 
-				bool lastUseTexture = materials[i]->textures[j].useTexture;
-				ImGui::Checkbox("Use Texture", &materials[i]->textures[j].useTexture);
+				bool lastUseTexture = materials[i]->brdfTextures[j].useTexture;
+				ImGui::Checkbox("Use Texture", &materials[i]->brdfTextures[j].useTexture);
 
-				bool checkBoxChanged = (lastUseTexture == true && materials[i]->textures[j].useTexture == false)
-					|| (lastUseTexture == false && materials[i]->textures[j].useTexture == true);
+				bool checkBoxChanged = (lastUseTexture == true && materials[i]->brdfTextures[j].useTexture == false)
+					|| (lastUseTexture == false && materials[i]->brdfTextures[j].useTexture == true);
 
 				if (checkBoxChanged)
 				{
-					if (materials[i]->textures[j].useTexture)
+					if (materials[i]->brdfTextures[j].useTexture)
 					{
 						updateTexture = true;
 						materialIndex = i;
@@ -244,9 +316,10 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 					}
 				}
 
-				if (materials[i]->hasTexture(j, materials[i]->textures) || materials[i]->textures[j].useTexture)
+				if (materials[i]->hasTexture(j, materials[i]->brdfTextures) || materials[i]->brdfTextures[j].useTexture)
 				{
-					if (ImGui::ImageButton((ImTextureID)materials[i]->textures[j].imguiTextureDescriptorSet, ImVec2(150, 150)))
+					ImGui::Text("Texture path: %s", materials[i]->brdfTextures[j].texture_path.c_str());
+					if (ImGui::ImageButton((ImTextureID)materials[i]->brdfTextures[j].imguiTextureDescriptorSet, ImVec2(150, 150)))
 					{
 						bool readSuccess;
 						std::string filename;
@@ -274,6 +347,66 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 
 				ImGui::PopID();
 			}
+
+			// Phong materials
+			//for (u32 j = 0; j < 4; j++)
+			//{
+			//	ImGui::PushID(j);
+
+			//	ImGui::Text(phongMaterials[j].c_str());
+
+			//	bool lastUseTexture = materials[i]->textures[j].useTexture;
+			//	ImGui::Checkbox("Use Texture", &materials[i]->textures[j].useTexture);
+
+			//	bool checkBoxChanged = (lastUseTexture == true && materials[i]->textures[j].useTexture == false)
+			//		|| (lastUseTexture == false && materials[i]->textures[j].useTexture == true);
+
+			//	if (checkBoxChanged)
+			//	{
+			//		if (materials[i]->textures[j].useTexture)
+			//		{
+			//			updateTexture = true;
+			//			materialIndex = i;
+			//			textureIndex = j;
+			//		}
+			//		else
+			//		{
+			//			updateColor = true;
+			//			materialIndex = i;
+			//			textureIndex = j;
+			//		}
+			//	}
+
+			//	if (materials[i]->hasTexture(j, materials[i]->textures) || materials[i]->textures[j].useTexture)
+			//	{
+			//		if (ImGui::ImageButton((ImTextureID)materials[i]->textures[j].imguiTextureDescriptorSet, ImVec2(150, 150)))
+			//		{
+			//			bool readSuccess;
+			//			std::string filename;
+
+			//			std::tie(readSuccess, filename) = WillEngine::Utils::selectFile();
+
+			//			if (!readSuccess)
+			//			{
+			//				printf("Failed to read %s\n", filename.c_str());
+
+			//				updateTexture = false;
+			//				materialIndex = 0;
+			//				textureIndex = 0;
+			//				textureFilepath = "";
+			//			}
+			//			else
+			//			{
+			//				updateTexture = true;
+			//				materialIndex = i;
+			//				textureIndex = j;
+			//				textureFilepath = filename;
+			//			}
+			//		}
+			//	}
+
+			//	ImGui::PopID();
+			//}
 
 			ImGui::PopID();
 

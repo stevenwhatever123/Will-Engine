@@ -36,6 +36,7 @@ void main()
 
 	vec4 lightDirection = normalize(lightPosition - position);
 	vec4 viewDirection = normalize(cameraPosition - position);
+	vec4 halfVector = (lightDirection + viewDirection) / 2;
 
 	// Diffuse
 	float lightCosTheta = max(0, dot(normalize(normal), normalize(lightDirection)));
@@ -43,12 +44,10 @@ void main()
 
 	// Specular
 	float specularStrength = 0.5;
-	vec4 biSector = (lightDirection + viewDirection) / 2;
-	float biSectorCosTheta = max(0, dot(normalize(normal), normalize(biSector)));
-	vec4 specular = diffuseColor * lightColor * pow(biSectorCosTheta, specularStrength);
+	float halfVectorCosTheta = max(0, dot(normalize(normal), normalize(halfVector)));
+	vec4 specular = max(vec4(0), specularColor * lightColor * pow(halfVectorCosTheta, specularStrength));
 
     vec4 result = emissive + ambient + diffuse + specular;
-    //vec4 result = objectColor;
 
 	oColor = result;
 }

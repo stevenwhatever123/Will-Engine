@@ -137,7 +137,7 @@ void Material::initBrdfDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& 
 	// Initialise Descriptor set layout first
 	// Binding set to 1 with 5 descriptor sets
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		VK_SHADER_STAGE_FRAGMENT_BIT, 1, 5);
+		VK_SHADER_STAGE_FRAGMENT_BIT, 1, textureSize);
 
 	// Allocate memory for descriptor set
 	WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, textureDescriptorSetLayout, textureDescriptorSet);
@@ -152,7 +152,7 @@ void Material::initBrdfDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& 
 	}
 
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers, imageViews,
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 5);
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, textureSize);
 }
 
 void Material::updateDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
