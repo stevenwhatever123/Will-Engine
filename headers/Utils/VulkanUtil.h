@@ -70,7 +70,8 @@ namespace WillEngine::VulkanUtil
 
 	// ShaderModule
 	VkShaderModule createShaderModule(VkDevice& logicalDevice, std::vector<char>& shaderCode);
-	void initShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader);
+	void initPhongShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader);
+	void initBRDFShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader);
 
 	// Descriptors related
 	void createDescriptorSetLayout(VkDevice& logicalDevice, VkDescriptorSetLayout& descriptorSetLayout,VkDescriptorType descriptorType, 

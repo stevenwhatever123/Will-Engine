@@ -68,7 +68,7 @@ void SystemManager::initVulkanWindow()
     inputManager = new InputManager();
     inputManager->init(vulkanWindow->window);
 
-    vulkanWindow->initVulkan();
+    vulkanWindow->initVulkan(renderWithBRDF);
 }
 
 void SystemManager::update()
@@ -93,7 +93,7 @@ void SystemManager::update()
 
     vulkanWindow->vulkanEngine->updateSceneUniform(camera);
     vulkanWindow->vulkanEngine->updateLightUniform(camera);
-    vulkanWindow->update();
+    vulkanWindow->update(renderWithBRDF);
 }
 
 void SystemManager::updateInputs()
@@ -126,10 +126,16 @@ void SystemManager::updateInputs()
 
         for (Material* material : loadedMaterials)
         {
-            //material->initDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
-            //    vulkanWindow->vulkanEngine->commandPool, vulkanWindow->vulkanEngine->descriptorPool, vulkanWindow->graphicsQueue);
-            material->initBrdfDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
-                vulkanWindow->vulkanEngine->commandPool, vulkanWindow->vulkanEngine->descriptorPool, vulkanWindow->graphicsQueue);
+            if (renderWithBRDF)
+            {
+                material->initBrdfDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
+                    vulkanWindow->vulkanEngine->commandPool, vulkanWindow->vulkanEngine->descriptorPool, vulkanWindow->graphicsQueue);
+            }
+            else
+            {
+                material->initDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
+                    vulkanWindow->vulkanEngine->commandPool, vulkanWindow->vulkanEngine->descriptorPool, vulkanWindow->graphicsQueue);
+            }
         }
 
         for (Mesh* mesh : loadedMeshes)

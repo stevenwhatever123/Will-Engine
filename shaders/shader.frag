@@ -10,6 +10,7 @@ layout(set = 1, binding = 0) uniform light
 	vec4 lightPosition;
 	vec4 lightColor;
 	vec4 lightAmbient;
+	float intensity;
 };
 
 layout(set = 2, binding = 0) uniform camera
@@ -36,16 +37,15 @@ void main()
 
 	vec4 lightDirection = normalize(lightPosition - position);
 	vec4 viewDirection = normalize(cameraPosition - position);
-	vec4 halfVector = (lightDirection + viewDirection) / 2;
+	vec4 halfVector = normalize(lightDirection + viewDirection);
 
 	// Diffuse
 	float lightCosTheta = max(0, dot(normalize(normal), normalize(lightDirection)));
 	vec4 diffuse = lightColor * diffuseColor * lightCosTheta;
 
 	// Specular
-	float specularStrength = 0.5;
 	float halfVectorCosTheta = max(0, dot(normalize(normal), normalize(halfVector)));
-	vec4 specular = max(vec4(0), specularColor * lightColor * pow(halfVectorCosTheta, specularStrength));
+	vec4 specular = max(vec4(0, 0, 0, 1), specularColor * lightColor * pow(halfVectorCosTheta, max(0, 1 / intensity)));
 
     vec4 result = emissive + ambient + diffuse + specular;
 

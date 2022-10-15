@@ -50,7 +50,8 @@ VulkanEngine::~VulkanEngine()
 
 }
 
-void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue& queue)
+void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue& queue, 
+	bool renderWithBRDF)
 {
 	createVmaAllocator(instance, physicalDevice, logicalDevice);
 
@@ -84,17 +85,28 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	// Camera Descriptors for camera position with binding 0 in fragment shader
 	initUniformBuffer(logicalDevice, descriptorPool, cameraUniformBuffer, cameraDescriptorSet, cameraDescriptorSetLayout, 0, sizeof(vec4), VK_SHADER_STAGE_FRAGMENT_BIT);
 
+	u32 descriptorSize = 0;
+	if (renderWithBRDF)
+	{
+		// BRDF
+		descriptorSize = 5;
+	}
+	else
+	{
+		// Phong
+		descriptorSize = 4;
+	}
+
 	// Texture Descriptor with binding 1 in fragment shader
 	// We only need to know the layout of the descriptor
-	// Phong
-	//WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-	//	VK_SHADER_STAGE_FRAGMENT_BIT, 1, 4);
-	// BRDF
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		VK_SHADER_STAGE_FRAGMENT_BIT, 1, 5);
+		VK_SHADER_STAGE_FRAGMENT_BIT, 1, descriptorSize);
 
 	// Shader Modules
-	WillEngine::VulkanUtil::initShaderModule(logicalDevice, defaultVertShader, defaultFragShader);
+	if(renderWithBRDF)
+		WillEngine::VulkanUtil::initBRDFShaderModule(logicalDevice, defaultVertShader, defaultFragShader);
+	else
+		WillEngine::VulkanUtil::initPhongShaderModule(logicalDevice, defaultVertShader, defaultFragShader);
 
 	// Create pipeline and pipeline layout
 	VkDescriptorSetLayout layouts[] = { sceneDescriptorSetLayout, lightDescriptorSetLayout, cameraDescriptorSetLayout, textureDescriptorSetLayout };
@@ -215,7 +227,7 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 }
 
 void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, 
-	VkQueue graphicsQueue)
+	VkQueue graphicsQueue, bool renderWithBRDF)
 {
 	// Acquire next image of the swapchain
 	u32 imageIndex = 0;
@@ -256,7 +268,7 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	}
 
 	// Update ImGui UI
-	updateGui(logicalDevice, graphicsQueue);
+	updateGui(logicalDevice, graphicsQueue, renderWithBRDF);
 
 	recordCommands(commandBuffers[imageIndex], renderPass, framebuffers[imageIndex], swapchainExtent);
 
@@ -629,9 +641,9 @@ void VulkanEngine::initGui(GLFWwindow* window, VkInstance& instance, VkDevice& l
 		swapchainExtent);
 }
 
-void VulkanEngine::updateGui(VkDevice& logicalDevice, VkQueue& graphicsQueue)
+void VulkanEngine::updateGui(VkDevice& logicalDevice, VkQueue& graphicsQueue, bool renderWithBRDF)
 {
-	vulkanGui->update(meshes, materials, lights, updateTexture, updateColor, selectedMaterialIndex, selectedTextureIndex, textureFilepath);
+	vulkanGui->update(renderWithBRDF, meshes, materials, lights, updateTexture, updateColor, selectedMaterialIndex, selectedTextureIndex, textureFilepath);
 }
 
 void VulkanEngine::updateSceneUniform(Camera* camera)

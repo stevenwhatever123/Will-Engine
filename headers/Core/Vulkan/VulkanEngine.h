@@ -125,10 +125,11 @@ public:
 	VulkanEngine();
 	~VulkanEngine();
 
-	void init(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue& queue);
+	void init(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue& queue, 
+		bool renderWithBRDF);
 	void cleanup(VkDevice& logicalDevice);
 
-	void update(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue graphicsQueue);
+	void update(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue graphicsQueue, bool renderWithBRDF);
 
 	// Init / setup
 
@@ -163,7 +164,7 @@ public:
 	// GUI
 	void initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue, VkSurfaceKHR& surface);
 
-	void updateGui(VkDevice& logicalDevice, VkQueue& graphicsQueue);
+	void updateGui(VkDevice& logicalDevice, VkQueue& graphicsQueue, bool renderWithBRDF);
 
 	// Update
 	void updateSceneUniform(Camera* camera);

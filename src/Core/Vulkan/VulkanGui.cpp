@@ -113,7 +113,7 @@ void VulkanGui::cleanUp(VkDevice& logicalDevice)
 	ImGui::DestroyContext();
 }
 
-void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& materials, std::vector<Light*>& lights, bool& updateTexture, bool& updateColor, 
+void VulkanGui::update(bool renderWithBRDF, std::vector<Mesh*>& meshes, std::vector<Material*>& materials, std::vector<Light*>& lights, bool& updateTexture, bool& updateColor, 
 	u32& materialIndex, u32& textureIndex, std::string& textureFilepath)
 {
 	ImGuiIO& io = ImGui::GetIO();
@@ -160,254 +160,257 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 		{
 			ImGui::PushID(i);
 
-			if (ImGui::BeginTable("Phong material", 1, ImGuiTableFlags_BordersV))
+			if (renderWithBRDF)
 			{
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Phong material properties");
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				vec4 emissiveTemp = materials[i]->phongMaterialUniform.emissiveColor;
-				ImGui::DragFloat3("Emissive", &materials[i]->phongMaterialUniform.emissiveColor.x, 0.01f, 0, 1);
-				vec4 emissiveDiff = glm::epsilonNotEqual(emissiveTemp, materials[i]->phongMaterialUniform.emissiveColor, 0.0001f);
-				if (emissiveDiff.x || emissiveDiff.y || emissiveDiff.z)
+				// BRDF materials
+				if (ImGui::BeginTable("BRDF material", 1, ImGuiTableFlags_BordersV))
 				{
-					updateColor = true;
-					materialIndex = i;
-					textureIndex = 0;
-				}
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("BRDF material properties");
 
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				vec4 ambientTemp = materials[i]->phongMaterialUniform.ambientColor;
-				ImGui::DragFloat3("Ambient", &materials[i]->phongMaterialUniform.ambientColor.x, 0.01f, 0, 1);
-				vec4 ambientDiff = glm::epsilonNotEqual(ambientTemp, materials[i]->phongMaterialUniform.ambientColor, 0.0001f);
-				if (ambientDiff.x || ambientDiff.y || ambientDiff.z)
-				{
-					updateColor = true;
-					materialIndex = i;
-					textureIndex = 1;
-				}
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				vec4 diffuseTemp = materials[i]->phongMaterialUniform.diffuseColor;
-				ImGui::DragFloat3("Diffuse", &materials[i]->phongMaterialUniform.diffuseColor.x, 0.01f, 0, 1);
-				vec4 diffuseDiff = glm::epsilonNotEqual(diffuseTemp, materials[i]->phongMaterialUniform.diffuseColor, 0.0001f);
-				if (diffuseDiff.x || diffuseDiff.y || diffuseDiff.z)
-				{
-					updateColor = true;
-					materialIndex = i;
-					textureIndex = 2;
-				}
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				vec4 specularTemp = materials[i]->phongMaterialUniform.specularColor;
-				ImGui::DragFloat3("Specular", &materials[i]->phongMaterialUniform.specularColor.x, 0.01f, 0, 1);
-				vec4 specularDiff = glm::epsilonNotEqual(specularTemp, materials[i]->phongMaterialUniform.specularColor, 0.0001f);
-				if (specularDiff.x || specularDiff.y || specularDiff.z)
-				{
-					updateColor = true;
-					materialIndex = i;
-					textureIndex = 3;
-				}
-
-				ImGui::EndTable();
-			}
-
-			// BRDF materials
-			if (ImGui::BeginTable("BRDF material", 1, ImGuiTableFlags_BordersV))
-			{
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("BRDF material properties");
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				vec4 emissiveTemp = materials[i]->phongMaterialUniform.emissiveColor;
-				ImGui::DragFloat3("Emissive", &materials[i]->phongMaterialUniform.emissiveColor.x, 0.01f, 0, 1);
-				vec4 emissiveDiff = glm::epsilonNotEqual(emissiveTemp, materials[i]->phongMaterialUniform.emissiveColor, 0.0001f);
-				if (emissiveDiff.x || emissiveDiff.y || emissiveDiff.z)
-				{
-					updateColor = true;
-					materialIndex = i;
-					textureIndex = 0;
-				}
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				vec4 ambientTemp = materials[i]->phongMaterialUniform.ambientColor;
-				ImGui::DragFloat3("Ambient", &materials[i]->phongMaterialUniform.ambientColor.x, 0.01f, 0, 1);
-				vec4 ambientDiff = glm::epsilonNotEqual(ambientTemp, materials[i]->phongMaterialUniform.ambientColor, 0.0001f);
-				if (ambientDiff.x || ambientDiff.y || ambientDiff.z)
-				{
-					updateColor = true;
-					materialIndex = i;
-					textureIndex = 1;
-				}
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				vec4 albedoTemp = materials[i]->brdfMaterialUniform.albedo;
-				ImGui::DragFloat3("Albedo", &materials[i]->brdfMaterialUniform.albedo.x, 0.01f, 0, 1);
-				vec4 albedoDiff = glm::epsilonNotEqual(albedoTemp, materials[i]->brdfMaterialUniform.albedo, 0.0001f);
-				if (albedoDiff.x || albedoDiff.y || albedoDiff.z)
-				{
-					updateColor = true;
-					materialIndex = i;
-					textureIndex = 2;
-				}
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				f32 metallicTemp = materials[i]->brdfMaterialUniform.metallic;
-				ImGui::DragFloat("Metallic", &materials[i]->brdfMaterialUniform.metallic, 0.01f, 0, 1);
-				f32 metallicDiff = glm::epsilonNotEqual(metallicTemp, materials[i]->brdfMaterialUniform.metallic, 0.0001f);
-				if (metallicDiff)
-				{
-					updateColor = true;
-					materialIndex = i;
-					textureIndex = 3;
-				}
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				f32 roughnessTemp = materials[i]->brdfMaterialUniform.roughness;
-				ImGui::DragFloat("Roughness", &materials[i]->brdfMaterialUniform.roughness, 0.01f, 0, 1);
-				f32 roughnessDiff = glm::epsilonNotEqual(roughnessTemp, materials[i]->brdfMaterialUniform.roughness, 0.0001f);
-				if (roughnessDiff)
-				{
-					updateColor = true;
-					materialIndex = i;
-					textureIndex = 3;
-				}
-
-				ImGui::EndTable();
-			}
-
-			// BRDF materials
-			for (u32 j = 0; j < 5; j++)
-			{
-				ImGui::PushID(j);
-
-				ImGui::Text(brdfMaterials[j].c_str());
-
-				bool lastUseTexture = materials[i]->brdfTextures[j].useTexture;
-				ImGui::Checkbox("Use Texture", &materials[i]->brdfTextures[j].useTexture);
-
-				bool checkBoxChanged = (lastUseTexture == true && materials[i]->brdfTextures[j].useTexture == false)
-					|| (lastUseTexture == false && materials[i]->brdfTextures[j].useTexture == true);
-
-				if (checkBoxChanged)
-				{
-					if (materials[i]->brdfTextures[j].useTexture)
-					{
-						updateTexture = true;
-						materialIndex = i;
-						textureIndex = j;
-					}
-					else
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					vec4 emissiveTemp = materials[i]->phongMaterialUniform.emissiveColor;
+					ImGui::DragFloat3("Emissive", &materials[i]->phongMaterialUniform.emissiveColor.x, 0.01f, 0, 1);
+					vec4 emissiveDiff = glm::epsilonNotEqual(emissiveTemp, materials[i]->phongMaterialUniform.emissiveColor, 0.0001f);
+					if (emissiveDiff.x || emissiveDiff.y || emissiveDiff.z)
 					{
 						updateColor = true;
 						materialIndex = i;
-						textureIndex = j;
+						textureIndex = 0;
 					}
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					vec4 ambientTemp = materials[i]->phongMaterialUniform.ambientColor;
+					ImGui::DragFloat3("Ambient", &materials[i]->phongMaterialUniform.ambientColor.x, 0.01f, 0, 1);
+					vec4 ambientDiff = glm::epsilonNotEqual(ambientTemp, materials[i]->phongMaterialUniform.ambientColor, 0.0001f);
+					if (ambientDiff.x || ambientDiff.y || ambientDiff.z)
+					{
+						updateColor = true;
+						materialIndex = i;
+						textureIndex = 1;
+					}
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					vec4 albedoTemp = materials[i]->brdfMaterialUniform.albedo;
+					ImGui::DragFloat3("Albedo", &materials[i]->brdfMaterialUniform.albedo.x, 0.01f, 0, 1);
+					vec4 albedoDiff = glm::epsilonNotEqual(albedoTemp, materials[i]->brdfMaterialUniform.albedo, 0.0001f);
+					if (albedoDiff.x || albedoDiff.y || albedoDiff.z)
+					{
+						updateColor = true;
+						materialIndex = i;
+						textureIndex = 2;
+					}
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					f32 metallicTemp = materials[i]->brdfMaterialUniform.metallic;
+					ImGui::DragFloat("Metallic", &materials[i]->brdfMaterialUniform.metallic, 0.01f, 0, 1);
+					f32 metallicDiff = glm::epsilonNotEqual(metallicTemp, materials[i]->brdfMaterialUniform.metallic, 0.0001f);
+					if (metallicDiff)
+					{
+						updateColor = true;
+						materialIndex = i;
+						textureIndex = 3;
+					}
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					f32 roughnessTemp = materials[i]->brdfMaterialUniform.roughness;
+					ImGui::DragFloat("Roughness", &materials[i]->brdfMaterialUniform.roughness, 0.01f, 0, 1);
+					f32 roughnessDiff = glm::epsilonNotEqual(roughnessTemp, materials[i]->brdfMaterialUniform.roughness, 0.0001f);
+					if (roughnessDiff)
+					{
+						updateColor = true;
+						materialIndex = i;
+						textureIndex = 3;
+					}
+
+					ImGui::EndTable();
 				}
 
-				if (materials[i]->hasTexture(j, materials[i]->brdfTextures) || materials[i]->brdfTextures[j].useTexture)
+				// BRDF materials
+				for (u32 j = 0; j < 5; j++)
 				{
-					ImGui::Text("Texture path: %s", materials[i]->brdfTextures[j].texture_path.c_str());
-					if (ImGui::ImageButton((ImTextureID)materials[i]->brdfTextures[j].imguiTextureDescriptorSet, ImVec2(150, 150)))
+					ImGui::PushID(j);
+
+					ImGui::Text(brdfMaterials[j].c_str());
+
+					bool lastUseTexture = materials[i]->brdfTextures[j].useTexture;
+					ImGui::Checkbox("Use Texture", &materials[i]->brdfTextures[j].useTexture);
+
+					bool checkBoxChanged = (lastUseTexture == true && materials[i]->brdfTextures[j].useTexture == false)
+						|| (lastUseTexture == false && materials[i]->brdfTextures[j].useTexture == true);
+
+					if (checkBoxChanged)
 					{
-						bool readSuccess;
-						std::string filename;
-
-						std::tie(readSuccess, filename) = WillEngine::Utils::selectFile();
-
-						if (!readSuccess)
-						{
-							printf("Failed to read %s\n", filename.c_str());
-
-							updateTexture = false;
-							materialIndex = 0;
-							textureIndex = 0;
-							textureFilepath = "";
-						}
-						else
+						if (materials[i]->brdfTextures[j].useTexture)
 						{
 							updateTexture = true;
 							materialIndex = i;
 							textureIndex = j;
-							textureFilepath = filename;
+						}
+						else
+						{
+							updateColor = true;
+							materialIndex = i;
+							textureIndex = j;
 						}
 					}
+
+					if (materials[i]->hasTexture(j, materials[i]->brdfTextures) || materials[i]->brdfTextures[j].useTexture)
+					{
+						ImGui::Text("Texture path: %s", materials[i]->brdfTextures[j].texture_path.c_str());
+						if (ImGui::ImageButton((ImTextureID)materials[i]->brdfTextures[j].imguiTextureDescriptorSet, ImVec2(150, 150)))
+						{
+							bool readSuccess;
+							std::string filename;
+
+							std::tie(readSuccess, filename) = WillEngine::Utils::selectFile();
+
+							if (!readSuccess)
+							{
+								printf("Failed to read %s\n", filename.c_str());
+
+								updateTexture = false;
+								materialIndex = 0;
+								textureIndex = 0;
+								textureFilepath = "";
+							}
+							else
+							{
+								updateTexture = true;
+								materialIndex = i;
+								textureIndex = j;
+								textureFilepath = filename;
+							}
+						}
+					}
+
+					ImGui::PopID();
 				}
-
-				ImGui::PopID();
 			}
+			else
+			{
+				// Phong materials
+				if (ImGui::BeginTable("Phong material", 1, ImGuiTableFlags_BordersV))
+				{
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Phong material properties");
 
-			// Phong materials
-			//for (u32 j = 0; j < 4; j++)
-			//{
-			//	ImGui::PushID(j);
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					vec4 emissiveTemp = materials[i]->phongMaterialUniform.emissiveColor;
+					ImGui::DragFloat3("Emissive", &materials[i]->phongMaterialUniform.emissiveColor.x, 0.01f, 0, 1);
+					vec4 emissiveDiff = glm::epsilonNotEqual(emissiveTemp, materials[i]->phongMaterialUniform.emissiveColor, 0.0001f);
+					if (emissiveDiff.x || emissiveDiff.y || emissiveDiff.z)
+					{
+						updateColor = true;
+						materialIndex = i;
+						textureIndex = 0;
+					}
 
-			//	ImGui::Text(phongMaterials[j].c_str());
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					vec4 ambientTemp = materials[i]->phongMaterialUniform.ambientColor;
+					ImGui::DragFloat3("Ambient", &materials[i]->phongMaterialUniform.ambientColor.x, 0.01f, 0, 1);
+					vec4 ambientDiff = glm::epsilonNotEqual(ambientTemp, materials[i]->phongMaterialUniform.ambientColor, 0.0001f);
+					if (ambientDiff.x || ambientDiff.y || ambientDiff.z)
+					{
+						updateColor = true;
+						materialIndex = i;
+						textureIndex = 1;
+					}
 
-			//	bool lastUseTexture = materials[i]->textures[j].useTexture;
-			//	ImGui::Checkbox("Use Texture", &materials[i]->textures[j].useTexture);
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					vec4 diffuseTemp = materials[i]->phongMaterialUniform.diffuseColor;
+					ImGui::DragFloat3("Diffuse", &materials[i]->phongMaterialUniform.diffuseColor.x, 0.01f, 0, 1);
+					vec4 diffuseDiff = glm::epsilonNotEqual(diffuseTemp, materials[i]->phongMaterialUniform.diffuseColor, 0.0001f);
+					if (diffuseDiff.x || diffuseDiff.y || diffuseDiff.z)
+					{
+						updateColor = true;
+						materialIndex = i;
+						textureIndex = 2;
+					}
 
-			//	bool checkBoxChanged = (lastUseTexture == true && materials[i]->textures[j].useTexture == false)
-			//		|| (lastUseTexture == false && materials[i]->textures[j].useTexture == true);
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					vec4 specularTemp = materials[i]->phongMaterialUniform.specularColor;
+					ImGui::DragFloat3("Specular", &materials[i]->phongMaterialUniform.specularColor.x, 0.01f, 0, 1);
+					vec4 specularDiff = glm::epsilonNotEqual(specularTemp, materials[i]->phongMaterialUniform.specularColor, 0.0001f);
+					if (specularDiff.x || specularDiff.y || specularDiff.z)
+					{
+						updateColor = true;
+						materialIndex = i;
+						textureIndex = 3;
+					}
 
-			//	if (checkBoxChanged)
-			//	{
-			//		if (materials[i]->textures[j].useTexture)
-			//		{
-			//			updateTexture = true;
-			//			materialIndex = i;
-			//			textureIndex = j;
-			//		}
-			//		else
-			//		{
-			//			updateColor = true;
-			//			materialIndex = i;
-			//			textureIndex = j;
-			//		}
-			//	}
+					for (u32 j = 0; j < 4; j++)
+					{
+						ImGui::PushID(j);
 
-			//	if (materials[i]->hasTexture(j, materials[i]->textures) || materials[i]->textures[j].useTexture)
-			//	{
-			//		if (ImGui::ImageButton((ImTextureID)materials[i]->textures[j].imguiTextureDescriptorSet, ImVec2(150, 150)))
-			//		{
-			//			bool readSuccess;
-			//			std::string filename;
+						ImGui::Text(phongMaterials[j].c_str());
 
-			//			std::tie(readSuccess, filename) = WillEngine::Utils::selectFile();
+						bool lastUseTexture = materials[i]->textures[j].useTexture;
+						ImGui::Checkbox("Use Texture", &materials[i]->textures[j].useTexture);
 
-			//			if (!readSuccess)
-			//			{
-			//				printf("Failed to read %s\n", filename.c_str());
+						bool checkBoxChanged = (lastUseTexture == true && materials[i]->textures[j].useTexture == false)
+							|| (lastUseTexture == false && materials[i]->textures[j].useTexture == true);
 
-			//				updateTexture = false;
-			//				materialIndex = 0;
-			//				textureIndex = 0;
-			//				textureFilepath = "";
-			//			}
-			//			else
-			//			{
-			//				updateTexture = true;
-			//				materialIndex = i;
-			//				textureIndex = j;
-			//				textureFilepath = filename;
-			//			}
-			//		}
-			//	}
+						if (checkBoxChanged)
+						{
+							if (materials[i]->textures[j].useTexture)
+							{
+								updateTexture = true;
+								materialIndex = i;
+								textureIndex = j;
+							}
+							else
+							{
+								updateColor = true;
+								materialIndex = i;
+								textureIndex = j;
+							}
+						}
 
-			//	ImGui::PopID();
-			//}
+						if (materials[i]->hasTexture(j, materials[i]->textures) || materials[i]->textures[j].useTexture)
+						{
+							if (ImGui::ImageButton((ImTextureID)materials[i]->textures[j].imguiTextureDescriptorSet, ImVec2(150, 150)))
+							{
+								bool readSuccess;
+								std::string filename;
 
+								std::tie(readSuccess, filename) = WillEngine::Utils::selectFile();
+
+								if (!readSuccess)
+								{
+									printf("Failed to read %s\n", filename.c_str());
+
+									updateTexture = false;
+									materialIndex = 0;
+									textureIndex = 0;
+									textureFilepath = "";
+								}
+								else
+								{
+									updateTexture = true;
+									materialIndex = i;
+									textureIndex = j;
+									textureFilepath = filename;
+								}
+							}
+						}
+						ImGui::PopID();
+					}
+
+					ImGui::EndTable();
+				}
+			}
 			ImGui::PopID();
 
 			ImGui::TreePop();
@@ -430,7 +433,7 @@ void VulkanGui::update(std::vector<Mesh*>& meshes, std::vector<Material*>& mater
 
 			ImGui::DragFloat3("", &lights[i]->position.x, 0.1f);
 
-			ImGui::DragFloat("Intensity", &lights[i]->lightUniform.intensity, 1);
+			ImGui::DragFloat("Intensity", &lights[i]->lightUniform.intensity, 0.1f, 0, 100);
 
 			ImGui::PopID();
 		}

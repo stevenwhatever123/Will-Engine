@@ -41,7 +41,7 @@ void VulkanWindow::createWindow(i32 windowWidth, i32 windowHeight)
     glfwMakeContextCurrent(window);
 }
 
-void VulkanWindow::initVulkan()
+void VulkanWindow::initVulkan(bool renderWithBRDF)
 {
     if (glfwVulkanSupported())
     {
@@ -51,7 +51,7 @@ void VulkanWindow::initVulkan()
         selectPhysicalDevice();
         createLogicalDevice();
 
-        initVulkanEngine();
+        initVulkanEngine(renderWithBRDF);
     }
 }
 
@@ -79,9 +79,9 @@ void VulkanWindow::cleanup()
     glfwTerminate();
 }
 
-void VulkanWindow::update()
+void VulkanWindow::update(bool renderWithBRDF)
 {
-    vulkanEngine->update(window, instance, logicalDevice, physicalDevice, surface, graphicsQueue);
+    vulkanEngine->update(window, instance, logicalDevice, physicalDevice, surface, graphicsQueue, renderWithBRDF);
 }
 
 void VulkanWindow::createInstance()
@@ -277,10 +277,10 @@ void VulkanWindow::createSurface()
         throw std::runtime_error("Failed to create window surface");
 }
 
-void VulkanWindow::initVulkanEngine()
+void VulkanWindow::initVulkanEngine(bool renderWithBRDF)
 {
     vulkanEngine = new VulkanEngine();
-    vulkanEngine->init(window, instance, logicalDevice, physicalDevice, surface, graphicsQueue);
+    vulkanEngine->init(window, instance, logicalDevice, physicalDevice, surface, graphicsQueue, renderWithBRDF);
 }
 
 //=============================================================================================

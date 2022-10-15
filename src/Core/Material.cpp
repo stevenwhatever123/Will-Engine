@@ -179,7 +179,7 @@ void Material::updateDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& ph
 	}
 
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers, imageViews,
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 5);
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 4);
 }
 
 const bool Material::hasTexture(u32 index, TextureDescriptorSet* textures)

@@ -51,9 +51,9 @@ public:
 	~VulkanWindow();
 
 	void createWindow(i32 windowWidth, i32 windowHeight);
-	void initVulkan();
+	void initVulkan(bool renderWithBRDF);
 	void cleanup();
-	void update();
+	void update(bool renderWithBRDF);
 
 	void createInstance();
 
@@ -67,7 +67,7 @@ public:
 
 	void createSurface();
 
-	void initVulkanEngine();
+	void initVulkanEngine(bool renderWithBRDF);
 
 	// Return
 	bool shouldCloseWindow() const { return closeWindow; };

@@ -13,6 +13,8 @@ class SystemManager
 {
 private:
 
+	bool renderWithBRDF = false;
+
 	std::vector<Mesh*> meshes;
 	std::vector<Material*> materials;
 
