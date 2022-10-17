@@ -1,19 +1,10 @@
 #pragma once
+#include "Core/Vulkan/VulkanAllocatedObject.h"
+#include "Core/Vulkan/VulkanFramebuffer.h"
+
 #include "Managers/FileManager.h"
 
 #include "Utils/Image.h"
-
-struct VulkanAllocatedMemory
-{
-	VkBuffer buffer;
-	VmaAllocation allocation;
-};
-
-struct VulkanAllocatedImage
-{
-	VkImage image;
-	VmaAllocation allocation;
-};
 
 namespace WillEngine::VulkanUtil
 {
@@ -31,7 +22,8 @@ namespace WillEngine::VulkanUtil
 	VkExtent2D getSwapchainExtent(GLFWwindow* window, VkSurfaceCapabilitiesKHR& capabilities);
 
 	//Images
-	VulkanAllocatedImage createImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkImage& image, VkFormat format, u32 width, u32 height, u32 mipLevels);
+	VulkanAllocatedImage createImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkImageUsageFlags usage, u32 width, 
+		u32 height, u32 mipLevels);
 
 	void loadTextureImage(VkDevice& logicalDevice, VmaAllocator vmaAllocator, VkCommandPool& commandPool, VkQueue& queue, VulkanAllocatedImage& vulkanImage, 
 		u32 mipLevels, u32 width, u32 height, unsigned char* textureImage);
@@ -48,6 +40,8 @@ namespace WillEngine::VulkanUtil
 	void createDefaultSampler(VkDevice& logicalDevice, VkSampler& sampler);
 
 	void createTextureSampler(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSampler& sampler, u32 mipLevels);
+
+	void createAttachmentSampler(VkDevice& logicalDevice, VkSampler& sampler);
 
 	// Buffers
 	VulkanAllocatedMemory createBuffer(VmaAllocator& vmaAllocator, u64 allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
@@ -72,6 +66,8 @@ namespace WillEngine::VulkanUtil
 	VkShaderModule createShaderModule(VkDevice& logicalDevice, std::vector<char>& shaderCode);
 	void initPhongShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader);
 	void initBRDFShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader);
+	void initDeferredShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader);
+	void initCombineShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader);
 
 	// Descriptors related
 	void createDescriptorSetLayout(VkDevice& logicalDevice, VkDescriptorSetLayout& descriptorSetLayout,VkDescriptorType descriptorType, 
@@ -82,8 +78,8 @@ namespace WillEngine::VulkanUtil
 
 	void writeDescriptorSetBuffer(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkBuffer& descriptorBuffer, u32 binding);
 
-	void writeDescriptorSetImage(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, std::vector<VkSampler>& sampler,
-		std::vector<VkImageView>& imageView, VkImageLayout imageLayout, u32 binding, u32 descriptorCount);
+	void writeDescriptorSetImage(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkSampler* sampler,
+		VkImageView* imageView, VkImageLayout imageLayout, u32 binding, u32 descriptorCount);
 
 	// Pipeline
 	void createPipelineLayout(VkDevice& logicalDevice, VkPipelineLayout& pipelineLayout, u32 size,
@@ -91,4 +87,12 @@ namespace WillEngine::VulkanUtil
 
 	void createPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass, 
 		VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D swapchainExtent);
+	void createDeferredPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
+		VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D swapchainExtent);
+	void createCombinePipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
+		VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D swapchainExtent);
+
+	// Framebuffer
+	void createFramebufferAttachment(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkExtent2D extent, 
+		VulkanFramebufferAttachment& attachment);
 }

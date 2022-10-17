@@ -113,7 +113,7 @@ void VulkanGui::cleanUp(VkDevice& logicalDevice)
 	ImGui::DestroyContext();
 }
 
-void VulkanGui::update(bool renderWithBRDF, std::vector<Mesh*>& meshes, std::vector<Material*>& materials, std::vector<Light*>& lights, bool& updateTexture, bool& updateColor, 
+void VulkanGui::update(bool renderWithBRDF, VulkanFramebuffer& attachments, std::vector<Mesh*>& meshes, std::vector<Material*>& materials, std::vector<Light*>& lights, bool& updateTexture, bool& updateColor,
 	u32& materialIndex, u32& textureIndex, std::string& textureFilepath)
 {
 	ImGuiIO& io = ImGui::GetIO();
@@ -437,6 +437,33 @@ void VulkanGui::update(bool renderWithBRDF, std::vector<Mesh*>& meshes, std::vec
 
 			ImGui::PopID();
 		}
+
+		ImGui::End();
+	}
+
+	{
+		ImGui::Begin("Rendering control");
+
+		ImGui::Text("Position");
+		ImGui::Image((ImTextureID)attachments.position.imguiTextureDescriptorSet, ImVec2(352, 240));
+
+		ImGui::Text("Normal");
+		ImGui::Image((ImTextureID)attachments.normal.imguiTextureDescriptorSet, ImVec2(352, 240));
+
+		ImGui::Text("Emissive");
+		ImGui::Image((ImTextureID)attachments.emissive.imguiTextureDescriptorSet, ImVec2(352, 240));
+
+		ImGui::Text("Ambient");
+		ImGui::Image((ImTextureID)attachments.ambient.imguiTextureDescriptorSet, ImVec2(352, 240));
+
+		ImGui::Text("Albedo");
+		ImGui::Image((ImTextureID)attachments.albedo.imguiTextureDescriptorSet, ImVec2(352, 240));
+
+		ImGui::Text("Metallic");
+		ImGui::Image((ImTextureID)attachments.metallic.imguiTextureDescriptorSet, ImVec2(352, 240));
+
+		ImGui::Text("Roughness");
+		ImGui::Image((ImTextureID)attachments.roughness.imguiTextureDescriptorSet, ImVec2(352, 240));
 
 		ImGui::End();
 	}

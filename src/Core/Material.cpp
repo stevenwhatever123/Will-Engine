@@ -70,7 +70,7 @@ void Material::initTexture(VkDevice& logicalDevice, VkPhysicalDevice& physicalDe
 
 	// Create vulkan image
 	textures[index].vulkanImage = WillEngine::VulkanUtil::createImage(logicalDevice, vmaAllocator,
-		textures[index].vulkanImage.image, VK_FORMAT_R8G8B8A8_SRGB, textures[index].width, textures[index].height, textures[index].mipLevels);
+		VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, textures[index].width, textures[index].height, textures[index].mipLevels);
 
 	// Load image to physical device with mipmapping
 	WillEngine::VulkanUtil::loadTextureImageWithMipmap(logicalDevice, vmaAllocator,
@@ -119,7 +119,7 @@ void Material::initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& phys
 		imageViews[i] = textures[i].imageView;
 	}
 
-	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers, imageViews,
+	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers.data(), imageViews.data(),
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 4);
 }
 
@@ -151,7 +151,7 @@ void Material::initBrdfDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& 
 		imageViews[i] = brdfTextures[i].imageView;
 	}
 
-	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers, imageViews,
+	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers.data(), imageViews.data(),
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, textureSize);
 }
 
@@ -178,7 +178,7 @@ void Material::updateDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& ph
 		imageViews[i] = textures[i].imageView;
 	}
 
-	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers, imageViews,
+	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers.data(), imageViews.data(),
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 4);
 }
 

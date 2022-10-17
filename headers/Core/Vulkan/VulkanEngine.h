@@ -5,6 +5,7 @@
 #include "Core/Light.h"
 #include "Core/Camera.h"
 
+#include "Core/Vulkan/VulkanFramebuffer.h"
 #include "Core/Vulkan/VulkanGui.h"
 
 #include "Utils/VulkanUtil.h"
@@ -46,6 +47,7 @@ public:
 
 	VmaAllocator vmaAllocator;
 
+	VkRenderPass deferredRenderPass;
 	VkRenderPass renderPass;
 
 	// Swapchain
@@ -63,8 +65,12 @@ public:
 	VkImageView depthImageView;
 
 	// Framebuffer
-	// Stored as a vector as there are multiple framebuffers in a swapchain
 	std::vector<VkFramebuffer> framebuffers;
+	// Stored as a vector as there are multiple framebuffers in a swapchain
+	VulkanFramebuffer offscreenFramebuffer;
+
+	// Sampler to sample framebuffer's color attachment
+	VkSampler attachmentSampler;
 
 	// Command pool and buffer
 	VkCommandPool commandPool;
@@ -87,6 +93,9 @@ public:
 	// BRDF Metallic
 	VkPipelineLayout brdfMetallicPipelineLayout;
 	VkPipeline brdfMetallicPipeline;
+	// Pipeline for 
+	VkPipelineLayout combinePipelineLayout;
+	VkPipeline combinePipeline;
 
 	// Scene Descriptor sets
 	VkDescriptorSetLayout sceneDescriptorSetLayout;
@@ -109,9 +118,16 @@ public:
 	// Texture Descriptor sets
 	VkDescriptorSetLayout textureDescriptorSetLayout;
 
+	// Descriptor sets for deferred rendering
+	VkDescriptorSetLayout attachmentDescriptorSetLayouts;
+	VkDescriptorSet attachmentDescriptorSets;
+
 	// Shader modules
 	VkShaderModule defaultVertShader;
 	VkShaderModule defaultFragShader;
+
+	VkShaderModule combineVertShader;
+	VkShaderModule combineFragShader;
 
 	// GUI
 	VulkanGui* vulkanGui;
@@ -141,11 +157,13 @@ public:
 	void recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface);
 
 	void createRenderPass(VkDevice& logicalDevice, VkFormat& format, const VkFormat& depthFormat);
+	void createDeferredRenderPass(VkDevice& logicalDevice, VkFormat& format, const VkFormat& depthFormat);
 
 	void createDepthBuffer(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, const VkExtent2D& swapchainExtent);
 
 	void createSwapchainFramebuffer(VkDevice& logicalDevice, std::vector<VkImageView>& swapchainImageViews,
-		std::vector<VkFramebuffer>& framebuffers, VkRenderPass& renderPass, VkImageView& depthImageView, VkExtent2D swapchainExtent);
+		std::vector<VkFramebuffer>& framebuffers, VulkanFramebuffer& offscreenFramebuffer, VkRenderPass& deferredRenderPass, VkRenderPass& renderPass, VkImageView& depthImageView, 
+		VkExtent2D swapchainExtent);
 
 	void createCommandPool(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, VkCommandPool& commandPool);
 
@@ -161,6 +179,9 @@ public:
 		VkDescriptorSetLayout& descriptorSetLayout, u32 binding, u32 bufferSize, VkShaderStageFlagBits shaderStage);
 	void createUniformBuffer(VkDevice& logicalDevice, VulkanAllocatedMemory& uniformBuffer, u32 bufferSize);
 
+	// Initialise descriptor sets for deferred rendering
+	void initCombineDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
+
 	// GUI
 	void initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue, VkSurfaceKHR& surface);
 
@@ -173,7 +194,8 @@ public:
 	void recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D& extent);
 
 	// Render passes
-	void renderPasses(VkCommandBuffer& commandBuffer);
+	void renderPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
+	void shadingPasses(VkCommandBuffer& commandBuffer, VkRenderPass& renderpass, VkFramebuffer& framebuffer, VkExtent2D extent);
 	void UIPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 
 	void submitCommands(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, 

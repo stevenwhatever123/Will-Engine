@@ -8,15 +8,15 @@ VulkanEngine::VulkanEngine() :
 	materials(),
 	lights(),
 	vmaAllocator(VK_NULL_HANDLE),
+	deferredRenderPass(VK_NULL_HANDLE),
 	renderPass(VK_NULL_HANDLE),
 	swapchain(VK_NULL_HANDLE),
-	swapchainImages(),
-	swapchainImageViews(),
 	swapchainImageFormat(),
-	swapchainExtent(),
 	depthImageView(VK_NULL_HANDLE),
 	depthImage({ VK_NULL_HANDLE, VK_NULL_HANDLE }),
 	framebuffers(),
+	offscreenFramebuffer(),
+	attachmentSampler(VK_NULL_HANDLE),
 	commandPool(VK_NULL_HANDLE),
 	commandBuffers(),
 	imageAvailable(VK_NULL_HANDLE),
@@ -27,6 +27,8 @@ VulkanEngine::VulkanEngine() :
 	defaultPipeline(VK_NULL_HANDLE),
 	brdfMetallicPipelineLayout(VK_NULL_HANDLE),
 	brdfMetallicPipeline(VK_NULL_HANDLE),
+	combinePipelineLayout(VK_NULL_HANDLE),
+	combinePipeline(VK_NULL_HANDLE),
 	sceneDescriptorSetLayout(VK_NULL_HANDLE),
 	sceneDescriptorSet(VK_NULL_HANDLE),
 	sceneUniformBuffer({ VK_NULL_HANDLE, VK_NULL_HANDLE }),
@@ -39,6 +41,8 @@ VulkanEngine::VulkanEngine() :
 	textureDescriptorSetLayout(VK_NULL_HANDLE),
 	defaultVertShader(VK_NULL_HANDLE),
 	defaultFragShader(VK_NULL_HANDLE),
+	combineVertShader(VK_NULL_HANDLE),
+	combineFragShader(VK_NULL_HANDLE),
 	vulkanGui(nullptr),
 	sceneMatrix(1)
 {
@@ -60,10 +64,13 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	createSwapchainImageViews(logicalDevice);
 
 	createRenderPass(logicalDevice, swapchainImageFormat, depthFormat);
+	createDeferredRenderPass(logicalDevice, swapchainImageFormat, depthFormat);
 
 	createDepthBuffer(logicalDevice, vmaAllocator, swapchainExtent);
 
-	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, renderPass, depthImageView, swapchainExtent);
+	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, deferredRenderPass, renderPass, depthImageView, swapchainExtent);
+
+	WillEngine::VulkanUtil::createAttachmentSampler(logicalDevice, attachmentSampler);
 
 	createCommandPool(logicalDevice, physicalDevice, surface, commandPool);
 
@@ -103,10 +110,12 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 		VK_SHADER_STAGE_FRAGMENT_BIT, 1, descriptorSize);
 
 	// Shader Modules
-	if(renderWithBRDF)
-		WillEngine::VulkanUtil::initBRDFShaderModule(logicalDevice, defaultVertShader, defaultFragShader);
-	else
-		WillEngine::VulkanUtil::initPhongShaderModule(logicalDevice, defaultVertShader, defaultFragShader);
+	//if(renderWithBRDF)
+	//	WillEngine::VulkanUtil::initBRDFShaderModule(logicalDevice, defaultVertShader, defaultFragShader);
+	//else
+	//	WillEngine::VulkanUtil::initPhongShaderModule(logicalDevice, defaultVertShader, defaultFragShader);
+
+	WillEngine::VulkanUtil::initDeferredShaderModule(logicalDevice, defaultVertShader, defaultFragShader);
 
 	// Create pipeline and pipeline layout
 	VkDescriptorSetLayout layouts[] = { sceneDescriptorSetLayout, lightDescriptorSetLayout, cameraDescriptorSetLayout, textureDescriptorSetLayout };
@@ -129,11 +138,25 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 		descriptorSetLayoutSize, layouts, pushConstantCount, pushConstants);
 
 	// Create pipeline
-	WillEngine::VulkanUtil::createPipeline(logicalDevice, defaultPipeline, defaultPipelineLayout,
-		renderPass, defaultVertShader, defaultFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
+	//WillEngine::VulkanUtil::createPipeline(logicalDevice, defaultPipeline, defaultPipelineLayout,
+	//	renderPass, defaultVertShader, defaultFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
+	WillEngine::VulkanUtil::createDeferredPipeline(logicalDevice, defaultPipeline, defaultPipelineLayout,
+		deferredRenderPass, defaultVertShader, defaultFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
+	
+
 
 	// Gui
 	initGui(window, instance, logicalDevice, physicalDevice, queue, surface);
+
+
+	initCombineDescriptors(logicalDevice, descriptorPool);
+
+	WillEngine::VulkanUtil::initCombineShaderModule(logicalDevice, combineVertShader, combineFragShader);
+
+	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, combinePipelineLayout, 1, &attachmentDescriptorSetLayouts, 0, nullptr);
+
+	WillEngine::VulkanUtil::createCombinePipeline(logicalDevice, combinePipeline, combinePipelineLayout, renderPass, combineVertShader, combineFragShader, 
+		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
 }
 
 void VulkanEngine::cleanup(VkDevice& logicalDevice)
@@ -344,6 +367,88 @@ void VulkanEngine::createRenderPass(VkDevice& logicalDevice, VkFormat& format, c
 		throw std::runtime_error("Failed to create render pass");
 }
 
+void VulkanEngine::createDeferredRenderPass(VkDevice& logicalDevice, VkFormat& format, const VkFormat& depthFormat)
+{
+	std::vector<VkAttachmentDescription> attachments(8);
+	// G-buffers
+	for (u32 i = 0; i < attachments.size(); i++)
+	{
+		attachments[i].samples = VK_SAMPLE_COUNT_1_BIT;
+		attachments[i].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		attachments[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+		if (i == attachments.size() - 1)
+		{
+			// Depth buffer
+			attachments[i].format = depthFormat;
+			attachments[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			attachments[i].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		}
+		else
+		{
+			attachments[i].format = format;
+			attachments[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			attachments[i].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		}
+	}
+
+	// The out location of the fragment shader
+	// 0 is the position
+	// 1 is the normal
+	// 2 is the emissive
+	// 3 is the ambient
+	// 4 is the diffuse
+	// 5 is the metallic
+	// 6 is the roughness
+	std::vector<VkAttachmentReference> colorAttachments(attachments.size() - 1);
+	for (u32 i = 0; i < colorAttachments.size(); i++)
+	{
+		colorAttachments[i].attachment = i;
+		colorAttachments[i].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	}
+
+	// The last one is the depth value for the depth buffer
+	VkAttachmentReference depthAttachment{};
+	depthAttachment.attachment = attachments.size() - 1;
+	depthAttachment.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+	VkSubpassDescription subpasses[1]{};
+	subpasses[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpasses[0].colorAttachmentCount = static_cast<u32>(colorAttachments.size());
+	subpasses[0].pColorAttachments = colorAttachments.data();
+	subpasses[0].pDepthStencilAttachment = &depthAttachment;
+
+	// Attachments layout transitions
+	std::vector<VkSubpassDependency> subpassDependencies(2);
+	subpassDependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+	subpassDependencies[0].dstSubpass = 0;
+	subpassDependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	subpassDependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	subpassDependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+	subpassDependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	subpassDependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+	subpassDependencies[1].srcSubpass = 0;
+	subpassDependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+	subpassDependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	subpassDependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	subpassDependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	subpassDependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+	subpassDependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+	VkRenderPassCreateInfo passInfo{};
+	passInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	passInfo.attachmentCount = static_cast<u32>(attachments.size());
+	passInfo.pAttachments = attachments.data();
+	passInfo.subpassCount = static_cast<u32>(sizeof(subpasses) / sizeof(subpasses[0]));
+	passInfo.pSubpasses = subpasses;
+	passInfo.dependencyCount = static_cast<u32>(subpassDependencies.size());
+	passInfo.pDependencies = subpassDependencies.data();
+
+	if (vkCreateRenderPass(logicalDevice, &passInfo, nullptr, &deferredRenderPass) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create render pass");
+}
+
 void VulkanEngine::createSwapchain(GLFWwindow* window, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface)
 {
 	VkSurfaceCapabilitiesKHR capabilities;
@@ -457,7 +562,10 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 		formatChanged = true;
 
 	if (formatChanged)
+	{
+		createDeferredRenderPass(logicalDevice, swapchainImageFormat, depthFormat);
 		createRenderPass(logicalDevice, swapchainImageFormat, depthFormat);
+	}
 
 	if (extentChanged)
 	{
@@ -475,19 +583,40 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 
 	framebuffers.clear();
 
-	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, renderPass, depthImageView, swapchainExtent);
+	// Clear attachments
+	vkDestroyFramebuffer(logicalDevice, offscreenFramebuffer.framebuffer, nullptr);
+	vkDestroyImageView(logicalDevice, offscreenFramebuffer.position.imageView, nullptr);
+	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.position.vulkanImage.image, offscreenFramebuffer.position.vulkanImage.allocation);
+	vkDestroyImageView(logicalDevice, offscreenFramebuffer.normal.imageView, nullptr);
+	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.normal.vulkanImage.image, offscreenFramebuffer.normal.vulkanImage.allocation);
+	vkDestroyImageView(logicalDevice, offscreenFramebuffer.emissive.imageView, nullptr);
+	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.emissive.vulkanImage.image, offscreenFramebuffer.emissive.vulkanImage.allocation);
+	vkDestroyImageView(logicalDevice, offscreenFramebuffer.ambient.imageView, nullptr);
+	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.ambient.vulkanImage.image, offscreenFramebuffer.ambient.vulkanImage.allocation);
+	vkDestroyImageView(logicalDevice, offscreenFramebuffer.albedo.imageView, nullptr);
+	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.albedo.vulkanImage.image, offscreenFramebuffer.albedo.vulkanImage.allocation);
+	vkDestroyImageView(logicalDevice, offscreenFramebuffer.metallic.imageView, nullptr);
+	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.metallic.vulkanImage.image, offscreenFramebuffer.metallic.vulkanImage.allocation);
+	vkDestroyImageView(logicalDevice, offscreenFramebuffer.roughness.imageView, nullptr);
+	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.roughness.vulkanImage.image, offscreenFramebuffer.roughness.vulkanImage.allocation);
+
+	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, deferredRenderPass, renderPass, depthImageView, swapchainExtent);
 
 	if (extentChanged)
 	{
 		// Destroy old pipeline
 		vkDestroyPipeline(logicalDevice, defaultPipeline, nullptr);
+		vkDestroyPipeline(logicalDevice, combinePipeline, nullptr);
 
 		// Create new pipeline
-		WillEngine::VulkanUtil::createPipeline(logicalDevice, defaultPipeline, defaultPipelineLayout, renderPass, defaultVertShader,
+		WillEngine::VulkanUtil::createDeferredPipeline(logicalDevice, defaultPipeline, defaultPipelineLayout, deferredRenderPass, defaultVertShader,
 			defaultFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
-	}
+		WillEngine::VulkanUtil::createCombinePipeline(logicalDevice, combinePipeline, combinePipelineLayout, renderPass, combineVertShader,
+			combineFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
 
-	//vkDeviceWaitIdle(logicalDevice);
+		// Recreate attachment descriptor sets
+		initCombineDescriptors(logicalDevice, descriptorPool);
+	}
 }
 
 void VulkanEngine::createDepthBuffer(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, const VkExtent2D& swapchainExtent)
@@ -518,11 +647,46 @@ void VulkanEngine::createDepthBuffer(VkDevice& logicalDevice, VmaAllocator& vmaA
 	WillEngine::VulkanUtil::createImageView(logicalDevice, depthImage.image, depthImageView, 1, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
-void VulkanEngine::createSwapchainFramebuffer(VkDevice& logicalDevice, std::vector<VkImageView>& swapchainImageViews,
-	std::vector<VkFramebuffer>& framebuffers, VkRenderPass& renderPass, VkImageView& depthImageView, VkExtent2D swapchainExtent)
+void VulkanEngine::createSwapchainFramebuffer(VkDevice& logicalDevice, std::vector<VkImageView>& swapchainImageViews, std::vector<VkFramebuffer>& framebuffers, 
+	VulkanFramebuffer& offscreenFramebuffer, VkRenderPass& deferredRenderPass, VkRenderPass& renderPass, VkImageView& depthImageView, VkExtent2D swapchainExtent)
 {
 	assert(framebuffers.empty());
 
+	// The back buffer
+	// Create offscreen framebuffer attachments
+	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, swapchainImageFormat, swapchainExtent, offscreenFramebuffer.position);
+	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, swapchainImageFormat, swapchainExtent, offscreenFramebuffer.normal);
+	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, swapchainImageFormat, swapchainExtent, offscreenFramebuffer.emissive);
+	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, swapchainImageFormat, swapchainExtent, offscreenFramebuffer.ambient);
+	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, swapchainImageFormat, swapchainExtent, offscreenFramebuffer.albedo);
+	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, swapchainImageFormat, swapchainExtent, offscreenFramebuffer.metallic);
+	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, swapchainImageFormat, swapchainExtent, offscreenFramebuffer.roughness);
+
+	{
+		VkImageView attachments[8]{};
+		attachments[0] = offscreenFramebuffer.position.imageView;
+		attachments[1] = offscreenFramebuffer.normal.imageView;
+		attachments[2] = offscreenFramebuffer.emissive.imageView;
+		attachments[3] = offscreenFramebuffer.ambient.imageView;
+		attachments[4] = offscreenFramebuffer.albedo.imageView;
+		attachments[5] = offscreenFramebuffer.metallic.imageView;
+		attachments[6] = offscreenFramebuffer.roughness.imageView;
+		attachments[7] = depthImageView;
+
+		VkFramebufferCreateInfo framebufferInfo{};
+		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		framebufferInfo.renderPass = deferredRenderPass;
+		framebufferInfo.attachmentCount = static_cast<u32>(sizeof(attachments) / sizeof(attachments[0]));
+		framebufferInfo.pAttachments = attachments;
+		framebufferInfo.width = swapchainExtent.width;
+		framebufferInfo.height = swapchainExtent.height;
+		framebufferInfo.layers = 1;
+
+		if (vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &offscreenFramebuffer.framebuffer) != VK_SUCCESS)
+			throw std::runtime_error("Failed to create framebuffer");
+	}
+
+	// The present framebuffer
 	for (u32 i = 0; i < swapchainImageViews.size(); i++)
 	{
 		VkImageView attachments[2]{};
@@ -627,6 +791,39 @@ void VulkanEngine::createUniformBuffer(VkDevice& logicalDevice, VulkanAllocatedM
 		WillEngine::VulkanUtil::createBuffer(vmaAllocator, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 }
 
+void VulkanEngine::initCombineDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool)
+{
+	// Descriptor sets for ImGui UI
+	{
+		offscreenFramebuffer.position.imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, offscreenFramebuffer.position.imageView,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		offscreenFramebuffer.normal.imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, offscreenFramebuffer.normal.imageView,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		offscreenFramebuffer.emissive.imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, offscreenFramebuffer.emissive.imageView,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		offscreenFramebuffer.ambient.imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, offscreenFramebuffer.ambient.imageView,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		offscreenFramebuffer.albedo.imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, offscreenFramebuffer.albedo.imageView,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		offscreenFramebuffer.metallic.imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, offscreenFramebuffer.metallic.imageView,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		offscreenFramebuffer.roughness.imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, offscreenFramebuffer.roughness.imageView,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	}
+
+	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, attachmentDescriptorSetLayouts, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+		VK_SHADER_STAGE_FRAGMENT_BIT, 0, 7);
+
+	WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, attachmentDescriptorSetLayouts, attachmentDescriptorSets);
+
+	std::vector<VkImageView> imageViews = { offscreenFramebuffer.position.imageView, offscreenFramebuffer.normal.imageView,
+		offscreenFramebuffer.emissive.imageView, offscreenFramebuffer.ambient.imageView, offscreenFramebuffer.albedo.imageView,
+		offscreenFramebuffer.metallic.imageView, offscreenFramebuffer.roughness.imageView };
+
+	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, attachmentDescriptorSets, &attachmentSampler, imageViews.data(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, imageViews.size());
+}
+
 void VulkanEngine::initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue,
 	VkSurfaceKHR& surface)
 {
@@ -643,7 +840,8 @@ void VulkanEngine::initGui(GLFWwindow* window, VkInstance& instance, VkDevice& l
 
 void VulkanEngine::updateGui(VkDevice& logicalDevice, VkQueue& graphicsQueue, bool renderWithBRDF)
 {
-	vulkanGui->update(renderWithBRDF, meshes, materials, lights, updateTexture, updateColor, selectedMaterialIndex, selectedTextureIndex, textureFilepath);
+	vulkanGui->update(renderWithBRDF, offscreenFramebuffer, meshes, materials, lights, updateTexture, updateColor, selectedMaterialIndex, 
+		selectedTextureIndex, textureFilepath);
 }
 
 void VulkanEngine::updateSceneUniform(Camera* camera)
@@ -686,6 +884,14 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& 
 	// Update camera uniform buffers
 	vkCmdUpdateBuffer(commandBuffer, cameraUniformBuffer.buffer, 0, sizeof(vec4), &cameraPosition);
 
+	// ========================================================
+	// Recording all the rendering command
+
+	// Deferred rendering pass
+	renderPasses(commandBuffer, extent);
+
+
+	// Combine offscreen framebuffer
 	VkClearValue clearValue[2];
 	// Clear color
 	clearValue[0].color.float32[0] = 0.5f;
@@ -695,37 +901,55 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& 
 	// Clear Depth
 	clearValue[1].depthStencil.depth = 1.0f;
 
+	VkRenderPassBeginInfo passBeginInfo{};
+	passBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	passBeginInfo.renderPass = renderPass;
+	passBeginInfo.framebuffer = framebuffer;
+	passBeginInfo.renderArea.extent = extent;
+	passBeginInfo.clearValueCount = static_cast<u32>(sizeof(clearValue) / sizeof(clearValue[0]));
+	passBeginInfo.pClearValues = clearValue;
+
+	vkCmdBeginRenderPass(commandBuffer, &passBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	// Shading
+	shadingPasses(commandBuffer, renderPass, framebuffer, extent);
+
+	// UI rendering pass
+	UIPasses(commandBuffer, extent);
+
+	vkCmdEndRenderPass(commandBuffer);
+
+	// ========================================================
+
+	// End command buffer
+	vkEndCommandBuffer(commandBuffer);
+}
+
+void VulkanEngine::renderPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent)
+{
+	VkClearValue clearValue[8];
+	// Clear attachments
+	for (u32 i = 0; i < 7; i++)
+	{
+		clearValue[i].color.float32[0] = 0.5f;
+		clearValue[i].color.float32[1] = 0.5f;
+		clearValue[i].color.float32[2] = 0.5f;
+		clearValue[i].color.float32[3] = 1.0f;
+	}
+	// Clear Depth
+	clearValue[7].depthStencil.depth = 1.0f;
+
 	// Begin Render Pass
 	VkRenderPassBeginInfo renderPassBeginInfo{};
 	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassBeginInfo.renderPass = renderPass;
-	renderPassBeginInfo.framebuffer = framebuffer;
+	renderPassBeginInfo.renderPass = deferredRenderPass;
+	renderPassBeginInfo.framebuffer = offscreenFramebuffer.framebuffer;
 	renderPassBeginInfo.renderArea.extent = extent;
 	renderPassBeginInfo.clearValueCount = static_cast<u32>(sizeof(clearValue) / sizeof(clearValue[0]));
 	renderPassBeginInfo.pClearValues = clearValue;
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	// ========================================================
-	// Recording all the rendering command
-
-	// Rendering pass
-	renderPasses(commandBuffer);
-
-	// UI rendering pass
-	UIPasses(commandBuffer, extent);
-
-	// ========================================================
-
-	// End Render Pass
-	vkCmdEndRenderPass(commandBuffer);
-
-	// End command buffer
-	vkEndCommandBuffer(commandBuffer);
-}
-
-void VulkanEngine::renderPasses(VkCommandBuffer& commandBuffer)
-{
 	// Bind default pipeline
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipeline);
 
@@ -762,6 +986,19 @@ void VulkanEngine::renderPasses(VkCommandBuffer& commandBuffer)
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 	}
+
+	// End Render Pass
+	vkCmdEndRenderPass(commandBuffer);
+}
+
+void VulkanEngine::shadingPasses(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D extent)
+{
+
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, combinePipeline);
+
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, combinePipelineLayout, 0, 1, &attachmentDescriptorSets, 0, nullptr);
+
+	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 }
 
 void VulkanEngine::UIPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent)
