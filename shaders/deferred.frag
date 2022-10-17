@@ -35,6 +35,6 @@ void main()
 	oEmissive = texture(texColor[0], texCoord);
 	oAmbient = texture(texColor[1], texCoord);
 	oAlbedo = texture(texColor[2], texCoord);
-	oMetallic = vec4(texture(texColor[3], texCoord).x, 0, 0, 1);
-	oRoughness = vec4(texture(texColor[4], texCoord).x, 0, 0, 1);
+	oMetallic = vec4(texture(texColor[3], texCoord).x, texture(texColor[3], texCoord).x, texture(texColor[3], texCoord).x, 1);
+	oRoughness = vec4(texture(texColor[4], texCoord).x, texture(texColor[3], texCoord).x, texture(texColor[3], texCoord).x, 1);
 }
