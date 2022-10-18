@@ -44,7 +44,7 @@ VulkanEngine::VulkanEngine() :
 	combineVertShader(VK_NULL_HANDLE),
 	combineFragShader(VK_NULL_HANDLE),
 	vulkanGui(nullptr),
-	sceneMatrix(1)
+	sceneMatrix()
 {
 
 }
@@ -64,7 +64,7 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	createSwapchainImageViews(logicalDevice);
 
 	createRenderPass(logicalDevice, swapchainImageFormat, depthFormat);
-	createDeferredRenderPass(logicalDevice, swapchainImageFormat, depthFormat);
+	createDeferredRenderPass(logicalDevice, VK_FORMAT_R16G16B16A16_SFLOAT, depthFormat);
 
 	createDepthBuffer(logicalDevice, vmaAllocator, swapchainExtent);
 
@@ -83,14 +83,13 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	createDescriptionPool(logicalDevice);
 
 	// Scene Descriptors for scene matrix with binding 0 in vertex shader
-	initUniformBuffer(logicalDevice, descriptorPool, sceneUniformBuffer, sceneDescriptorSet, sceneDescriptorSetLayout, 0, sizeof(mat4), VK_SHADER_STAGE_VERTEX_BIT);
+	initUniformBuffer(logicalDevice, descriptorPool, sceneUniformBuffer, sceneDescriptorSet, sceneDescriptorSetLayout, 0, sizeof(cameraProject), VK_SHADER_STAGE_VERTEX_BIT);
 
-	// Light Descriptors for light with binding 0 in fragment shader
-	initUniformBuffer(logicalDevice, descriptorPool, lightUniformBuffer, lightDescriptorSet, lightDescriptorSetLayout, 0, 
-		sizeof(LightUniform), VK_SHADER_STAGE_FRAGMENT_BIT);
+	// Light Descriptors for light with binding 1 in fragment shader
+	initUniformBuffer(logicalDevice, descriptorPool, lightUniformBuffer, lightDescriptorSet, lightDescriptorSetLayout, 1, sizeof(LightUniform), VK_SHADER_STAGE_FRAGMENT_BIT);
 
-	// Camera Descriptors for camera position with binding 0 in fragment shader
-	initUniformBuffer(logicalDevice, descriptorPool, cameraUniformBuffer, cameraDescriptorSet, cameraDescriptorSetLayout, 0, sizeof(vec4), VK_SHADER_STAGE_FRAGMENT_BIT);
+	// Camera Descriptors for camera position with binding 1 in fragment shader
+	initUniformBuffer(logicalDevice, descriptorPool, cameraUniformBuffer, cameraDescriptorSet, cameraDescriptorSetLayout, 1, sizeof(vec4), VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	u32 descriptorSize = 0;
 	if (renderWithBRDF)
@@ -109,16 +108,10 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 		VK_SHADER_STAGE_FRAGMENT_BIT, 1, descriptorSize);
 
-	// Shader Modules
-	//if(renderWithBRDF)
-	//	WillEngine::VulkanUtil::initBRDFShaderModule(logicalDevice, defaultVertShader, defaultFragShader);
-	//else
-	//	WillEngine::VulkanUtil::initPhongShaderModule(logicalDevice, defaultVertShader, defaultFragShader);
-
 	WillEngine::VulkanUtil::initDeferredShaderModule(logicalDevice, defaultVertShader, defaultFragShader);
 
 	// Create pipeline and pipeline layout
-	VkDescriptorSetLayout layouts[] = { sceneDescriptorSetLayout, lightDescriptorSetLayout, cameraDescriptorSetLayout, textureDescriptorSetLayout };
+	VkDescriptorSetLayout layouts[] = { sceneDescriptorSetLayout, textureDescriptorSetLayout };
 	u32 descriptorSetLayoutSize = sizeof(layouts) / sizeof(layouts[0]);
 
 	VkPushConstantRange pushConstants[1];
@@ -126,10 +119,6 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	pushConstants[0].offset = 0;
 	pushConstants[0].size = sizeof(mat4);
 	pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	// Push constant object for uniform material to be used in fragment shader
-	//pushConstants[1].offset = sizeof(mat4);
-	//pushConstants[1].size = sizeof(vec4) * 4;
-	//pushConstants[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
 	u32 pushConstantCount = sizeof(pushConstants) / sizeof(pushConstants[0]);
 
@@ -148,12 +137,14 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	// Gui
 	initGui(window, instance, logicalDevice, physicalDevice, queue, surface);
 
-
 	initCombineDescriptors(logicalDevice, descriptorPool);
 
 	WillEngine::VulkanUtil::initCombineShaderModule(logicalDevice, combineVertShader, combineFragShader);
 
-	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, combinePipelineLayout, 1, &attachmentDescriptorSetLayouts, 0, nullptr);
+	VkDescriptorSetLayout combineLayout[] = { lightDescriptorSetLayout, cameraDescriptorSetLayout, attachmentDescriptorSetLayouts };
+	u32 combineLayoutSize = sizeof(combineLayout) / sizeof(combineLayout[0]);
+
+	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, combinePipelineLayout, combineLayoutSize, combineLayout, 0, nullptr);
 
 	WillEngine::VulkanUtil::createCombinePipeline(logicalDevice, combinePipeline, combinePipelineLayout, renderPass, combineVertShader, combineFragShader, 
 		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
@@ -367,7 +358,7 @@ void VulkanEngine::createRenderPass(VkDevice& logicalDevice, VkFormat& format, c
 		throw std::runtime_error("Failed to create render pass");
 }
 
-void VulkanEngine::createDeferredRenderPass(VkDevice& logicalDevice, VkFormat& format, const VkFormat& depthFormat)
+void VulkanEngine::createDeferredRenderPass(VkDevice& logicalDevice, VkFormat format, const VkFormat& depthFormat)
 {
 	std::vector<VkAttachmentDescription> attachments(8);
 	// G-buffers
@@ -654,13 +645,14 @@ void VulkanEngine::createSwapchainFramebuffer(VkDevice& logicalDevice, std::vect
 
 	// The back buffer
 	// Create offscreen framebuffer attachments
-	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, swapchainImageFormat, swapchainExtent, offscreenFramebuffer.position);
-	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, swapchainImageFormat, swapchainExtent, offscreenFramebuffer.normal);
-	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, swapchainImageFormat, swapchainExtent, offscreenFramebuffer.emissive);
-	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, swapchainImageFormat, swapchainExtent, offscreenFramebuffer.ambient);
-	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, swapchainImageFormat, swapchainExtent, offscreenFramebuffer.albedo);
-	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, swapchainImageFormat, swapchainExtent, offscreenFramebuffer.metallic);
-	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, swapchainImageFormat, swapchainExtent, offscreenFramebuffer.roughness);
+	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.position);
+	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.normal);
+	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.emissive);
+	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.ambient);
+	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.albedo);
+	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.metallic);
+	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.roughness);
+
 
 	{
 		VkImageView attachments[8]{};
@@ -812,7 +804,7 @@ void VulkanEngine::initCombineDescriptors(VkDevice& logicalDevice, VkDescriptorP
 	}
 
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, attachmentDescriptorSetLayouts, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		VK_SHADER_STAGE_FRAGMENT_BIT, 0, 7);
+		VK_SHADER_STAGE_FRAGMENT_BIT, 2, 7);
 
 	WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, attachmentDescriptorSetLayouts, attachmentDescriptorSets);
 
@@ -821,7 +813,7 @@ void VulkanEngine::initCombineDescriptors(VkDevice& logicalDevice, VkDescriptorP
 		offscreenFramebuffer.metallic.imageView, offscreenFramebuffer.roughness.imageView };
 
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, attachmentDescriptorSets, &attachmentSampler, imageViews.data(),
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, imageViews.size());
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 2, imageViews.size());
 }
 
 void VulkanEngine::initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue,
@@ -846,12 +838,9 @@ void VulkanEngine::updateGui(VkDevice& logicalDevice, VkQueue& graphicsQueue, bo
 
 void VulkanEngine::updateSceneUniform(Camera* camera)
 {
-	// Temperory!!!!!
-	// Model Transform
-	mat4 model(1);
-
 	// Update camera 
-	sceneMatrix = camera->getProjectionMatrix(swapchainExtent.width, swapchainExtent.height) * camera->getCameraMatrix() * model;
+	sceneMatrix.cameraMatrix = camera->getCameraMatrix();
+	sceneMatrix.projectionMatrix = camera->getProjectionMatrix(swapchainExtent.width, swapchainExtent.height);
 }
 
 void VulkanEngine::updateLightUniform(Camera* camera)
@@ -874,7 +863,7 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& 
 		throw std::runtime_error("Failed to begin command buffer");
 
 	// Update uniform buffers
-	vkCmdUpdateBuffer(commandBuffer, sceneUniformBuffer.buffer, 0, sizeof(mat4), &sceneMatrix);
+	vkCmdUpdateBuffer(commandBuffer, sceneUniformBuffer.buffer, 0, sizeof(sceneMatrix), &sceneMatrix);
 
 	// Update light uniform buffers
 	vkCmdUpdateBuffer(commandBuffer, lightUniformBuffer.buffer, 0, sizeof(lights[0]->lightUniform), &lights[0]->lightUniform);
@@ -931,9 +920,9 @@ void VulkanEngine::renderPasses(VkCommandBuffer& commandBuffer, VkExtent2D exten
 	// Clear attachments
 	for (u32 i = 0; i < 7; i++)
 	{
-		clearValue[i].color.float32[0] = 0.5f;
-		clearValue[i].color.float32[1] = 0.5f;
-		clearValue[i].color.float32[2] = 0.5f;
+		clearValue[i].color.float32[0] = 0.0f;
+		clearValue[i].color.float32[1] = 0.0f;
+		clearValue[i].color.float32[2] = 0.0f;
 		clearValue[i].color.float32[3] = 1.0f;
 	}
 	// Clear Depth
@@ -967,14 +956,8 @@ void VulkanEngine::renderPasses(VkCommandBuffer& commandBuffer, VkExtent2D exten
 		// Bind Scene Uniform Buffer
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 0, 1, &sceneDescriptorSet, 0, nullptr);
 
-		// Bind Light Uniform Buffer
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 1, 1, &lightDescriptorSet, 0, nullptr);
-
-		// Bind Camera Uniform Buffer
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 2, 1, &cameraDescriptorSet, 0, nullptr);
-
 		// Bind Texture
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 3, 1, &materials[mesh->materialIndex]->textureDescriptorSet, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, defaultPipelineLayout, 1, 1, &materials[mesh->materialIndex]->textureDescriptorSet, 0, nullptr);
 
 		// Push constant for model matrix
 		mesh->updateModelMatrix();
@@ -993,10 +976,18 @@ void VulkanEngine::renderPasses(VkCommandBuffer& commandBuffer, VkExtent2D exten
 
 void VulkanEngine::shadingPasses(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D extent)
 {
+	if (meshes.size() < 1)
+		return;
 
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, combinePipeline);
 
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, combinePipelineLayout, 0, 1, &attachmentDescriptorSets, 0, nullptr);
+	// Bind Light Uniform Buffer
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, combinePipelineLayout, 0, 1, &lightDescriptorSet, 0, nullptr);
+
+	// Bind Camera Uniform Buffer
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, combinePipelineLayout, 1, 1, &cameraDescriptorSet, 0, nullptr);
+
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, combinePipelineLayout, 2, 1, &attachmentDescriptorSets, 0, nullptr);
 
 	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 }

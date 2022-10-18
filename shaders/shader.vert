@@ -6,7 +6,8 @@ layout(location = 2) in vec2 texCoord;
 
 layout(set = 0, binding = 0) uniform sceneMatrix
 {
-	mat4 cameraProjectionMatrix;
+	mat4 cameraMatrix;
+	mat4 projectMatrix;
 };
 
 layout(push_constant) uniform modelMatrix
@@ -24,5 +25,5 @@ void main()
 	oNormal = vec4(normal, 1);
 	oTexCoord = texCoord;
 
-	gl_Position = cameraProjectionMatrix * modelTransformation * vec4(position, 1);
+	gl_Position = projectMatrix * cameraMatrix * modelTransformation * vec4(position, 1);
 }

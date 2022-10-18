@@ -10,11 +10,10 @@
 
 #include "Utils/VulkanUtil.h"
 
-struct RendObj
+struct cameraProject
 {
-	u32 startIndex;
-	u32 endIndex;
-	VkPrimitiveTopology primitive;
+	mat4 cameraMatrix;
+	mat4 projectionMatrix;
 };
 
 class VulkanEngine
@@ -134,7 +133,7 @@ public:
 
 private:
 
-	mat4 sceneMatrix;
+	cameraProject sceneMatrix;
 
 public:
 
@@ -157,7 +156,7 @@ public:
 	void recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface);
 
 	void createRenderPass(VkDevice& logicalDevice, VkFormat& format, const VkFormat& depthFormat);
-	void createDeferredRenderPass(VkDevice& logicalDevice, VkFormat& format, const VkFormat& depthFormat);
+	void createDeferredRenderPass(VkDevice& logicalDevice, VkFormat format, const VkFormat& depthFormat);
 
 	void createDepthBuffer(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, const VkExtent2D& swapchainExtent);
 
