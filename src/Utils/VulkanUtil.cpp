@@ -548,7 +548,7 @@ void WillEngine::VulkanUtil::initDeferredShaderModule(VkDevice& logicalDevice, V
     fragShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, fragShaderCode);
 }
 
-void WillEngine::VulkanUtil::initCombineShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader)
+void WillEngine::VulkanUtil::initShadingShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader)
 {
     const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/combine.vert.spv";
     const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/combine.frag.spv";
@@ -937,7 +937,7 @@ void WillEngine::VulkanUtil::createDeferredPipeline(VkDevice& logicalDevice, VkP
         throw std::runtime_error("Failed to create graphics pipeline");
 }
 
-void WillEngine::VulkanUtil::createCombinePipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
+void WillEngine::VulkanUtil::createShadingPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
     VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D swapchainExtent)
 {
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};

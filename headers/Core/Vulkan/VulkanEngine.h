@@ -87,14 +87,11 @@ public:
 	VkDescriptorPool descriptorPool;
 
 	// Pipeline and pipeline layout (Blinn Phong Shader)
-	VkPipelineLayout defaultPipelineLayout;
-	VkPipeline defaultPipeline;
-	// BRDF Metallic
-	VkPipelineLayout brdfMetallicPipelineLayout;
-	VkPipeline brdfMetallicPipeline;
+	VkPipelineLayout deferredPipelineLayout;
+	VkPipeline deferredPipeline;
 	// Pipeline for 
-	VkPipelineLayout combinePipelineLayout;
-	VkPipeline combinePipeline;
+	VkPipelineLayout shadingPipelineLayout;
+	VkPipeline shadingPipeline;
 
 	// Scene Descriptor sets
 	VkDescriptorSetLayout sceneDescriptorSetLayout;
@@ -117,16 +114,16 @@ public:
 	// Texture Descriptor sets
 	VkDescriptorSetLayout textureDescriptorSetLayout;
 
-	// Descriptor sets for deferred rendering
+	// Descriptor sets for shading from deferred rendering
 	VkDescriptorSetLayout attachmentDescriptorSetLayouts;
 	VkDescriptorSet attachmentDescriptorSets;
 
 	// Shader modules
-	VkShaderModule defaultVertShader;
-	VkShaderModule defaultFragShader;
+	VkShaderModule geometryVertShader;
+	VkShaderModule geometryFragShader;
 
-	VkShaderModule combineVertShader;
-	VkShaderModule combineFragShader;
+	VkShaderModule shadingVertShader;
+	VkShaderModule shadingFragShader;
 
 	// GUI
 	VulkanGui* vulkanGui;
@@ -155,8 +152,8 @@ public:
 	void createSwapchainImageViews(VkDevice& logicalDevice);
 	void recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface);
 
-	void createRenderPass(VkDevice& logicalDevice, VkFormat& format, const VkFormat& depthFormat);
-	void createDeferredRenderPass(VkDevice& logicalDevice, VkFormat format, const VkFormat& depthFormat);
+	void createRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, VkFormat& format, const VkFormat& depthFormat);
+	void createDeferredRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, VkFormat format, const VkFormat& depthFormat);
 
 	void createDepthBuffer(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, const VkExtent2D& swapchainExtent);
 
@@ -179,7 +176,7 @@ public:
 	void createUniformBuffer(VkDevice& logicalDevice, VulkanAllocatedMemory& uniformBuffer, u32 bufferSize);
 
 	// Initialise descriptor sets for deferred rendering
-	void initCombineDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
+	void initAttachmentDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
 
 	// GUI
 	void initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue, VkSurfaceKHR& surface);
@@ -193,7 +190,7 @@ public:
 	void recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D& extent);
 
 	// Render passes
-	void renderPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
+	void geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 	void shadingPasses(VkCommandBuffer& commandBuffer, VkRenderPass& renderpass, VkFramebuffer& framebuffer, VkExtent2D extent);
 	void UIPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 
