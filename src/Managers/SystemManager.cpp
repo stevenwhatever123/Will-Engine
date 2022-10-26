@@ -56,6 +56,18 @@ void SystemManager::initCamera()
 void SystemManager::initLight()
 {
     Light* light = new Light();
+
+    // View projection matrices for 6 different side of the cube map
+    // Order: +x, -x, +y, -y, +z, -z
+    mat4 lightProjectionMatrix = glm::perspective(90.0f, 1.0f, 1.0f, 100.0f);
+
+    light->matrices[0] = lightProjectionMatrix * glm::lookAt(light->position, light->position + vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+    light->matrices[1] = lightProjectionMatrix * glm::lookAt(light->position, light->position + vec3(-1.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+    light->matrices[2] = lightProjectionMatrix * glm::lookAt(light->position, light->position + vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f));
+    light->matrices[3] = lightProjectionMatrix * glm::lookAt(light->position, light->position + vec3(0.0f, -1.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f));
+    light->matrices[4] = lightProjectionMatrix * glm::lookAt(light->position, light->position + vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 1.0f, 0.0f));
+    light->matrices[5] = lightProjectionMatrix * glm::lookAt(light->position, light->position + vec3(0.0f, 0.0f, -1.0f), vec3(0.0f, 1.0f, 0.0f));
+
     lights.push_back(light);
 }
 
@@ -77,6 +89,8 @@ void SystemManager::update()
 
     if (camera)
         updateCamera();
+
+    updateLight();
 
     // Update time
     currentTime = glfwGetTime();
@@ -176,6 +190,14 @@ void SystemManager::updateCamera()
     }
 
     camera->updateCameraMatrix();
+}
+
+void SystemManager::updateLight()
+{
+    for (u32 i = 0; i < lights.size(); i++)
+    {
+        lights[i]->update();
+    }
 }
 
 void SystemManager::readFile()

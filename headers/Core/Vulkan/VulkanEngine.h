@@ -4,17 +4,12 @@
 #include "Core/Material.h"
 #include "Core/Light.h"
 #include "Core/Camera.h"
+#include "Core/UniformClass.h"
 
 #include "Core/Vulkan/VulkanFramebuffer.h"
 #include "Core/Vulkan/VulkanGui.h"
 
 #include "Utils/VulkanUtil.h"
-
-struct cameraProject
-{
-	mat4 cameraMatrix;
-	mat4 projectionMatrix;
-};
 
 class VulkanEngine
 {
@@ -42,11 +37,14 @@ public:
 
 	const VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
 
+	const VkFormat shadowDepthFormat = VK_FORMAT_D32_SFLOAT;
+
 public:
 
 	VmaAllocator vmaAllocator;
 
 	VkRenderPass deferredRenderPass;
+	VkRenderPass shadowRenderPass;
 	VkRenderPass renderPass;
 
 	// Swapchain
@@ -62,6 +60,9 @@ public:
 	// Depth buffer
 	VulkanAllocatedImage depthImage;
 	VkImageView depthImageView;
+
+	// Shadow map framebuffer
+	VkFramebuffer shadowFrameBuffer;
 
 	// Framebuffer
 	std::vector<VkFramebuffer> framebuffers;
@@ -89,9 +90,12 @@ public:
 	// Pipeline and pipeline layout (Blinn Phong Shader)
 	VkPipelineLayout deferredPipelineLayout;
 	VkPipeline deferredPipeline;
-	// Pipeline for 
+	// Pipeline for Shading
 	VkPipelineLayout shadingPipelineLayout;
 	VkPipeline shadingPipeline;
+	// Pipeline for shadow
+	VkPipelineLayout shadowPipelineLayout;
+	VkPipeline shadowPipeline;
 
 	// Scene Descriptor sets
 	VkDescriptorSetLayout sceneDescriptorSetLayout;
@@ -118,6 +122,10 @@ public:
 	VkDescriptorSetLayout attachmentDescriptorSetLayouts;
 	VkDescriptorSet attachmentDescriptorSets;
 
+	// Descriptor sets for shadow mapping
+	VkDescriptorSetLayout shadowMapDescriptorSetLayouts;
+	VkDescriptorSet shadowMapDescriptorSets;
+
 	// Shader modules
 	VkShaderModule geometryVertShader;
 	VkShaderModule geometryFragShader;
@@ -125,12 +133,27 @@ public:
 	VkShaderModule shadingVertShader;
 	VkShaderModule shadingFragShader;
 
+	VkShaderModule shadowVertShader;
+	VkShaderModule shadowGeomShader;
+	VkShaderModule shadowFragShader;
+
+	// ======================================
+	VulkanAllocatedImage shadowCubeMap;
+	VkImageView shadowCubeMapView;
+	VkSampler shadowSampler;
+
+	VkDescriptorSetLayout lightMatrixDescriptorSetLayout;
+	VkDescriptorSet lightMatrixDescriptorSet;
+	VulkanAllocatedMemory lightMatrixUniformBuffer;
+
+	// ======================================
+
 	// GUI
 	VulkanGui* vulkanGui;
 
 private:
 
-	cameraProject sceneMatrix;
+	CameraMatrix sceneMatrix;
 
 public:
 
@@ -153,6 +176,7 @@ public:
 	void recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface);
 
 	void createRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, VkFormat& format, const VkFormat& depthFormat);
+	void createShadowRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, const VkFormat& depthFormat);
 	void createDeferredRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, VkFormat format, const VkFormat& depthFormat);
 
 	void createDepthBuffer(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, const VkExtent2D& swapchainExtent);
@@ -160,6 +184,8 @@ public:
 	void createSwapchainFramebuffer(VkDevice& logicalDevice, std::vector<VkImageView>& swapchainImageViews,
 		std::vector<VkFramebuffer>& framebuffers, VulkanFramebuffer& offscreenFramebuffer, VkRenderPass& deferredRenderPass, VkRenderPass& renderPass, VkImageView& depthImageView, 
 		VkExtent2D swapchainExtent);
+
+	void createShadowFramebuffer(VkDevice& logicalDevice, VkFramebuffer& shadowFramebuffer, VkRenderPass& shadowRenderPass, u32 width, u32 height);
 
 	void createCommandPool(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, VkCommandPool& commandPool);
 
@@ -174,6 +200,9 @@ public:
 	void initUniformBuffer(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool, VulkanAllocatedMemory& uniformBuffer,VkDescriptorSet& descriptorSet, 
 		VkDescriptorSetLayout& descriptorSetLayout, u32 binding, u32 bufferSize, VkShaderStageFlagBits shaderStage);
 	void createUniformBuffer(VkDevice& logicalDevice, VulkanAllocatedMemory& uniformBuffer, u32 bufferSize);
+
+	// Initialise descriptor sets for shadow mapping
+	void initShadowMapDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
 
 	// Initialise descriptor sets for deferred rendering
 	void initAttachmentDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
@@ -191,6 +220,7 @@ public:
 
 	// Render passes
 	void geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
+	void shadowPasses(VkCommandBuffer& commandBuffer);
 	void shadingPasses(VkCommandBuffer& commandBuffer, VkRenderPass& renderpass, VkFramebuffer& framebuffer, VkExtent2D extent);
 	void UIPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 

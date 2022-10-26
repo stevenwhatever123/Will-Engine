@@ -1,17 +1,14 @@
 #pragma once
-struct LightUniform
-{
-	vec4 transformedPosition;
-	vec4 color;
-	vec4 ambient;
-	f32 intensity;
-};
+#include "Core/UniformClass.h"
 
 class Light
 {
 public:
 
 	vec3 position;
+
+	// For Point Light Shadow mapping
+	mat4 matrices[6];
 	
 	LightUniform lightUniform;
 
@@ -21,6 +18,8 @@ public:
 	Light(vec3 position);
 	Light(vec3 position, vec4 color);
 	~Light();
+
+	void update();
 
 private:
 };

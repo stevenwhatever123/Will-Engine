@@ -136,7 +136,9 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 		}
 
 		// BRDF Metallic
-		aiTextureType brdfMetallicTextureType[] = { aiTextureType_EMISSIVE, aiTextureType_AMBIENT, aiTextureType_BASE_COLOR, aiTextureType_METALNESS ,
+		//aiTextureType brdfMetallicTextureType[] = { aiTextureType_EMISSIVE, aiTextureType_AMBIENT, aiTextureType_BASE_COLOR, aiTextureType_METALNESS ,
+		//	aiTextureType_DIFFUSE_ROUGHNESS };
+		aiTextureType brdfMetallicTextureType[] = { aiTextureType_EMISSIVE, aiTextureType_AMBIENT, aiTextureType_DIFFUSE, aiTextureType_METALNESS ,
 			aiTextureType_DIFFUSE_ROUGHNESS };
 		u32 metallicTextureTypeSize = sizeof(brdfMetallicTextureType) / sizeof(brdfMetallicTextureType[0]);
 

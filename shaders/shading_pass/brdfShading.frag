@@ -18,6 +18,8 @@ layout(set = 1, binding = 1) uniform camera
 
 layout(set = 2, binding = 2) uniform sampler2D texColor[7];
 
+layout(set = 3, binding = 3) uniform samplerCube shadow;
+
 layout (location = 0) out vec4 oColor;
 
 // The following code mainly following the slides from:
@@ -35,15 +37,32 @@ float g1(vec4 normal, vec4 direction, float roughness)
 	return result;
 }
 
+float ShadowCalculation(vec4 position)
+{
+	vec3 fragToLight = vec3(position - lightPosition);
+
+	float closestDepth = texture(shadow, fragToLight).r;
+
+	closestDepth *= 10000.0f;
+
+	float currentDepth = length(fragToLight);
+
+	float bias = 0.005f; 
+
+    float shadow = currentDepth + bias > closestDepth? 1.0 : 0.0;
+
+    return shadow;
+}
+
 void main()
 {
-	vec4 position = texture(texColor[0], texCoord);
-	vec4 normal = normalize(texture(texColor[1], texCoord));
-	vec4 emissive = texture(texColor[2], texCoord);
-	vec4 ambient = texture(texColor[3], texCoord);
-	vec4 albedo = texture(texColor[4], texCoord);
-	float metallic = texture(texColor[5], texCoord).x;
-	float roughness = texture(texColor[6], texCoord).x;
+	const vec4 position = texture(texColor[0], texCoord);
+	const vec4 normal = normalize(texture(texColor[1], texCoord));
+	const vec4 emissive = texture(texColor[2], texCoord);
+	const vec4 ambient = texture(texColor[3], texCoord);
+	const vec4 albedo = texture(texColor[4], texCoord);
+	const float metallic = texture(texColor[5], texCoord).x;
+	const float roughness = texture(texColor[6], texCoord).x;
 
 	// Values we are going to use later
 	const vec4 lightDirection = normalize(lightPosition - position);
@@ -82,7 +101,9 @@ void main()
 
 	vec4 brdfResult = (diffuse + specular) * lightColor * intensity * max(0, dot(normal, lightDirection));
 
-    vec4 result = emissive + ambient + brdfResult;
+	float shadowValue = ShadowCalculation(position);
+
+    vec4 result = emissive + ambient + (1.0 - shadowValue) * brdfResult;
 
 	oColor = result;
 }

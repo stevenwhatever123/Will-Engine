@@ -123,6 +123,38 @@ VulkanAllocatedImage WillEngine::VulkanUtil::createImage(VkDevice& logicalDevice
     return std::move(vulkanImage);
 }
 
+VulkanAllocatedImage WillEngine::VulkanUtil::createImageWithFlags(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkImageUsageFlags usage,
+    VkImageCreateFlags flags, u32 width, u32 height, u32 mipLevels, u32 arrayLayers)
+{
+    // Image Info
+    VkImageCreateInfo imageInfo{};
+    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageInfo.flags = flags;
+    imageInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageInfo.format = format;
+    imageInfo.extent.width = width;
+    imageInfo.extent.height = height;
+    imageInfo.extent.depth = 1;
+    imageInfo.mipLevels = mipLevels;
+    imageInfo.arrayLayers = arrayLayers;
+    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imageInfo.usage = usage | VK_IMAGE_USAGE_SAMPLED_BIT;
+    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    // Allocate Memory
+    VmaAllocationCreateInfo allocInfo{};
+    allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+    VulkanAllocatedImage vulkanImage;
+
+    if (vmaCreateImage(vmaAllocator, &imageInfo, &allocInfo, &vulkanImage.image, &vulkanImage.allocation, nullptr) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create image");
+
+    return std::move(vulkanImage);
+}
+
 void WillEngine::VulkanUtil::loadTextureImage(VkDevice& logicalDevice, VmaAllocator vmaAllocator, VkCommandPool& commandPool, VkQueue& queue, 
     VulkanAllocatedImage& vulkanImage, u32 mipLevels, u32 width, u32 height, unsigned char* textureImage)
 {
@@ -336,6 +368,28 @@ void WillEngine::VulkanUtil::createImageView(VkDevice& logicalDevice, VkImage& i
         throw std::runtime_error("Failed to create image view");
 }
 
+void WillEngine::VulkanUtil::createDepthImageView(VkDevice& logicalDevice, VkImage& image, VkImageView& imageView, u32 layerCount,
+    VkFormat format, VkImageAspectFlags aspectMask)
+{
+    VkImageViewCreateInfo imageViewInfo{};
+    imageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    imageViewInfo.image = image;
+    imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+    imageViewInfo.format = format;
+    imageViewInfo.components.r = { VK_COMPONENT_SWIZZLE_R };
+    imageViewInfo.components.g = { VK_COMPONENT_SWIZZLE_G };
+    imageViewInfo.components.b = { VK_COMPONENT_SWIZZLE_B };
+    imageViewInfo.components.a = { VK_COMPONENT_SWIZZLE_A };
+    imageViewInfo.subresourceRange.aspectMask = aspectMask;
+    imageViewInfo.subresourceRange.baseMipLevel = 0;
+    imageViewInfo.subresourceRange.layerCount = layerCount;
+    imageViewInfo.subresourceRange.baseArrayLayer = 0;
+    imageViewInfo.subresourceRange.levelCount = 1;
+
+    if (vkCreateImageView(logicalDevice, &imageViewInfo, nullptr, &imageView) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create image view");
+}
+
 void WillEngine::VulkanUtil::createDefaultSampler(VkDevice& logicalDevice, VkSampler& sampler)
 {
     VkSamplerCreateInfo samplerInfo{};
@@ -384,6 +438,24 @@ void WillEngine::VulkanUtil::createAttachmentSampler(VkDevice& logicalDevice, Vk
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 1.0f;
+    samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+
+    if (vkCreateSampler(logicalDevice, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create sampler");
+}
+
+void WillEngine::VulkanUtil::createDepthSampler(VkDevice& logicalDevice, VkSampler& sampler)
+{
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_NEAREST;
+    samplerInfo.minFilter = VK_FILTER_NEAREST;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = 1.0f;
     samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
@@ -512,34 +584,10 @@ VkShaderModule WillEngine::VulkanUtil::createShaderModule(VkDevice& logicalDevic
     return shaderModule;
 }
 
-void WillEngine::VulkanUtil::initPhongShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader)
-{
-    const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/shader.vert.spv";
-    const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/shader.frag.spv";
-
-    auto vertShaderCode = WillEngine::Utils::readSprivShader(vertShaderPath);
-    auto fragShaderCode = WillEngine::Utils::readSprivShader(fragShaderPath);
-
-    vertShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, vertShaderCode);
-    fragShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, fragShaderCode);
-}
-
-void WillEngine::VulkanUtil::initBRDFShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader)
-{
-    const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/shader.vert.spv";
-    const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/pbrShader.frag.spv";
-
-    auto vertShaderCode = WillEngine::Utils::readSprivShader(vertShaderPath);
-    auto fragShaderCode = WillEngine::Utils::readSprivShader(fragShaderPath);
-
-    vertShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, vertShaderCode);
-    fragShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, fragShaderCode);
-}
-
 void WillEngine::VulkanUtil::initDeferredShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader)
 {
-    const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/shader.vert.spv";
-    const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/deferred.frag.spv";
+    const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/geometry_pass/shader.vert.spv";
+    const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/geometry_pass/deferred.frag.spv";
 
     auto vertShaderCode = WillEngine::Utils::readSprivShader(vertShaderPath);
     auto fragShaderCode = WillEngine::Utils::readSprivShader(fragShaderPath);
@@ -550,13 +598,28 @@ void WillEngine::VulkanUtil::initDeferredShaderModule(VkDevice& logicalDevice, V
 
 void WillEngine::VulkanUtil::initShadingShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader)
 {
-    const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/combine.vert.spv";
-    const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/compiled_shaders/combine.frag.spv";
+    const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/shading_pass/brdfShading.vert.spv";
+    const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/shading_pass/brdfShading.frag.spv";
 
     auto vertShaderCode = WillEngine::Utils::readSprivShader(vertShaderPath);
     auto fragShaderCode = WillEngine::Utils::readSprivShader(fragShaderPath);
 
     vertShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, vertShaderCode);
+    fragShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, fragShaderCode);
+}
+
+void WillEngine::VulkanUtil::initShadowShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& geomShader, VkShaderModule& fragShader)
+{
+    const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/shadow_pass/point_light/shadow.vert.spv";
+    const char* geomShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/shadow_pass/point_light/shadow.geom.spv";
+    const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/shadow_pass/point_light/shadow.frag.spv";
+
+    auto vertShaderCode = WillEngine::Utils::readSprivShader(vertShaderPath);
+    auto geomShaderCode = WillEngine::Utils::readSprivShader(geomShaderPath);
+    auto fragShaderCode = WillEngine::Utils::readSprivShader(fragShaderPath);
+
+    vertShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, vertShaderCode);
+    geomShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, geomShaderCode);
     fragShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, fragShaderCode);
 }
 
@@ -1038,6 +1101,144 @@ void WillEngine::VulkanUtil::createShadingPipeline(VkDevice& logicalDevice, VkPi
     pipelineInfo.pMultisampleState = &multisampleInfo;
     pipelineInfo.pDepthStencilState = &depthInfo;
     pipelineInfo.pColorBlendState = &colorBlendInfo;
+    pipelineInfo.pDynamicState = nullptr;
+    pipelineInfo.layout = pipelineLayout;
+    pipelineInfo.renderPass = renderpass;
+    pipelineInfo.subpass = 0;
+
+    if (vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create graphics pipeline");
+}
+
+void WillEngine::VulkanUtil::createShadowPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
+    VkShaderModule& vertShader, VkShaderModule& geomShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, u32 width, u32 height)
+{
+    VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    vertShaderStageInfo.module = vertShader;
+    vertShaderStageInfo.pName = "main";
+
+    VkPipelineShaderStageCreateInfo geomShaderStageInfo{};
+    geomShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    geomShaderStageInfo.stage = VK_SHADER_STAGE_GEOMETRY_BIT;
+    geomShaderStageInfo.module = geomShader;
+    geomShaderStageInfo.pName = "main";
+
+    VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+    fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragShaderStageInfo.module = fragShader;
+    fragShaderStageInfo.pName = "main";
+
+    VkPipelineShaderStageCreateInfo stages[] = { vertShaderStageInfo, geomShaderStageInfo, fragShaderStageInfo };
+
+    // Shader code inputs
+    // Position
+    VkVertexInputBindingDescription vertexInputs[3]{};
+    vertexInputs[0].binding = 0;
+    vertexInputs[0].stride = sizeof(vec3);
+    vertexInputs[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    // Normal
+    vertexInputs[1].binding = 1;
+    vertexInputs[1].stride = sizeof(vec3);
+    vertexInputs[1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    // UV
+    vertexInputs[2].binding = 2;
+    vertexInputs[2].stride = sizeof(vec2);
+    vertexInputs[2].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+    VkVertexInputAttributeDescription vertexAttrib[3]{};
+    // Position
+    vertexAttrib[0].location = 0;
+    vertexAttrib[0].binding = 0;
+    vertexAttrib[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+    vertexAttrib[0].offset = 0;
+    // Normal
+    vertexAttrib[1].location = 1;
+    vertexAttrib[1].binding = 1;
+    vertexAttrib[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+    vertexAttrib[1].offset = 0;
+    // UV
+    vertexAttrib[2].location = 2;
+    vertexAttrib[2].binding = 2;
+    vertexAttrib[2].format = VK_FORMAT_R32G32_SFLOAT;
+    vertexAttrib[2].offset = 0;
+
+    // Input Info
+    VkPipelineVertexInputStateCreateInfo inputInfo{};
+    inputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    inputInfo.vertexBindingDescriptionCount = sizeof(vertexInputs) / sizeof(vertexInputs[0]);
+    inputInfo.pVertexBindingDescriptions = vertexInputs;
+    inputInfo.vertexAttributeDescriptionCount = sizeof(vertexAttrib) / sizeof(vertexAttrib[0]);
+    inputInfo.pVertexAttributeDescriptions = vertexAttrib;
+
+    // Input assembly
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssembly.topology = primitive;
+    inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+    // Viewport
+    VkViewport viewport{};
+    viewport.x = 0;
+    viewport.y = 0;
+    viewport.width = width;
+    viewport.height = height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    // Scissor
+    VkRect2D scissor{};
+    VkExtent2D extent = { width, height };
+    scissor.extent = extent;
+    scissor.offset = { 0, 0 };
+
+    VkPipelineViewportStateCreateInfo viewportInfo{};
+    viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportInfo.viewportCount = 1;
+    viewportInfo.pViewports = &viewport;
+    viewportInfo.scissorCount = 1;
+    viewportInfo.pScissors = &scissor;
+
+    // Rasterizer
+    VkPipelineRasterizationStateCreateInfo rasterizerInfo{};
+    rasterizerInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizerInfo.depthClampEnable = VK_FALSE;
+    rasterizerInfo.rasterizerDiscardEnable = VK_FALSE;
+    rasterizerInfo.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizerInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterizerInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    rasterizerInfo.depthBiasEnable = VK_FALSE;
+    rasterizerInfo.lineWidth = 1.0f;
+
+    // Multisampling
+    VkPipelineMultisampleStateCreateInfo multisampleInfo{};
+    multisampleInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisampleInfo.sampleShadingEnable = VK_FALSE;
+
+    // Depth test
+    VkPipelineDepthStencilStateCreateInfo depthInfo{};
+    depthInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthInfo.depthTestEnable = VK_TRUE;
+    depthInfo.depthWriteEnable = VK_TRUE;
+    depthInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+    depthInfo.minDepthBounds = 0.0f;
+    depthInfo.maxDepthBounds = 1.0f;
+
+    // Create graphics pipeline
+    VkGraphicsPipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.stageCount = static_cast<u32>(sizeof(stages) / sizeof(stages[0]));
+    pipelineInfo.pStages = stages;
+    pipelineInfo.pVertexInputState = &inputInfo;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportInfo;
+    pipelineInfo.pRasterizationState = &rasterizerInfo;
+    pipelineInfo.pMultisampleState = &multisampleInfo;
+    pipelineInfo.pDepthStencilState = &depthInfo;
+    pipelineInfo.pColorBlendState = nullptr;
     pipelineInfo.pDynamicState = nullptr;
     pipelineInfo.layout = pipelineLayout;
     pipelineInfo.renderPass = renderpass;

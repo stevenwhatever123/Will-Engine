@@ -77,8 +77,8 @@ mat4 Camera::getCameraMatrix() const
 
 mat4 Camera::getProjectionMatrix(i32 width, i32 height) const
 {
-	mat4 projectionMatrix = glm::infinitePerspective(glm::radians(fov), (f32)width / (f32)height, 0.1f);
-	//mat4 projectionMatrix = glm::perspective(glm::radians(fov), (f32)width / (f32)height, 0.1f, 1000000.0f);
+	//mat4 projectionMatrix = glm::infinitePerspective(glm::radians(fov), (f32)width / (f32)height, 0.1f);
+	mat4 projectionMatrix = glm::perspective(glm::radians(fov), (f32)width / (f32)height, 0.1f, 10000.0f);
 
 	// Flip y axis for vulkan
 	projectionMatrix[1][1] *= -1.0f;

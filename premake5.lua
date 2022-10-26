@@ -104,8 +104,9 @@ project "WillEngine"
 		["Source Files/Core/OpenGL"]	= {"src/Core/OpenGL/*.cpp"},
 		["Source Files/Core/Vulkan"]	= {"src/Core/Vulkan/*.cpp"},
 
-		["Shaders"]						= {"shaders/*.vert"},
-		["Shaders"]						= {"shaders/*.frag"},
+		["Shaders"]						= {"shaders/**.vert"},
+		["Shaders"]						= {"shaders/**.frag"},
+		["Shaders"]						= {"shaders/**.geom"},
 
 	}
 
@@ -115,8 +116,9 @@ project "WillEngine"
 		"src/**.cpp",
 		"*.h",
 		"*.cpp",
-		"shaders/*.vert",
-		"shaders/*.frag",
+		"shaders/**.vert",
+		"shaders/**.frag",
+		"shaders/**.geom",
 	}
 
 	pchheader "pch.h"

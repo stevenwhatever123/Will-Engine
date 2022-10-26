@@ -65,6 +65,7 @@ public:
 
 	void updateInputs();
 	void updateCamera();
+	void updateLight();
 
 	// Utils
 	void readFile();

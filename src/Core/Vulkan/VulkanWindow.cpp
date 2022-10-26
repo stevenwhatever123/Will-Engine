@@ -219,8 +219,18 @@ void VulkanWindow::createLogicalDevice()
     f32 queuePriorities = 1.0f;
 
     // Device Features
-    VkPhysicalDeviceFeatures deviceFeatures{};
-    deviceFeatures.samplerAnisotropy = VK_TRUE;
+    VkPhysicalDeviceFeatures basicFeatures{};
+    basicFeatures.samplerAnisotropy = VK_TRUE;
+    basicFeatures.geometryShader = VK_TRUE;
+
+    VkPhysicalDeviceImagelessFramebufferFeatures imagelessFramebuffer{};
+    imagelessFramebuffer.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES;
+    imagelessFramebuffer.imagelessFramebuffer = VK_TRUE;
+
+    VkPhysicalDeviceFeatures2 deviceFeatures{};
+    deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    deviceFeatures.features = basicFeatures;
+    deviceFeatures.pNext = &imagelessFramebuffer;
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 
@@ -250,7 +260,8 @@ void VulkanWindow::createLogicalDevice()
     logicalDeviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     logicalDeviceInfo.queueCreateInfoCount = static_cast<u32>(uniqueQueueFaimiles.size());
     logicalDeviceInfo.pQueueCreateInfos = queueCreateInfos.data();
-    logicalDeviceInfo.pEnabledFeatures = &deviceFeatures;
+    //logicalDeviceInfo.pEnabledFeatures = &deviceFeatures;
+    logicalDeviceInfo.pNext = &deviceFeatures;
     // Enable physical device extension
     logicalDeviceInfo.enabledExtensionCount = static_cast<u32>(physicalDeviceExtensions.size());
     logicalDeviceInfo.ppEnabledExtensionNames = physicalDeviceExtensions.data();
