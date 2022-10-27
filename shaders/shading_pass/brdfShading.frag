@@ -18,7 +18,7 @@ layout(set = 1, binding = 1) uniform camera
 
 layout(set = 2, binding = 2) uniform sampler2D texColor[7];
 
-layout(set = 3, binding = 3) uniform samplerCube shadow;
+layout(set = 3, binding = 3) uniform samplerCube depthMap;
 
 layout (location = 0) out vec4 oColor;
 
@@ -41,15 +41,15 @@ float ShadowCalculation(vec4 position)
 {
 	vec3 fragToLight = vec3(position - lightPosition);
 
-	float closestDepth = texture(shadow, fragToLight).r;
+	float closestDepth = texture(depthMap, fragToLight).r;
 
-	closestDepth *= 10000.0f;
+	closestDepth *= 2000.0f;
 
 	float currentDepth = length(fragToLight);
 
-	float bias = 0.005f; 
+	float elipson = 0.005f; 
 
-    float shadow = currentDepth + bias > closestDepth? 1.0 : 0.0;
+    float shadow = currentDepth + elipson > closestDepth? 1.0 : 0.0;
 
     return shadow;
 }
@@ -101,9 +101,9 @@ void main()
 
 	vec4 brdfResult = (diffuse + specular) * lightColor * intensity * max(0, dot(normal, lightDirection));
 
-	float shadowValue = ShadowCalculation(position);
+	float shadow = ShadowCalculation(position);
 
-    vec4 result = emissive + ambient + (1.0 - shadowValue) * brdfResult;
+    vec4 result = emissive + ambient + (1.0 - shadow) * brdfResult;
 
 	oColor = result;
 }

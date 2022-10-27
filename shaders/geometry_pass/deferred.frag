@@ -18,11 +18,20 @@ layout(location = 6) out vec4 oRoughness;
 void main()
 {
 	oPosition = position;
-	//oNormal = normalize(normal) * 0.5 + 0.5; // transforming from [-1,1] to [0,1]
 	oNormal = normalize(normal);
-	oEmissive = texture(texColor[0], texCoord);
-	oAmbient = texture(texColor[1], texCoord);
-	oAlbedo = texture(texColor[2], texCoord);
-	oMetallic = vec4(texture(texColor[3], texCoord).x, texture(texColor[3], texCoord).x, texture(texColor[3], texCoord).x, 1);
-	oRoughness = vec4(texture(texColor[4], texCoord).x, texture(texColor[3], texCoord).x, texture(texColor[3], texCoord).x, 1);
+
+	float lod = textureQueryLod(texColor[0], texCoord).x;
+	oEmissive = texture(texColor[0], texCoord, lod);
+
+	lod = textureQueryLod(texColor[1], texCoord).x;
+	oAmbient = texture(texColor[1], texCoord, lod);
+
+	lod = textureQueryLod(texColor[2], texCoord).x;
+	oAlbedo = texture(texColor[2], texCoord, lod);
+
+	lod = textureQueryLod(texColor[3], texCoord).x;
+	oMetallic = vec4(vec3(texture(texColor[3], texCoord, lod).r), 1);
+
+	lod = textureQueryLod(texColor[4], texCoord).x;
+	oRoughness = vec4(vec3(texture(texColor[4], texCoord, lod).r), 1);
 }

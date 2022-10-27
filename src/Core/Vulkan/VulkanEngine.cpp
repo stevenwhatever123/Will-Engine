@@ -961,7 +961,11 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& 
 	geometryPasses(commandBuffer, extent);
 
 	// Shadow pass
-	shadowPasses(commandBuffer);
+	if (lights[0]->shouldRenderShadow())
+	{
+		shadowPasses(commandBuffer);
+		lights[0]->shadowRendered();
+	}
 
 
 	// Combine offscreen framebuffer
@@ -1026,6 +1030,9 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 	// Bind default pipeline
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredPipeline);
 
+	// Bind Scene Uniform Buffer
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredPipelineLayout, 0, 1, &sceneDescriptorSet, 0, nullptr);
+
 	for (auto mesh : meshes)
 	{
 		VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
@@ -1036,9 +1043,6 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 		vkCmdBindVertexBuffers(commandBuffer, 0, 3, buffers, offsets);
 
 		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-
-		// Bind Scene Uniform Buffer
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredPipelineLayout, 0, 1, &sceneDescriptorSet, 0, nullptr);
 
 		// Bind Texture
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredPipelineLayout, 1, 1, &materials[mesh->materialIndex]->textureDescriptorSet, 0, nullptr);
@@ -1081,6 +1085,9 @@ void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 	// Bind Light Uniform Buffer
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadowPipelineLayout, 1, 1, &lightDescriptorSet, 0, nullptr);
 
+	// Bind light matrices
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadowPipelineLayout, 0, 1, &lightMatrixDescriptorSet, 0, nullptr);
+
 	for (auto mesh : meshes)
 	{
 		VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
@@ -1091,9 +1098,6 @@ void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 		vkCmdBindVertexBuffers(commandBuffer, 0, 3, buffers, offsets);
 
 		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-
-		// Bind light matrices
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadowPipelineLayout, 0, 1, &lightMatrixDescriptorSet, 0, nullptr);
 
 		// Push constant for model matrix
 		mesh->updateModelMatrix();
@@ -1257,5 +1261,5 @@ void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkPhysicalDevi
 	}
 
 	// Update the associated descriptor set
-	materials[materialIndex]->updateDescriptorSet(logicalDevice, physicalDevice, vmaAllocator, commandPool, descriptorPool, graphicsQueue, textureIndex);
+	materials[materialIndex]->updateBrdfDescriptorSet(logicalDevice, physicalDevice, vmaAllocator, commandPool, descriptorPool, graphicsQueue, textureIndex);
 }

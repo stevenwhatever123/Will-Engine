@@ -2,21 +2,30 @@
 #include "Core/Light.h"
 
 Light::Light() :
+    lastPosition(0),
 	position(0),
+    renderShadow(true),
+    matrices(),
 	lightUniform({vec4(0, 0, 0, 1), vec4(1), vec4(0.02f, 0.02f, 0.02f, 1), 1})
 {
 
 }
 
 Light::Light(vec3 position):
+    lastPosition(0),
 	position(position),
+    renderShadow(true),
+    matrices(),
 	lightUniform({ vec4(0, 0, 0, 1), vec4(1), vec4(0.02f, 0.02f, 0.02f, 1), 1 })
 {
 
 }
 
 Light::Light(vec3 position, vec4 color):
+    lastPosition(0),
 	position(position),
+    renderShadow(true),
+    matrices(),
 	lightUniform({ vec4(0, 0, 0, 1), color, vec4(0.02f, 0.02f, 0.02f, 1), 1 })
 {
 
@@ -29,17 +38,16 @@ Light::~Light()
 
 void Light::update()
 {
+    if (glm::abs(glm::length(position) - glm::length(lastPosition)) > 0.001f)
+    {
+        renderShadow = true;
+    }
+
+    lastPosition = position;
+
     // View projection matrices for 6 different side of the cube map
     // Order: +x, -x, +y, -y, +z, -z
-    mat4 lightProjectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10000.0f);
-    //lightProjectionMatrix[1][1] *= -1.0f;
-
-    //matrices[0] = lightProjectionMatrix * glm::lookAt(position, position + vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
-    //matrices[1] = lightProjectionMatrix * glm::lookAt(position, position + vec3(-1.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
-    //matrices[2] = lightProjectionMatrix * glm::lookAt(position, position + vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f));
-    //matrices[3] = lightProjectionMatrix * glm::lookAt(position, position + vec3(0.0f, -1.0f, 0.0f), vec3(0.0f, 0.0f, -1.0f));
-    //matrices[4] = lightProjectionMatrix * glm::lookAt(position, position + vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 1.0f, 0.0f));
-    //matrices[5] = lightProjectionMatrix * glm::lookAt(position, position + vec3(0.0f, 0.0f, -1.0f), vec3(0.0f, 1.0f, 0.0f));
+    mat4 lightProjectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 2000.0f);
 
     matrices[0] = lightProjectionMatrix * glm::lookAt(position, position + vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, -1.0f, 0.0f));
     matrices[1] = lightProjectionMatrix * glm::lookAt(position, position + vec3(-1.0f, 0.0f, 0.0f), vec3(0.0f, -1.0f, 0.0f));
@@ -47,4 +55,14 @@ void Light::update()
     matrices[3] = lightProjectionMatrix * glm::lookAt(position, position + vec3(0.0f, -1.0f, 0.0f), vec3(0.0f, 0.0f, -1.0f));
     matrices[4] = lightProjectionMatrix * glm::lookAt(position, position + vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, -1.0f, 0.0f));
     matrices[5] = lightProjectionMatrix * glm::lookAt(position, position + vec3(0.0f, 0.0f, -1.0f), vec3(0.0f, -1.0f, 0.0f));
+}
+
+void Light::shadowRendered()
+{
+    renderShadow = false;
+}
+
+bool Light::shouldRenderShadow() const
+{
+    return renderShadow;
 }

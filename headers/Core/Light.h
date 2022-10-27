@@ -5,7 +5,10 @@ class Light
 {
 public:
 
+	vec3 lastPosition;
 	vec3 position;
+
+	bool renderShadow;
 
 	// For Point Light Shadow mapping
 	mat4 matrices[6];
@@ -20,6 +23,12 @@ public:
 	~Light();
 
 	void update();
+
+	// Command call
+	void shadowRendered();
+
+	// Getters
+	bool shouldRenderShadow() const;
 
 private:
 };

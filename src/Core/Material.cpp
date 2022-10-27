@@ -182,6 +182,33 @@ void Material::updateDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& ph
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 4);
 }
 
+void Material::updateBrdfDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
+	VkDescriptorPool& descriptorPool, VkQueue& graphicsQueue, u32 index)
+{
+	// Free previous memory
+	vmaDestroyImage(vmaAllocator, brdfTextures[index].vulkanImage.image, brdfTextures[index].vulkanImage.allocation);
+
+	vkDestroyImageView(logicalDevice, brdfTextures[index].imageView, nullptr);
+
+	vkDestroySampler(logicalDevice, brdfTextures[index].textureSampler, nullptr);
+
+	// Update the image and imageview associated to it
+	initTexture(logicalDevice, physicalDevice, vmaAllocator, commandPool, graphicsQueue, brdfTextures, index);
+
+	// Write Descriptor Set
+	u32 textureSize = sizeof(brdfTextures) / sizeof(brdfTextures[0]);
+	std::vector<VkSampler> textureSamplers(textureSize);
+	std::vector<VkImageView> imageViews(textureSize);
+	for (u32 i = 0; i < textureSize; i++)
+	{
+		textureSamplers[i] = brdfTextures[i].textureSampler;
+		imageViews[i] = brdfTextures[i].imageView;
+	}
+
+	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers.data(), imageViews.data(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 4);
+}
+
 const bool Material::hasTexture(u32 index, TextureDescriptorSet* textures)
 {
 	return textures[index].has_texture;
