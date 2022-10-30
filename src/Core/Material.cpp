@@ -59,7 +59,7 @@ void Material::setTextureImage(u32 index, Image* image, TextureDescriptorSet* te
 void Material::freeTextureImage(u32 index, TextureDescriptorSet* textures)
 {
 	textures[index].textureImage->freeImage();
-	delete this->textures[index].textureImage;
+	delete textures[index].textureImage;
 }
 
 void Material::initTexture(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool, VkQueue& graphicsQueue, 
@@ -206,7 +206,7 @@ void Material::updateBrdfDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice
 	}
 
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers.data(), imageViews.data(),
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 4);
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 5);
 }
 
 const bool Material::hasTexture(u32 index, TextureDescriptorSet* textures)

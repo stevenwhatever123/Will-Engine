@@ -1048,8 +1048,8 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredPipelineLayout, 1, 1, &materials[mesh->materialIndex]->textureDescriptorSet, 0, nullptr);
 
 		// Push constant for model matrix
-		mesh->updateModelMatrix();
-		vkCmdPushConstants(commandBuffer, deferredPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mesh->modelMatrix), &mesh->modelMatrix);
+		mesh->updateForPushConstant();
+		vkCmdPushConstants(commandBuffer, deferredPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mesh->pushConstant), &mesh->pushConstant);
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 	}
@@ -1100,8 +1100,8 @@ void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 		// Push constant for model matrix
-		mesh->updateModelMatrix();
-		vkCmdPushConstants(commandBuffer, deferredPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mesh->modelMatrix), &mesh->modelMatrix);
+		mesh->updateForPushConstant();
+		vkCmdPushConstants(commandBuffer, deferredPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mesh->pushConstant), &mesh->pushConstant);
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 	}
@@ -1206,23 +1206,23 @@ void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkPhysicalDevi
 	{
 		// Load the texture first, if we cannot read the texture, we proceed to changing the color
 		Image* textureImage = new Image();
-		materials[materialIndex]->textures[textureIndex].textureImage = textureImage;
+		materials[materialIndex]->brdfTextures[textureIndex].textureImage = textureImage;
 
 		// Don't update the texture path if it's the same one or an empty string
 		if (filename.compare("") != 0 &&
-			(materials[materialIndex]->textures[textureIndex].texture_path.size() < 1 || materials[materialIndex]->textures[textureIndex].texture_path.compare(filename) != 0))
+			(materials[materialIndex]->brdfTextures[textureIndex].texture_path.size() < 1 || materials[materialIndex]->brdfTextures[textureIndex].texture_path.compare(filename) != 0))
 		{
-			materials[materialIndex]->textures[textureIndex].texture_path = filename;
+			materials[materialIndex]->brdfTextures[textureIndex].texture_path = filename;
 		}
 
-		materials[materialIndex]->textures[textureIndex].textureImage->readImage(materials[materialIndex]->textures[textureIndex].texture_path.c_str(),
-			materials[materialIndex]->textures[textureIndex].width, materials[materialIndex]->textures[textureIndex].height, materials[materialIndex]->textures[textureIndex].numChannels);
+		materials[materialIndex]->brdfTextures[textureIndex].textureImage->readImage(materials[materialIndex]->brdfTextures[textureIndex].texture_path.c_str(),
+			materials[materialIndex]->brdfTextures[textureIndex].width, materials[materialIndex]->brdfTextures[textureIndex].height, materials[materialIndex]->brdfTextures[textureIndex].numChannels);
 
 		// If we cannot load the texture, create a color texture
-		if (materials[materialIndex]->textures[textureIndex].textureImage->data == NULL)
+		if (materials[materialIndex]->brdfTextures[textureIndex].textureImage->data == NULL)
 		{
 			delete textureImage;
-			materials[materialIndex]->textures[textureIndex].texture_path = "";
+			materials[materialIndex]->brdfTextures[textureIndex].texture_path = "";
 			updateColor = true;
 		}
 		
@@ -1234,28 +1234,31 @@ void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkPhysicalDevi
 		// Create new data
 		Image* textureImage = new Image();
 
-		materials[materialIndex]->textures[textureIndex].textureImage = textureImage;
+		materials[materialIndex]->brdfTextures[textureIndex].textureImage = textureImage;
 
-		materials[materialIndex]->textures[textureIndex].width = 1;
-		materials[materialIndex]->textures[textureIndex].height = 1;
+		materials[materialIndex]->brdfTextures[textureIndex].width = 1;
+		materials[materialIndex]->brdfTextures[textureIndex].height = 1;
 
 		switch (textureIndex)
 		{
 		case 0:
-			materials[materialIndex]->textures[textureIndex].textureImage->setImageColor(materials[materialIndex]->phongMaterialUniform.emissiveColor);
+			materials[materialIndex]->brdfTextures[textureIndex].textureImage->setImageColor(materials[materialIndex]->brdfMaterialUniform.emissive);
 			break;
 		case 1:
-			materials[materialIndex]->textures[textureIndex].textureImage->setImageColor(materials[materialIndex]->phongMaterialUniform.ambientColor);
+			materials[materialIndex]->brdfTextures[textureIndex].textureImage->setImageColor(materials[materialIndex]->brdfMaterialUniform.ambient);
 			break;
 		case 2:
-			materials[materialIndex]->textures[textureIndex].textureImage->setImageColor(materials[materialIndex]->phongMaterialUniform.diffuseColor);
+			materials[materialIndex]->brdfTextures[textureIndex].textureImage->setImageColor(materials[materialIndex]->brdfMaterialUniform.albedo);
 			break;
 		case 3:
-			materials[materialIndex]->textures[textureIndex].textureImage->setImageColor(materials[materialIndex]->phongMaterialUniform.specularColor);
+			materials[materialIndex]->brdfTextures[textureIndex].textureImage->setImageColor(materials[materialIndex]->brdfMaterialUniform.metallic);
+			break;
+		case 4:
+			materials[materialIndex]->brdfTextures[textureIndex].textureImage->setImageColor(materials[materialIndex]->brdfMaterialUniform.roughness);
 			break;
 		}
 
-		materials[materialIndex]->textures[textureIndex].has_texture = false;
+		materials[materialIndex]->brdfTextures[textureIndex].has_texture = false;
 
 		updateColor = false;
 	}

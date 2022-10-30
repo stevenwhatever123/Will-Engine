@@ -174,6 +174,10 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 			material->phongMaterialUniform.emissiveColor.x = color.r;
 			material->phongMaterialUniform.emissiveColor.y = color.g;
 			material->phongMaterialUniform.emissiveColor.z = color.b;
+
+			material->brdfMaterialUniform.emissive.x = color.r;
+			material->brdfMaterialUniform.emissive.y = color.g;
+			material->brdfMaterialUniform.emissive.z = color.b;
 		}
 
 		// Ambient
@@ -183,6 +187,10 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 			material->phongMaterialUniform.ambientColor.x = color.r;
 			material->phongMaterialUniform.ambientColor.y = color.g;
 			material->phongMaterialUniform.ambientColor.z = color.b;
+
+			material->brdfMaterialUniform.ambient.x = color.r;
+			material->brdfMaterialUniform.ambient.y = color.g;
+			material->brdfMaterialUniform.ambient.z = color.b;
 		}
 
 		// Diffuse

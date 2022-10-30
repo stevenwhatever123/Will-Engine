@@ -37,7 +37,13 @@ float g1(vec4 normal, vec4 direction, float roughness)
 	return result;
 }
 
-float ShadowCalculation(vec4 position)
+// Taking inspiration from GPU Gems: Shadow Map Antialiasing
+vec4 offset_lookup(vec3 texCoord, vec3 offset, float texmapscale)
+{
+	return texture(depthMap, texCoord + offset * texmapscale);
+}
+
+float ShadowCalculation(vec4 position, vec4 normal)
 {
 	vec3 fragToLight = vec3(position - lightPosition);
 
@@ -47,9 +53,29 @@ float ShadowCalculation(vec4 position)
 
 	float currentDepth = length(fragToLight);
 
-	float elipson = 0.005f; 
+	float elipson = max(0.05 * (1.0 - dot(vec3(normal), fragToLight)), 0.005); 
 
-    float shadow = currentDepth + elipson > closestDepth? 1.0 : 0.0;
+	vec2 texmapscale = 1 / textureSize(depthMap, 0);
+	float sum = 0;
+
+	for(float x = -1.5; x <= 1.5; x += 1.0)
+	{
+		for(float y = -1.5; y <= 1.5; y += 1.0)
+		{
+			for(float z = -1.5; z <= 1.5; z += 1.0)
+			{
+				closestDepth = offset_lookup(fragToLight, vec3(x, y, z), texmapscale.x).r;
+				closestDepth *= 2000;
+
+				if(currentDepth - elipson > closestDepth)
+				{
+					sum += closestDepth / 2000;
+				}
+			}
+		}
+	}
+
+	float shadow = sum / 16.0;
 
     return shadow;
 }
@@ -101,7 +127,7 @@ void main()
 
 	vec4 brdfResult = (diffuse + specular) * lightColor * intensity * max(0, dot(normal, lightDirection));
 
-	float shadow = ShadowCalculation(position);
+	float shadow = ShadowCalculation(position, normal);
 
     vec4 result = emissive + ambient + (1.0 - shadow) * brdfResult;
 

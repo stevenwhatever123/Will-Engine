@@ -164,10 +164,12 @@ void Mesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice&
 	indicies.shrink_to_fit();
 }
 
-void Mesh::updateModelMatrix()
+void Mesh::updateForPushConstant()
 {
 	modelMatrix = glm::translate(mat4(1), transformPosition);
 	//modelMatrix = glm::scale(mat4(1), vec3(100, 100, 100));
+	pushConstant.modelTransform = modelMatrix;
+	//pushConstant.materialIndex = materialIndex;
 }
 
 void Mesh::cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator)

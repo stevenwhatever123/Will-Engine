@@ -2,6 +2,7 @@
 #include "Utils/VulkanUtil.h"
 
 #include "Core/Material.h"
+#include "Core/UniformClass.h"
 
 #include "Managers/FileManager.h"
 
@@ -14,6 +15,8 @@ public:
 
 	vec3 transformPosition;
 	mat4 modelMatrix;
+
+	PushConstantModelInfo pushConstant;
 
 	std::vector<vec3> positions;
 	std::vector<vec3> normals;
@@ -39,7 +42,7 @@ public:
 
 	void uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkSurfaceKHR& surface, VkQueue& queue);
 
-	void updateModelMatrix();
+	void updateForPushConstant();
 
 	void cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator);
 };

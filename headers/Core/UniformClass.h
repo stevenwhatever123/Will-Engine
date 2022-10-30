@@ -26,6 +26,8 @@ struct PhongMaterialUniform
 // Metallic-Roughness Material model 
 struct BRDFMetallic
 {
+	vec4 emissive;
+	vec4 ambient;
 	vec4 albedo;
 	f32 metallic;
 	f32 roughness;
@@ -38,4 +40,10 @@ struct BRDFSpecular
 	vec4 albedo;
 	vec4 specular;
 	f32 glossiness;
+};
+
+struct PushConstantModelInfo 
+{
+	mat4 modelTransform;
+	//u32 materialIndex;
 };
