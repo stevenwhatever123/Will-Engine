@@ -75,6 +75,7 @@ namespace WillEngine::VulkanUtil
 	void initDeferredShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader);
 	void initShadingShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader);
 	void initShadowShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& geomShader, VkShaderModule& fragShader);
+	void initDepthPreShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader);
 
 	// Descriptors related
 	void createDescriptorSetLayout(VkDevice& logicalDevice, VkDescriptorSetLayout& descriptorSetLayout,VkDescriptorType descriptorType, 
@@ -100,6 +101,8 @@ namespace WillEngine::VulkanUtil
 		VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D swapchainExtent);
 	void createShadowPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
 		VkShaderModule& vertShader, VkShaderModule& geomShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, u32 width, u32 height);
+	void createDepthPrePipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
+		VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D swapchainExtent);
 
 	// Framebuffer
 	void createFramebufferAttachment(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkExtent2D extent, 

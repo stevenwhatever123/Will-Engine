@@ -441,32 +441,32 @@ void VulkanGui::update(bool renderWithBRDF, VulkanFramebuffer& attachments, std:
 		ImGui::End();
 	}
 
-	//{
-	//	ImGui::Begin("Rendering control");
+	{
+		ImGui::Begin("Rendering control");
 
-	//	ImGui::Text("Position");
-	//	ImGui::Image((ImTextureID)attachments.position.imguiTextureDescriptorSet, ImVec2(352, 240));
+		ImGui::Text("Position");
+		ImGui::Image((ImTextureID)attachments.position.imguiTextureDescriptorSet, ImVec2(352, 240));
 
-	//	ImGui::Text("Normal");
-	//	ImGui::Image((ImTextureID)attachments.normal.imguiTextureDescriptorSet, ImVec2(352, 240));
+		ImGui::Text("Normal");
+		ImGui::Image((ImTextureID)attachments.normal.imguiTextureDescriptorSet, ImVec2(352, 240));
 
-	//	ImGui::Text("Emissive");
-	//	ImGui::Image((ImTextureID)attachments.emissive.imguiTextureDescriptorSet, ImVec2(352, 240));
+		ImGui::Text("Emissive");
+		ImGui::Image((ImTextureID)attachments.emissive.imguiTextureDescriptorSet, ImVec2(352, 240));
 
-	//	ImGui::Text("Ambient");
-	//	ImGui::Image((ImTextureID)attachments.ambient.imguiTextureDescriptorSet, ImVec2(352, 240));
+		ImGui::Text("Ambient");
+		ImGui::Image((ImTextureID)attachments.ambient.imguiTextureDescriptorSet, ImVec2(352, 240));
 
-	//	ImGui::Text("Albedo");
-	//	ImGui::Image((ImTextureID)attachments.albedo.imguiTextureDescriptorSet, ImVec2(352, 240));
+		ImGui::Text("Albedo");
+		ImGui::Image((ImTextureID)attachments.albedo.imguiTextureDescriptorSet, ImVec2(352, 240));
 
-	//	ImGui::Text("Metallic");
-	//	ImGui::Image((ImTextureID)attachments.metallic.imguiTextureDescriptorSet, ImVec2(352, 240));
+		ImGui::Text("Metallic");
+		ImGui::Image((ImTextureID)attachments.metallic.imguiTextureDescriptorSet, ImVec2(352, 240));
 
-	//	ImGui::Text("Roughness");
-	//	ImGui::Image((ImTextureID)attachments.roughness.imguiTextureDescriptorSet, ImVec2(352, 240));
+		ImGui::Text("Roughness");
+		ImGui::Image((ImTextureID)attachments.roughness.imguiTextureDescriptorSet, ImVec2(352, 240));
 
-	//	ImGui::End();
-	//}
+		ImGui::End();
+	}
 }
 
 void VulkanGui::renderUI(VkCommandBuffer& commandBuffer, VkExtent2D extent)

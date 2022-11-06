@@ -61,9 +61,10 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	getSwapchainImages(logicalDevice);
 	createSwapchainImageViews(logicalDevice);
 
+	createDepthPrePass(logicalDevice, depthPreRenderPass, depthFormat);
 	createRenderPass(logicalDevice, renderPass, swapchainImageFormat, depthFormat);
 	createShadowRenderPass(logicalDevice, shadowRenderPass, shadowDepthFormat);
-	createDeferredRenderPass(logicalDevice, deferredRenderPass, VK_FORMAT_R16G16B16A16_SFLOAT, depthFormat);
+	createGeometryRenderPass(logicalDevice, deferredRenderPass, VK_FORMAT_R16G16B16A16_SFLOAT, depthFormat);
 
 	createDepthBuffer(logicalDevice, vmaAllocator, swapchainExtent);
 
@@ -125,6 +126,20 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	// Create deferred pipeline
 	WillEngine::VulkanUtil::createDeferredPipeline(logicalDevice, deferredPipeline, deferredPipelineLayout,
 		deferredRenderPass, geometryVertShader, geometryFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
+
+	// Depth Pre pass pipeline
+	//======================================================================================================================================================
+	VkDescriptorSetLayout depthLayouts[] = { sceneDescriptorSetLayout };
+	u32 depthDescriptorSetLayoutSize = sizeof(depthLayouts) / sizeof(depthLayouts[0]);
+
+	createDepthFramebuffer(logicalDevice, depthPreFrameBuffer, depthPreRenderPass, swapchainExtent);
+
+	WillEngine::VulkanUtil::initDepthPreShaderModule(logicalDevice, depthPreVertShader, depthPreFragShader);
+
+	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, depthPrePipelineLayout, depthDescriptorSetLayoutSize, depthLayouts, pushConstantCount, pushConstants);
+
+	WillEngine::VulkanUtil::createDepthPrePipeline(logicalDevice, depthPrePipeline, depthPrePipelineLayout, depthPreRenderPass, depthPreVertShader, depthPreFragShader,
+		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
 
 	//======================================================================================================================================================
 	
@@ -350,9 +365,40 @@ void VulkanEngine::createVmaAllocator(VkInstance& instance, VkPhysicalDevice& ph
 		throw std::runtime_error("Failed to create vma allocator");
 }
 
+void VulkanEngine::createDepthPrePass(VkDevice& logicalDevice, VkRenderPass& renderPass, const VkFormat& depthFormat)
+{
+	// Only the depth buffer
+	VkAttachmentDescription attachments[1]{};
+	attachments[0].format = depthFormat;
+	attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
+	attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	attachments[0].finalLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+	VkAttachmentReference depthAttachment{};
+	depthAttachment.attachment = 0;
+	depthAttachment.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+	VkSubpassDescription subpasses[1]{};
+	subpasses[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpasses[0].colorAttachmentCount = 0;
+	subpasses[0].pDepthStencilAttachment = &depthAttachment;
+
+	VkRenderPassCreateInfo passInfo{};
+	passInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	passInfo.attachmentCount = static_cast<u32>(sizeof(attachments) / sizeof(attachments[0]));
+	passInfo.pAttachments = attachments;
+	passInfo.subpassCount = static_cast<u32>(sizeof(subpasses) / sizeof(subpasses[0]));
+	passInfo.pSubpasses = subpasses;
+
+	if (vkCreateRenderPass(logicalDevice, &passInfo, nullptr, &renderPass) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create render pass");
+}
+
 void VulkanEngine::createRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, VkFormat& format, const VkFormat& depthFormat)
 {
-	VkAttachmentDescription attachments[2]{};
+	VkAttachmentDescription attachments[1]{};
 	// Framebuffer
 	attachments[0].format = format;
 	attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
@@ -360,13 +406,6 @@ void VulkanEngine::createRenderPass(VkDevice& logicalDevice, VkRenderPass& rende
 	attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 	attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-	// Depth buffer
-	attachments[1].format = depthFormat;
-	attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
-	attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	// The out location of the fragment shader
 	// 0 is the color value for the framebuffer
@@ -374,16 +413,10 @@ void VulkanEngine::createRenderPass(VkDevice& logicalDevice, VkRenderPass& rende
 	colorAttachment.attachment = 0;
 	colorAttachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-	// 1 is the depth value for the depth buffer
-	VkAttachmentReference depthAttachment{};
-	depthAttachment.attachment = 1;
-	depthAttachment.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
 	VkSubpassDescription subpasses[1]{};
 	subpasses[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpasses[0].colorAttachmentCount = 1;
 	subpasses[0].pColorAttachments = &colorAttachment;
-	subpasses[0].pDepthStencilAttachment = &depthAttachment;
 
 	VkRenderPassCreateInfo passInfo{};
 	passInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -427,7 +460,7 @@ void VulkanEngine::createShadowRenderPass(VkDevice& logicalDevice, VkRenderPass&
 		throw std::runtime_error("Failed to create render pass");
 }
 
-void VulkanEngine::createDeferredRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, VkFormat format, const VkFormat& depthFormat)
+void VulkanEngine::createGeometryRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, VkFormat format, const VkFormat& depthFormat)
 {
 	std::vector<VkAttachmentDescription> attachments(8);
 	// G-buffers
@@ -441,7 +474,9 @@ void VulkanEngine::createDeferredRenderPass(VkDevice& logicalDevice, VkRenderPas
 		{
 			// Depth buffer
 			attachments[i].format = depthFormat;
-			attachments[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			attachments[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+			attachments[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			attachments[i].initialLayout = VK_IMAGE_LAYOUT_GENERAL;
 			attachments[i].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		}
 		else
@@ -623,7 +658,7 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 
 	if (formatChanged)
 	{
-		createDeferredRenderPass(logicalDevice, deferredRenderPass, swapchainImageFormat, depthFormat);
+		createGeometryRenderPass(logicalDevice, deferredRenderPass, swapchainImageFormat, depthFormat);
 		createRenderPass(logicalDevice, renderPass, swapchainImageFormat, depthFormat);
 	}
 
@@ -659,6 +694,7 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.metallic.vulkanImage.image, offscreenFramebuffer.metallic.vulkanImage.allocation);
 	vkDestroyImageView(logicalDevice, offscreenFramebuffer.roughness.imageView, nullptr);
 	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.roughness.vulkanImage.image, offscreenFramebuffer.roughness.vulkanImage.allocation);
+
 
 	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, deferredRenderPass, renderPass, depthImageView, swapchainExtent);
 
@@ -731,9 +767,8 @@ void VulkanEngine::createSwapchainFramebuffer(VkDevice& logicalDevice, std::vect
 	// The present framebuffer
 	for (u32 i = 0; i < swapchainImageViews.size(); i++)
 	{
-		VkImageView attachments[2]{};
+		VkImageView attachments[1]{};
 		attachments[0] = swapchainImageViews[i];
-		attachments[1] = depthImageView;
 
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -771,6 +806,25 @@ void VulkanEngine::createShadowFramebuffer(VkDevice& logicalDevice, VkFramebuffe
 
 	if (vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &shadowFrameBuffer) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create framebuffer");
+}
+
+void VulkanEngine::createDepthFramebuffer(VkDevice& logicalDevice, VkFramebuffer& depthFramebuffer, VkRenderPass& depthRenderPass, VkExtent2D swapchainExtent)
+{
+	VkImageView attachments[1]{};
+	attachments[0] = depthImageView;
+
+	VkFramebufferCreateInfo framebufferInfo{};
+	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	framebufferInfo.renderPass = depthRenderPass;
+	framebufferInfo.attachmentCount = static_cast<u32>(sizeof(attachments) / sizeof(attachments[0]));
+	framebufferInfo.pAttachments = attachments;
+	framebufferInfo.width = swapchainExtent.width;
+	framebufferInfo.height = swapchainExtent.height;
+	framebufferInfo.layers = 1;
+
+	if (vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &depthFramebuffer) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create framebuffer");
+
 }
 
 void VulkanEngine::createCommandPool(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, VkCommandPool& commandPool)
@@ -890,7 +944,7 @@ void VulkanEngine::initAttachmentDescriptors(VkDevice& logicalDevice, VkDescript
 	WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, attachmentDescriptorSetLayouts, attachmentDescriptorSets);
 
 	std::vector<VkImageView> imageViews = { offscreenFramebuffer.position.imageView, offscreenFramebuffer.normal.imageView,
-		offscreenFramebuffer.emissive.imageView, offscreenFramebuffer.ambient.imageView, offscreenFramebuffer.albedo.imageView,
+		offscreenFramebuffer.emissive.imageView, offscreenFramebuffer.ambient.imageView, offscreenFramebuffer.albedo.imageView, 
 		offscreenFramebuffer.metallic.imageView, offscreenFramebuffer.roughness.imageView };
 
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, attachmentDescriptorSets, &attachmentSampler, imageViews.data(),
@@ -957,6 +1011,8 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& 
 	// ========================================================
 	// Recording all the rendering command
 
+	depthPrePasses(commandBuffer, extent);
+
 	// Deferred rendering pass
 	geometryPasses(commandBuffer, extent);
 
@@ -1000,6 +1056,48 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& 
 
 	// End command buffer
 	vkEndCommandBuffer(commandBuffer);
+}
+
+void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D extent)
+{
+	VkClearValue clearValue[1];
+	clearValue[0].depthStencil.depth = 1.0f;
+
+	VkRenderPassBeginInfo renderPassBeginInfo{};
+	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	renderPassBeginInfo.renderPass = depthPreRenderPass;
+	renderPassBeginInfo.framebuffer = depthPreFrameBuffer;
+	renderPassBeginInfo.renderArea.extent = extent;
+	renderPassBeginInfo.clearValueCount = static_cast<u32>(sizeof(clearValue) / sizeof(clearValue[0]));
+	renderPassBeginInfo.pClearValues = clearValue;
+
+	vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	// Bind pipeline
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPrePipeline);
+
+	// Bind Scene Uniform Buffer
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPrePipelineLayout, 0, 1, &sceneDescriptorSet, 0, nullptr);
+
+	for (auto mesh : meshes)
+	{
+		VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
+
+		VkDeviceSize offsets[3]{};
+
+		// Bind buffers
+		vkCmdBindVertexBuffers(commandBuffer, 0, 3, buffers, offsets);
+
+		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+		// Push constant for model matrix
+		mesh->updateForPushConstant();
+		vkCmdPushConstants(commandBuffer, depthPrePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mesh->pushConstant), &mesh->pushConstant);
+
+		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
+	}
+
+	vkCmdEndRenderPass(commandBuffer);
 }
 
 void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent)
