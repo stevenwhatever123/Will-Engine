@@ -968,8 +968,8 @@ void WillEngine::VulkanUtil::createDeferredPipeline(VkDevice& logicalDevice, VkP
     multisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
     multisampleInfo.sampleShadingEnable = VK_FALSE;
 
-    VkPipelineColorBlendAttachmentState colorBlend[7]{};
-    for (u32 i = 0; i < 7; i++)
+    VkPipelineColorBlendAttachmentState colorBlend[5]{};
+    for (u32 i = 0; i < 5; i++)
     {
         colorBlend[i].blendEnable = VK_FALSE;
         colorBlend[i].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
