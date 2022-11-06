@@ -16,7 +16,7 @@ layout(set = 1, binding = 1) uniform camera
 	vec4 cameraPosition;
 };
 
-layout(set = 2, binding = 2) uniform sampler2D texColor[7];
+layout(set = 2, binding = 2) uniform sampler2D texColor[5];
 
 layout(set = 3, binding = 3) uniform samplerCube depthMap;
 
@@ -82,13 +82,13 @@ float ShadowCalculation(vec4 position, vec4 normal)
 
 void main()
 {
-	const vec4 position = texture(texColor[0], texCoord);
-	const vec4 normal = normalize(texture(texColor[1], texCoord));
+	const vec4 position = vec4(texture(texColor[0], texCoord).rgb, 1);
+	const vec4 normal = vec4(normalize(texture(texColor[1], texCoord)).rgb, 1);
 	const vec4 emissive = texture(texColor[2], texCoord);
 	const vec4 ambient = texture(texColor[3], texCoord);
 	const vec4 albedo = texture(texColor[4], texCoord);
-	const float metallic = texture(texColor[5], texCoord).x;
-	const float roughness = texture(texColor[6], texCoord).x;
+	const float metallic = texture(texColor[0], texCoord).a;
+	const float roughness = texture(texColor[1], texCoord).a;
 
 	// Values we are going to use later
 	const vec4 lightDirection = normalize(lightPosition - position);

@@ -23,13 +23,11 @@ class VulkanFramebuffer
 public:
 
 	VkFramebuffer framebuffer;
-	VulkanFramebufferAttachment position;
-	VulkanFramebufferAttachment normal;
-	VulkanFramebufferAttachment emissive;
-	VulkanFramebufferAttachment ambient;
-	VulkanFramebufferAttachment albedo;
-	VulkanFramebufferAttachment metallic;
-	VulkanFramebufferAttachment roughness;
+	VulkanFramebufferAttachment GBuffer0;
+	VulkanFramebufferAttachment GBuffer1;
+	VulkanFramebufferAttachment GBuffer2;
+	VulkanFramebufferAttachment GBuffer3;
+	VulkanFramebufferAttachment GBuffer4;
 
 public:
 

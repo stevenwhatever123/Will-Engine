@@ -444,26 +444,20 @@ void VulkanGui::update(bool renderWithBRDF, VulkanFramebuffer& attachments, std:
 	{
 		ImGui::Begin("Rendering control");
 
-		ImGui::Text("Position");
-		ImGui::Image((ImTextureID)attachments.position.imguiTextureDescriptorSet, ImVec2(352, 240));
+		ImGui::Text("GBuffer0");
+		ImGui::Image((ImTextureID)attachments.GBuffer0.imguiTextureDescriptorSet, ImVec2(352, 240));
 
-		ImGui::Text("Normal");
-		ImGui::Image((ImTextureID)attachments.normal.imguiTextureDescriptorSet, ImVec2(352, 240));
+		ImGui::Text("GBuffer1");
+		ImGui::Image((ImTextureID)attachments.GBuffer1.imguiTextureDescriptorSet, ImVec2(352, 240));
 
-		ImGui::Text("Emissive");
-		ImGui::Image((ImTextureID)attachments.emissive.imguiTextureDescriptorSet, ImVec2(352, 240));
+		ImGui::Text("GBuffer2");
+		ImGui::Image((ImTextureID)attachments.GBuffer2.imguiTextureDescriptorSet, ImVec2(352, 240));
 
-		ImGui::Text("Ambient");
-		ImGui::Image((ImTextureID)attachments.ambient.imguiTextureDescriptorSet, ImVec2(352, 240));
+		ImGui::Text("GBuffer3");
+		ImGui::Image((ImTextureID)attachments.GBuffer3.imguiTextureDescriptorSet, ImVec2(352, 240));
 
-		ImGui::Text("Albedo");
-		ImGui::Image((ImTextureID)attachments.albedo.imguiTextureDescriptorSet, ImVec2(352, 240));
-
-		ImGui::Text("Metallic");
-		ImGui::Image((ImTextureID)attachments.metallic.imguiTextureDescriptorSet, ImVec2(352, 240));
-
-		ImGui::Text("Roughness");
-		ImGui::Image((ImTextureID)attachments.roughness.imguiTextureDescriptorSet, ImVec2(352, 240));
+		ImGui::Text("GBuffer4");
+		ImGui::Image((ImTextureID)attachments.GBuffer4.imguiTextureDescriptorSet, ImVec2(352, 240));
 
 		ImGui::End();
 	}

@@ -22,13 +22,10 @@ VulkanFramebuffer::VulkanFramebuffer():
 
 VulkanFramebuffer::VulkanFramebuffer(VkFramebuffer framebuffer) :
 	framebuffer(framebuffer),
-	position(),
-	normal(),
-	emissive(),
-	ambient(),
-	albedo(),
-	metallic(),
-	roughness()
+	GBuffer1(),
+	GBuffer2(),
+	GBuffer3(),
+	GBuffer4()
 {
 
 }
