@@ -658,6 +658,7 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 
 	if (formatChanged)
 	{
+		createDepthPrePass(logicalDevice, depthPreRenderPass, depthFormat);
 		createGeometryRenderPass(logicalDevice, deferredRenderPass, swapchainImageFormat, depthFormat);
 		createRenderPass(logicalDevice, renderPass, swapchainImageFormat, depthFormat);
 	}
@@ -695,16 +696,22 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 	vkDestroyImageView(logicalDevice, offscreenFramebuffer.roughness.imageView, nullptr);
 	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.roughness.vulkanImage.image, offscreenFramebuffer.roughness.vulkanImage.allocation);
 
+	vkDestroyFramebuffer(logicalDevice, depthPreFrameBuffer, nullptr);
+
+	createDepthFramebuffer(logicalDevice, depthPreFrameBuffer, depthPreRenderPass, swapchainExtent);
 
 	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, deferredRenderPass, renderPass, depthImageView, swapchainExtent);
 
 	if (extentChanged)
 	{
 		// Destroy old pipeline
+		vkDestroyPipeline(logicalDevice, depthPrePipeline, nullptr);
 		vkDestroyPipeline(logicalDevice, deferredPipeline, nullptr);
 		vkDestroyPipeline(logicalDevice, shadingPipeline, nullptr);
 
 		// Create new pipeline
+		WillEngine::VulkanUtil::createDepthPrePipeline(logicalDevice, depthPrePipeline, depthPrePipelineLayout, depthPreRenderPass, depthPreVertShader,
+			depthPreFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
 		WillEngine::VulkanUtil::createDeferredPipeline(logicalDevice, deferredPipeline, deferredPipelineLayout, deferredRenderPass, geometryVertShader,
 			geometryFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
 		WillEngine::VulkanUtil::createShadingPipeline(logicalDevice, shadingPipeline, shadingPipelineLayout, renderPass, shadingVertShader,
