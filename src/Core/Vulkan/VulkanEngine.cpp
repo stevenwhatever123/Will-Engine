@@ -462,7 +462,7 @@ void VulkanEngine::createShadowRenderPass(VkDevice& logicalDevice, VkRenderPass&
 
 void VulkanEngine::createGeometryRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, VkFormat format, const VkFormat& depthFormat)
 {
-	std::vector<VkAttachmentDescription> attachments(8);
+	std::vector<VkAttachmentDescription> attachments(6);
 	// G-buffers
 	for (u32 i = 0; i < attachments.size(); i++)
 	{
@@ -488,13 +488,11 @@ void VulkanEngine::createGeometryRenderPass(VkDevice& logicalDevice, VkRenderPas
 	}
 
 	// The out location of the fragment shader
-	// 0 is the position
-	// 1 is the normal
-	// 2 is the emissive
-	// 3 is the ambient
-	// 4 is the diffuse
-	// 5 is the metallic
-	// 6 is the roughness
+	// 0 is GBuffer0
+	// 1 is GBuffer1
+	// 2 is GBuffer2
+	// 3 is GBuffer3
+	// 4 is GBuffer4
 	std::vector<VkAttachmentReference> colorAttachments(attachments.size() - 1);
 	for (u32 i = 0; i < colorAttachments.size(); i++)
 	{
@@ -681,20 +679,16 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 
 	// Clear attachments
 	vkDestroyFramebuffer(logicalDevice, offscreenFramebuffer.framebuffer, nullptr);
-	vkDestroyImageView(logicalDevice, offscreenFramebuffer.position.imageView, nullptr);
-	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.position.vulkanImage.image, offscreenFramebuffer.position.vulkanImage.allocation);
-	vkDestroyImageView(logicalDevice, offscreenFramebuffer.normal.imageView, nullptr);
-	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.normal.vulkanImage.image, offscreenFramebuffer.normal.vulkanImage.allocation);
-	vkDestroyImageView(logicalDevice, offscreenFramebuffer.emissive.imageView, nullptr);
-	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.emissive.vulkanImage.image, offscreenFramebuffer.emissive.vulkanImage.allocation);
-	vkDestroyImageView(logicalDevice, offscreenFramebuffer.ambient.imageView, nullptr);
-	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.ambient.vulkanImage.image, offscreenFramebuffer.ambient.vulkanImage.allocation);
-	vkDestroyImageView(logicalDevice, offscreenFramebuffer.albedo.imageView, nullptr);
-	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.albedo.vulkanImage.image, offscreenFramebuffer.albedo.vulkanImage.allocation);
-	vkDestroyImageView(logicalDevice, offscreenFramebuffer.metallic.imageView, nullptr);
-	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.metallic.vulkanImage.image, offscreenFramebuffer.metallic.vulkanImage.allocation);
-	vkDestroyImageView(logicalDevice, offscreenFramebuffer.roughness.imageView, nullptr);
-	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.roughness.vulkanImage.image, offscreenFramebuffer.roughness.vulkanImage.allocation);
+	vkDestroyImageView(logicalDevice, offscreenFramebuffer.GBuffer0.imageView, nullptr);
+	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.GBuffer0.vulkanImage.image, offscreenFramebuffer.GBuffer0.vulkanImage.allocation);
+	vkDestroyImageView(logicalDevice, offscreenFramebuffer.GBuffer1.imageView, nullptr);
+	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.GBuffer1.vulkanImage.image, offscreenFramebuffer.GBuffer1.vulkanImage.allocation);
+	vkDestroyImageView(logicalDevice, offscreenFramebuffer.GBuffer2.imageView, nullptr);
+	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.GBuffer2.vulkanImage.image, offscreenFramebuffer.GBuffer2.vulkanImage.allocation);
+	vkDestroyImageView(logicalDevice, offscreenFramebuffer.GBuffer3.imageView, nullptr);
+	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.GBuffer3.vulkanImage.image, offscreenFramebuffer.GBuffer3.vulkanImage.allocation);
+	vkDestroyImageView(logicalDevice, offscreenFramebuffer.GBuffer4.imageView, nullptr);
+	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.GBuffer4.vulkanImage.image, offscreenFramebuffer.GBuffer4.vulkanImage.allocation);
 
 	vkDestroyFramebuffer(logicalDevice, depthPreFrameBuffer, nullptr);
 
@@ -738,25 +732,21 @@ void VulkanEngine::createSwapchainFramebuffer(VkDevice& logicalDevice, std::vect
 
 	// The back buffer
 	// Create offscreen framebuffer attachments
-	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.position);
-	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.normal);
-	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.emissive);
-	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.ambient);
-	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.albedo);
-	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.metallic);
-	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.roughness);
+	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.GBuffer0);
+	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.GBuffer1);
+	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.GBuffer2);
+	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.GBuffer3);
+	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.GBuffer4);
 
 
 	{
-		VkImageView attachments[8]{};
-		attachments[0] = offscreenFramebuffer.position.imageView;
-		attachments[1] = offscreenFramebuffer.normal.imageView;
-		attachments[2] = offscreenFramebuffer.emissive.imageView;
-		attachments[3] = offscreenFramebuffer.ambient.imageView;
-		attachments[4] = offscreenFramebuffer.albedo.imageView;
-		attachments[5] = offscreenFramebuffer.metallic.imageView;
-		attachments[6] = offscreenFramebuffer.roughness.imageView;
-		attachments[7] = depthImageView;
+		VkImageView attachments[6]{};
+		attachments[0] = offscreenFramebuffer.GBuffer0.imageView;
+		attachments[1] = offscreenFramebuffer.GBuffer1.imageView;
+		attachments[2] = offscreenFramebuffer.GBuffer2.imageView;
+		attachments[3] = offscreenFramebuffer.GBuffer3.imageView;
+		attachments[4] = offscreenFramebuffer.GBuffer4.imageView;
+		attachments[5] = depthImageView;
 
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -929,30 +919,25 @@ void VulkanEngine::initAttachmentDescriptors(VkDevice& logicalDevice, VkDescript
 {
 	// Descriptor sets for ImGui UI
 	{
-		offscreenFramebuffer.position.imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, offscreenFramebuffer.position.imageView,
+		offscreenFramebuffer.GBuffer0.imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, offscreenFramebuffer.GBuffer0.imageView,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		offscreenFramebuffer.normal.imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, offscreenFramebuffer.normal.imageView,
+		offscreenFramebuffer.GBuffer1.imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, offscreenFramebuffer.GBuffer1.imageView,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		offscreenFramebuffer.emissive.imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, offscreenFramebuffer.emissive.imageView,
+		offscreenFramebuffer.GBuffer2.imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, offscreenFramebuffer.GBuffer2.imageView,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		offscreenFramebuffer.ambient.imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, offscreenFramebuffer.ambient.imageView,
+		offscreenFramebuffer.GBuffer3.imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, offscreenFramebuffer.GBuffer3.imageView,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		offscreenFramebuffer.albedo.imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, offscreenFramebuffer.albedo.imageView,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		offscreenFramebuffer.metallic.imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, offscreenFramebuffer.metallic.imageView,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		offscreenFramebuffer.roughness.imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, offscreenFramebuffer.roughness.imageView,
+		offscreenFramebuffer.GBuffer4.imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, offscreenFramebuffer.GBuffer4.imageView,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	}
 
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, attachmentDescriptorSetLayouts, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		VK_SHADER_STAGE_FRAGMENT_BIT, 2, 7);
+		VK_SHADER_STAGE_FRAGMENT_BIT, 2, 5);
 
 	WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, attachmentDescriptorSetLayouts, attachmentDescriptorSets);
 
-	std::vector<VkImageView> imageViews = { offscreenFramebuffer.position.imageView, offscreenFramebuffer.normal.imageView,
-		offscreenFramebuffer.emissive.imageView, offscreenFramebuffer.ambient.imageView, offscreenFramebuffer.albedo.imageView, 
-		offscreenFramebuffer.metallic.imageView, offscreenFramebuffer.roughness.imageView };
+	std::vector<VkImageView> imageViews = { offscreenFramebuffer.GBuffer0.imageView, offscreenFramebuffer.GBuffer1.imageView, offscreenFramebuffer.GBuffer2.imageView,
+		offscreenFramebuffer.GBuffer3.imageView, offscreenFramebuffer.GBuffer4.imageView };
 
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, attachmentDescriptorSets, &attachmentSampler, imageViews.data(),
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 2, imageViews.size());
@@ -1109,9 +1094,9 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 
 void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent)
 {
-	VkClearValue clearValue[8];
+	VkClearValue clearValue[6];
 	// Clear attachments
-	for (u32 i = 0; i < 7; i++)
+	for (u32 i = 0; i < 5; i++)
 	{
 		clearValue[i].color.float32[0] = 0.0f;
 		clearValue[i].color.float32[1] = 0.0f;
@@ -1119,7 +1104,7 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 		clearValue[i].color.float32[3] = 1.0f;
 	}
 	// Clear Depth
-	clearValue[7].depthStencil.depth = 1.0f;
+	clearValue[5].depthStencil.depth = 1.0f;
 
 	// Begin Render Pass
 	VkRenderPassBeginInfo renderPassBeginInfo{};

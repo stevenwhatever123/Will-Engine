@@ -7,31 +7,35 @@ layout(location = 2) in vec2 texCoord;
 
 layout(set = 1, binding = 1) uniform sampler2D texColor[5];
 
-layout(location = 0) out vec4 oPosition;
-layout(location = 1) out vec4 oNormal;
-layout(location = 2) out vec4 oEmissive;
-layout(location = 3) out vec4 oAmbient;
-layout(location = 4) out vec4 oAlbedo;
-layout(location = 5) out vec4 oMetallic;
-layout(location = 6) out vec4 oRoughness;
+layout(location = 0) out vec4 GBuffer0;
+layout(location = 1) out vec4 GBuffer1;
+layout(location = 2) out vec4 GBuffer2;
+layout(location = 3) out vec4 GBuffer3;
+layout(location = 4) out vec4 GBuffer4;
 
 void main()
 {
-	oPosition = position;
-	oNormal = normalize(normal);
+	vec4 tPosition = position;
+	vec4 tNormal = normalize(normal);
 
 	float lod = textureQueryLod(texColor[0], texCoord).x;
-	oEmissive = texture(texColor[0], texCoord, lod);
+	vec4 tEmissive = texture(texColor[0], texCoord, lod);
 
 	lod = textureQueryLod(texColor[1], texCoord).x;
-	oAmbient = texture(texColor[1], texCoord, lod);
+	vec4 tAmbient = texture(texColor[1], texCoord, lod);
 
 	lod = textureQueryLod(texColor[2], texCoord).x;
-	oAlbedo = texture(texColor[2], texCoord, lod);
+	vec4 tAlbedo = texture(texColor[2], texCoord, lod);
 
 	lod = textureQueryLod(texColor[3], texCoord).x;
-	oMetallic = vec4(vec3(texture(texColor[3], texCoord, lod).r), 1);
+	float tMetallic = texture(texColor[3], texCoord, lod).r;
 
 	lod = textureQueryLod(texColor[4], texCoord).x;
-	oRoughness = vec4(vec3(texture(texColor[4], texCoord, lod).r), 1);
+	float tRoughness = texture(texColor[4], texCoord, lod).r;
+
+	GBuffer0 = vec4(vec3(tPosition), tMetallic);
+	GBuffer1 = vec4(vec3(tNormal), tRoughness);
+	GBuffer2 = vec4(vec3(tEmissive), 1);
+	GBuffer3 = vec4(vec3(tAmbient), 1);
+	GBuffer4 = vec4(vec3(tAlbedo), 1);
 }
