@@ -584,7 +584,7 @@ VkShaderModule WillEngine::VulkanUtil::createShaderModule(VkDevice& logicalDevic
     return shaderModule;
 }
 
-void WillEngine::VulkanUtil::initDeferredShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader)
+void WillEngine::VulkanUtil::initGeometryShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader)
 {
     const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/geometry_pass/shader.vert.spv";
     const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/geometry_pass/deferred.frag.spv";
@@ -623,7 +623,7 @@ void WillEngine::VulkanUtil::initShadowShaderModule(VkDevice& logicalDevice, VkS
     fragShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, fragShaderCode);
 }
 
-void WillEngine::VulkanUtil::initDepthPreShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader)
+void WillEngine::VulkanUtil::initDepthShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader)
 {
     const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/depth_pre_pass/shader.vert.spv";
     const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/depth_pre_pass/shader.frag.spv";
@@ -867,7 +867,7 @@ void WillEngine::VulkanUtil::createPipeline(VkDevice& logicalDevice, VkPipeline&
         throw std::runtime_error("Failed to create graphics pipeline");
 }
 
-void WillEngine::VulkanUtil::createDeferredPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
+void WillEngine::VulkanUtil::createGeometryPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
     VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D swapchainExtent)
 {
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
@@ -1261,7 +1261,7 @@ void WillEngine::VulkanUtil::createShadowPipeline(VkDevice& logicalDevice, VkPip
         throw std::runtime_error("Failed to create graphics pipeline");
 }
 
-void WillEngine::VulkanUtil::createDepthPrePipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
+void WillEngine::VulkanUtil::createDepthPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
     VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D swapchainExtent)
 {
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
