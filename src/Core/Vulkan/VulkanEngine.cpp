@@ -8,7 +8,7 @@ VulkanEngine::VulkanEngine() :
 	materials(),
 	lights(),
 	vmaAllocator(VK_NULL_HANDLE),
-	deferredRenderPass(VK_NULL_HANDLE),
+	geometryRenderPass(VK_NULL_HANDLE),
 	renderPass(VK_NULL_HANDLE),
 	swapchain(VK_NULL_HANDLE),
 	swapchainImageFormat(),
@@ -23,8 +23,8 @@ VulkanEngine::VulkanEngine() :
 	renderFinished(VK_NULL_HANDLE),
 	fences(),
 	descriptorPool(VK_NULL_HANDLE),
-	deferredPipelineLayout(VK_NULL_HANDLE),
-	deferredPipeline(VK_NULL_HANDLE),
+	geometryPipelineLayout(VK_NULL_HANDLE),
+	geometryPipeline(VK_NULL_HANDLE),
 	shadingPipelineLayout(VK_NULL_HANDLE),
 	shadingPipeline(VK_NULL_HANDLE),
 	sceneDescriptorSetLayout(VK_NULL_HANDLE),
@@ -61,14 +61,14 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	getSwapchainImages(logicalDevice);
 	createSwapchainImageViews(logicalDevice);
 
-	createDepthPrePass(logicalDevice, depthPreRenderPass, depthFormat);
+	createDepthPrePass(logicalDevice, depthRenderPass, depthFormat);
 	createRenderPass(logicalDevice, renderPass, swapchainImageFormat, depthFormat);
 	createShadowRenderPass(logicalDevice, shadowRenderPass, shadowDepthFormat);
-	createGeometryRenderPass(logicalDevice, deferredRenderPass, VK_FORMAT_R16G16B16A16_SFLOAT, depthFormat);
+	createGeometryRenderPass(logicalDevice, geometryRenderPass, VK_FORMAT_R16G16B16A16_SFLOAT, depthFormat);
 
 	createDepthBuffer(logicalDevice, vmaAllocator, swapchainExtent);
 
-	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, deferredRenderPass, renderPass, depthImageView, swapchainExtent);
+	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, geometryRenderPass, renderPass, depthImageView, swapchainExtent);
 
 	WillEngine::VulkanUtil::createAttachmentSampler(logicalDevice, attachmentSampler);
 
@@ -85,122 +85,36 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	// Gui
 	initGui(window, instance, logicalDevice, physicalDevice, queue, surface);
 
+	// Used in mostly all passes
 	// Scene Descriptors for scene matrix with binding 0 in vertex shader
 	initUniformBuffer(logicalDevice, descriptorPool, sceneUniformBuffer, sceneDescriptorSet, sceneDescriptorSetLayout, 0, sizeof(CameraMatrix), VK_SHADER_STAGE_VERTEX_BIT);
 
-	// Phong
-	u32 descriptorSize = 4;
-	if (renderWithBRDF)
-	{
-		// BRDF
-		descriptorSize = 5;
-	}
+	// For shading phase
+	// Light Descriptors for light with binding 1 in fragment shader
+	initUniformBuffer(logicalDevice, descriptorPool, lightUniformBuffer, lightDescriptorSet, lightDescriptorSetLayout, 1, sizeof(LightUniform), VK_SHADER_STAGE_FRAGMENT_BIT);
+
+	// For Shadowing mapping
+	// Light Descriptor for light view projection with binding 2 in geometry shader
+	initUniformBuffer(logicalDevice, descriptorPool, lightMatrixUniformBuffer, lightMatrixDescriptorSet, lightMatrixDescriptorSetLayout, 2, sizeof(mat4) * 6,
+		VK_SHADER_STAGE_GEOMETRY_BIT);
+
+	// Camera View Projection
+	// Camera Descriptors for camera position with binding 1 in fragment shader
+	initUniformBuffer(logicalDevice, descriptorPool, cameraUniformBuffer, cameraDescriptorSet, cameraDescriptorSetLayout, 1, sizeof(vec4), VK_SHADER_STAGE_FRAGMENT_BIT);
+
+	// Phong: 4, BRDF: 5
+	u32 descriptorSize = renderWithBRDF ? 5 : 4;
 
 	// Texture Descriptor with binding 1 in fragment shader
 	// We only need to know the layout of the descriptor
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 		VK_SHADER_STAGE_FRAGMENT_BIT, 1, descriptorSize);
 
-	// Deferred Pipeline
-	//======================================================================================================================================================
 
-	// Set up shader modules
-	WillEngine::VulkanUtil::initDeferredShaderModule(logicalDevice, geometryVertShader, geometryFragShader);
-
-	// Create pipeline and pipeline layout
-	VkDescriptorSetLayout layouts[] = { sceneDescriptorSetLayout, textureDescriptorSetLayout };
-	u32 descriptorSetLayoutSize = sizeof(layouts) / sizeof(layouts[0]);
-
-	VkPushConstantRange pushConstants[1];
-	// Push constant object for model matrix to be used in vertex shader
-	pushConstants[0].offset = 0;
-	pushConstants[0].size = sizeof(mat4);
-	pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-	u32 pushConstantCount = sizeof(pushConstants) / sizeof(pushConstants[0]);
-
-	// Create deferred pipeline layout with our just created push constant
-	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, deferredPipelineLayout,
-		descriptorSetLayoutSize, layouts, pushConstantCount, pushConstants);
-
-	// Create deferred pipeline
-	WillEngine::VulkanUtil::createDeferredPipeline(logicalDevice, deferredPipeline, deferredPipelineLayout,
-		deferredRenderPass, geometryVertShader, geometryFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
-
-	// Depth Pre pass pipeline
-	//======================================================================================================================================================
-	VkDescriptorSetLayout depthLayouts[] = { sceneDescriptorSetLayout };
-	u32 depthDescriptorSetLayoutSize = sizeof(depthLayouts) / sizeof(depthLayouts[0]);
-
-	createDepthFramebuffer(logicalDevice, depthPreFrameBuffer, depthPreRenderPass, swapchainExtent);
-
-	WillEngine::VulkanUtil::initDepthPreShaderModule(logicalDevice, depthPreVertShader, depthPreFragShader);
-
-	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, depthPrePipelineLayout, depthDescriptorSetLayoutSize, depthLayouts, pushConstantCount, pushConstants);
-
-	WillEngine::VulkanUtil::createDepthPrePipeline(logicalDevice, depthPrePipeline, depthPrePipelineLayout, depthPreRenderPass, depthPreVertShader, depthPreFragShader,
-		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
-
-	//======================================================================================================================================================
-	
-	// Shadow Pipeline
-	
-	// Create an image, imageview and sampler for point light's cube shadow map
-	shadowCubeMap =  WillEngine::VulkanUtil::createImageWithFlags(logicalDevice, vmaAllocator, shadowDepthFormat, 
-		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT,
-		1024, 1024, 1, 6);
-
-	WillEngine::VulkanUtil::createDepthImageView(logicalDevice, shadowCubeMap.image, shadowCubeMapView, 6, shadowDepthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
-	
-	WillEngine::VulkanUtil::createDepthSampler(logicalDevice, shadowSampler);
-
-	initUniformBuffer(logicalDevice, descriptorPool, lightMatrixUniformBuffer, lightMatrixDescriptorSet, lightMatrixDescriptorSetLayout, 2, sizeof(mat4) * 6,
-		VK_SHADER_STAGE_GEOMETRY_BIT);
-
-	// Shadow Framebuffer
-	createShadowFramebuffer(logicalDevice, shadowFrameBuffer, shadowRenderPass, 1024, 1024);
-
-	// Light Descriptors for light with binding 1 in fragment shader
-	initUniformBuffer(logicalDevice, descriptorPool, lightUniformBuffer, lightDescriptorSet, lightDescriptorSetLayout, 1, sizeof(LightUniform), VK_SHADER_STAGE_FRAGMENT_BIT);
-
-	VkDescriptorSetLayout shadowLayout[] = { lightMatrixDescriptorSetLayout, lightDescriptorSetLayout };
-	u32 shadowLayoutSize = sizeof(shadowLayout) / sizeof(shadowLayout[0]);
-
-	VkPushConstantRange shadowPushConstant[1];
-	shadowPushConstant[0].offset = 0;
-	shadowPushConstant[0].size = sizeof(mat4);
-	shadowPushConstant[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	u32 shadowPushConstantCount = sizeof(shadowPushConstant) / sizeof(shadowPushConstant[0]);
-
-	WillEngine::VulkanUtil::initShadowShaderModule(logicalDevice, shadowVertShader, shadowGeomShader, shadowFragShader);
-
-	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, shadowPipelineLayout, shadowLayoutSize, shadowLayout, shadowPushConstantCount, shadowPushConstant);
-
-	WillEngine::VulkanUtil::createShadowPipeline(logicalDevice, shadowPipeline, shadowPipelineLayout, shadowRenderPass, shadowVertShader, shadowGeomShader,
-		shadowFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 1024, 1024);
-
-	// Shading Pipeline
-	//======================================================================================================================================================
-
-	// Camera Descriptors for camera position with binding 1 in fragment shader
-	initUniformBuffer(logicalDevice, descriptorPool, cameraUniformBuffer, cameraDescriptorSet, cameraDescriptorSetLayout, 1, sizeof(vec4), VK_SHADER_STAGE_FRAGMENT_BIT);
-
-	// Initialise frame buffer attachments as descriptors
-	initAttachmentDescriptors(logicalDevice, descriptorPool);
-
-	initShadowMapDescriptors(logicalDevice, descriptorPool);
-
-	WillEngine::VulkanUtil::initShadingShaderModule(logicalDevice, shadingVertShader, shadingFragShader);
-
-	VkDescriptorSetLayout shadingLayout[] = { lightDescriptorSetLayout, cameraDescriptorSetLayout, attachmentDescriptorSetLayouts, shadowMapDescriptorSetLayouts };
-	u32 shadingLayoutSize = sizeof(shadingLayout) / sizeof(shadingLayout[0]);
-
-	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, shadingPipelineLayout, shadingLayoutSize, shadingLayout, 0, nullptr);
-
-	WillEngine::VulkanUtil::createShadingPipeline(logicalDevice, shadingPipeline, shadingPipelineLayout, renderPass, shadingVertShader, shadingFragShader,
-		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
-
-	//======================================================================================================================================================
+	initGeometryPipeline(logicalDevice);
+	initDepthPipeline(logicalDevice);
+	initShadowPipeline(logicalDevice);
+	initShadingPipeline(logicalDevice);
 }
 
 void VulkanEngine::cleanup(VkDevice& logicalDevice)
@@ -228,9 +142,9 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	// Texture
 	vkDestroyDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, nullptr);
 
-	// Destroy default pipeline and pipeline layout
-	vkDestroyPipeline(logicalDevice, deferredPipeline, nullptr);
-	vkDestroyPipelineLayout(logicalDevice, deferredPipelineLayout, nullptr);
+	// Destroy pipeline and pipeline layout
+	vkDestroyPipeline(logicalDevice, geometryPipeline, nullptr);
+	vkDestroyPipelineLayout(logicalDevice, geometryPipelineLayout, nullptr);
 
 	// Destroy default shader modules
 	vkDestroyShaderModule(logicalDevice, geometryVertShader, nullptr);
@@ -656,8 +570,8 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 
 	if (formatChanged)
 	{
-		createDepthPrePass(logicalDevice, depthPreRenderPass, depthFormat);
-		createGeometryRenderPass(logicalDevice, deferredRenderPass, swapchainImageFormat, depthFormat);
+		createDepthPrePass(logicalDevice, depthRenderPass, depthFormat);
+		createGeometryRenderPass(logicalDevice, geometryRenderPass, swapchainImageFormat, depthFormat);
 		createRenderPass(logicalDevice, renderPass, swapchainImageFormat, depthFormat);
 	}
 
@@ -690,23 +604,23 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 	vkDestroyImageView(logicalDevice, offscreenFramebuffer.GBuffer4.imageView, nullptr);
 	vmaDestroyImage(vmaAllocator, offscreenFramebuffer.GBuffer4.vulkanImage.image, offscreenFramebuffer.GBuffer4.vulkanImage.allocation);
 
-	vkDestroyFramebuffer(logicalDevice, depthPreFrameBuffer, nullptr);
+	vkDestroyFramebuffer(logicalDevice, depthFrameBuffer, nullptr);
 
-	createDepthFramebuffer(logicalDevice, depthPreFrameBuffer, depthPreRenderPass, swapchainExtent);
+	createDepthFramebuffer(logicalDevice, depthFrameBuffer, depthRenderPass, swapchainExtent);
 
-	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, deferredRenderPass, renderPass, depthImageView, swapchainExtent);
+	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, geometryRenderPass, renderPass, depthImageView, swapchainExtent);
 
 	if (extentChanged)
 	{
 		// Destroy old pipeline
-		vkDestroyPipeline(logicalDevice, depthPrePipeline, nullptr);
-		vkDestroyPipeline(logicalDevice, deferredPipeline, nullptr);
+		vkDestroyPipeline(logicalDevice, depthPipeline, nullptr);
+		vkDestroyPipeline(logicalDevice, geometryPipeline, nullptr);
 		vkDestroyPipeline(logicalDevice, shadingPipeline, nullptr);
 
 		// Create new pipeline
-		WillEngine::VulkanUtil::createDepthPrePipeline(logicalDevice, depthPrePipeline, depthPrePipelineLayout, depthPreRenderPass, depthPreVertShader,
-			depthPreFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
-		WillEngine::VulkanUtil::createDeferredPipeline(logicalDevice, deferredPipeline, deferredPipelineLayout, deferredRenderPass, geometryVertShader,
+		WillEngine::VulkanUtil::createDepthPipeline(logicalDevice, depthPipeline, depthPipelineLayout, depthRenderPass, depthVertShader,
+			depthFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
+		WillEngine::VulkanUtil::createGeometryPipeline(logicalDevice, geometryPipeline, geometryPipelineLayout, geometryRenderPass, geometryVertShader,
 			geometryFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
 		WillEngine::VulkanUtil::createShadingPipeline(logicalDevice, shadingPipeline, shadingPipelineLayout, renderPass, shadingVertShader,
 			shadingFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
@@ -726,7 +640,7 @@ void VulkanEngine::createDepthBuffer(VkDevice& logicalDevice, VmaAllocator& vmaA
 }
 
 void VulkanEngine::createSwapchainFramebuffer(VkDevice& logicalDevice, std::vector<VkImageView>& swapchainImageViews, std::vector<VkFramebuffer>& framebuffers, 
-	VulkanFramebuffer& offscreenFramebuffer, VkRenderPass& deferredRenderPass, VkRenderPass& renderPass, VkImageView& depthImageView, VkExtent2D swapchainExtent)
+	VulkanFramebuffer& offscreenFramebuffer, VkRenderPass& geometryRenderPass, VkRenderPass& renderPass, VkImageView& depthImageView, VkExtent2D swapchainExtent)
 {
 	assert(framebuffers.empty());
 
@@ -737,6 +651,7 @@ void VulkanEngine::createSwapchainFramebuffer(VkDevice& logicalDevice, std::vect
 	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.GBuffer2);
 	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.GBuffer3);
 	WillEngine::VulkanUtil::createFramebufferAttachment(logicalDevice, vmaAllocator, VK_FORMAT_R16G16B16A16_SFLOAT, swapchainExtent, offscreenFramebuffer.GBuffer4);
+	
 
 
 	{
@@ -750,7 +665,7 @@ void VulkanEngine::createSwapchainFramebuffer(VkDevice& logicalDevice, std::vect
 
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = deferredRenderPass;
+		framebufferInfo.renderPass = geometryRenderPass;
 		framebufferInfo.attachmentCount = static_cast<u32>(sizeof(attachments) / sizeof(attachments[0]));
 		framebufferInfo.pAttachments = attachments;
 		framebufferInfo.width = swapchainExtent.width;
@@ -943,6 +858,104 @@ void VulkanEngine::initAttachmentDescriptors(VkDevice& logicalDevice, VkDescript
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 2, imageViews.size());
 }
 
+void VulkanEngine::initGeometryPipeline(VkDevice& logicalDevice)
+{
+	// Set up shader modules
+	WillEngine::VulkanUtil::initGeometryShaderModule(logicalDevice, geometryVertShader, geometryFragShader);
+
+	// Create pipeline and pipeline layout
+	VkDescriptorSetLayout layouts[] = { sceneDescriptorSetLayout, textureDescriptorSetLayout };
+	u32 descriptorSetLayoutSize = sizeof(layouts) / sizeof(layouts[0]);
+
+	VkPushConstantRange pushConstants[1];
+	// Push constant object for model matrix to be used in vertex shader
+	pushConstants[0].offset = 0;
+	pushConstants[0].size = sizeof(mat4);
+	pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	u32 pushConstantCount = sizeof(pushConstants) / sizeof(pushConstants[0]);
+
+	// Create deferred pipeline layout with our just created push constant
+	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, geometryPipelineLayout,
+		descriptorSetLayoutSize, layouts, pushConstantCount, pushConstants);
+
+	// Create deferred pipeline
+	WillEngine::VulkanUtil::createGeometryPipeline(logicalDevice, geometryPipeline, geometryPipelineLayout,
+		geometryRenderPass, geometryVertShader, geometryFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
+}
+
+void VulkanEngine::initDepthPipeline(VkDevice& logicalDevice)
+{
+	VkDescriptorSetLayout depthLayouts[] = { sceneDescriptorSetLayout };
+	u32 depthDescriptorSetLayoutSize = sizeof(depthLayouts) / sizeof(depthLayouts[0]);
+
+	createDepthFramebuffer(logicalDevice, depthFrameBuffer, depthRenderPass, swapchainExtent);
+
+	WillEngine::VulkanUtil::initDepthShaderModule(logicalDevice, depthVertShader, depthFragShader);
+
+	VkPushConstantRange pushConstants[1];
+	// Push constant object for model matrix to be used in vertex shader
+	pushConstants[0].offset = 0;
+	pushConstants[0].size = sizeof(mat4);
+	pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	u32 pushConstantCount = sizeof(pushConstants) / sizeof(pushConstants[0]);
+
+	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, depthPipelineLayout, depthDescriptorSetLayoutSize, depthLayouts, pushConstantCount, pushConstants);
+
+	WillEngine::VulkanUtil::createDepthPipeline(logicalDevice, depthPipeline, depthPipelineLayout, depthRenderPass, depthVertShader, depthFragShader,
+		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
+}
+
+void VulkanEngine::initShadowPipeline(VkDevice& logicalDevice)
+{
+	// Create an image, imageview and sampler for point light's cube shadow map
+	shadowCubeMap = WillEngine::VulkanUtil::createImageWithFlags(logicalDevice, vmaAllocator, shadowDepthFormat,
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT,
+		1024, 1024, 1, 6);
+
+	WillEngine::VulkanUtil::createDepthImageView(logicalDevice, shadowCubeMap.image, shadowCubeMapView, 6, shadowDepthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+	WillEngine::VulkanUtil::createDepthSampler(logicalDevice, shadowSampler);
+
+	// Shadow Framebuffer
+	createShadowFramebuffer(logicalDevice, shadowFrameBuffer, shadowRenderPass, 1024, 1024);
+
+	VkDescriptorSetLayout layout[] = { lightMatrixDescriptorSetLayout, lightDescriptorSetLayout };
+	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
+
+	VkPushConstantRange pushConstant[1];
+	pushConstant[0].offset = 0;
+	pushConstant[0].size = sizeof(mat4);
+	pushConstant[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	u32 pushConstantCount = sizeof(pushConstant) / sizeof(pushConstant[0]);
+
+	WillEngine::VulkanUtil::initShadowShaderModule(logicalDevice, shadowVertShader, shadowGeomShader, shadowFragShader);
+
+	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, shadowPipelineLayout, layoutSize, layout, pushConstantCount, pushConstant);
+
+	WillEngine::VulkanUtil::createShadowPipeline(logicalDevice, shadowPipeline, shadowPipelineLayout, shadowRenderPass, shadowVertShader, shadowGeomShader,
+		shadowFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 1024, 1024);
+}
+
+void VulkanEngine::initShadingPipeline(VkDevice& logicalDevice)
+{
+	// Initialise frame buffer attachments as descriptors
+	initAttachmentDescriptors(logicalDevice, descriptorPool);
+
+	initShadowMapDescriptors(logicalDevice, descriptorPool);
+
+	WillEngine::VulkanUtil::initShadingShaderModule(logicalDevice, shadingVertShader, shadingFragShader);
+
+	VkDescriptorSetLayout layout[] = { lightDescriptorSetLayout, cameraDescriptorSetLayout, attachmentDescriptorSetLayouts, shadowMapDescriptorSetLayouts };
+	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
+
+	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, shadingPipelineLayout, layoutSize, layout, 0, nullptr);
+
+	WillEngine::VulkanUtil::createShadingPipeline(logicalDevice, shadingPipeline, shadingPipelineLayout, renderPass, shadingVertShader, shadingFragShader,
+		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
+}
+
 void VulkanEngine::initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue,
 	VkSurfaceKHR& surface)
 {
@@ -1057,8 +1070,8 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 
 	VkRenderPassBeginInfo renderPassBeginInfo{};
 	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassBeginInfo.renderPass = depthPreRenderPass;
-	renderPassBeginInfo.framebuffer = depthPreFrameBuffer;
+	renderPassBeginInfo.renderPass = depthRenderPass;
+	renderPassBeginInfo.framebuffer = depthFrameBuffer;
 	renderPassBeginInfo.renderArea.extent = extent;
 	renderPassBeginInfo.clearValueCount = static_cast<u32>(sizeof(clearValue) / sizeof(clearValue[0]));
 	renderPassBeginInfo.pClearValues = clearValue;
@@ -1066,10 +1079,10 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 	vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 	// Bind pipeline
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPrePipeline);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPipeline);
 
 	// Bind Scene Uniform Buffer
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPrePipelineLayout, 0, 1, &sceneDescriptorSet, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPipelineLayout, 0, 1, &sceneDescriptorSet, 0, nullptr);
 
 	for (auto mesh : meshes)
 	{
@@ -1084,7 +1097,7 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 
 		// Push constant for model matrix
 		mesh->updateForPushConstant();
-		vkCmdPushConstants(commandBuffer, depthPrePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mesh->pushConstant), &mesh->pushConstant);
+		vkCmdPushConstants(commandBuffer, depthPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mesh->pushConstant), &mesh->pushConstant);
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 	}
@@ -1094,8 +1107,9 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 
 void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent)
 {
-	VkClearValue clearValue[6];
+	VkClearValue clearValue[5];
 	// Clear attachments
+	// We're not clearing depth as we're using compare_equal to the depth buffer from depth pre-pass
 	for (u32 i = 0; i < 5; i++)
 	{
 		clearValue[i].color.float32[0] = 0.0f;
@@ -1103,13 +1117,11 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 		clearValue[i].color.float32[2] = 0.0f;
 		clearValue[i].color.float32[3] = 1.0f;
 	}
-	// Clear Depth
-	clearValue[5].depthStencil.depth = 1.0f;
 
 	// Begin Render Pass
 	VkRenderPassBeginInfo renderPassBeginInfo{};
 	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassBeginInfo.renderPass = deferredRenderPass;
+	renderPassBeginInfo.renderPass = geometryRenderPass;
 	renderPassBeginInfo.framebuffer = offscreenFramebuffer.framebuffer;
 	renderPassBeginInfo.renderArea.extent = extent;
 	renderPassBeginInfo.clearValueCount = static_cast<u32>(sizeof(clearValue) / sizeof(clearValue[0]));
@@ -1118,10 +1130,10 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 	vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 	// Bind default pipeline
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredPipeline);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipeline);
 
 	// Bind Scene Uniform Buffer
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredPipelineLayout, 0, 1, &sceneDescriptorSet, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 0, 1, &sceneDescriptorSet, 0, nullptr);
 
 	for (auto mesh : meshes)
 	{
@@ -1135,11 +1147,11 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 		// Bind Texture
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredPipelineLayout, 1, 1, &materials[mesh->materialIndex]->textureDescriptorSet, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1, &materials[mesh->materialIndex]->textureDescriptorSet, 0, nullptr);
 
 		// Push constant for model matrix
 		mesh->updateForPushConstant();
-		vkCmdPushConstants(commandBuffer, deferredPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mesh->pushConstant), &mesh->pushConstant);
+		vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mesh->pushConstant), &mesh->pushConstant);
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 	}
@@ -1191,7 +1203,7 @@ void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 
 		// Push constant for model matrix
 		mesh->updateForPushConstant();
-		vkCmdPushConstants(commandBuffer, deferredPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mesh->pushConstant), &mesh->pushConstant);
+		vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mesh->pushConstant), &mesh->pushConstant);
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 	}

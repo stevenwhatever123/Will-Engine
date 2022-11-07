@@ -43,8 +43,8 @@ public:
 
 	VmaAllocator vmaAllocator;
 
-	VkRenderPass depthPreRenderPass;
-	VkRenderPass deferredRenderPass;
+	VkRenderPass depthRenderPass;
+	VkRenderPass geometryRenderPass;
 	VkRenderPass shadowRenderPass;
 	VkRenderPass renderPass;
 
@@ -66,7 +66,7 @@ public:
 	VkFramebuffer shadowFrameBuffer;
 
 	// Framebuffer for depth pre-pass
-	VkFramebuffer depthPreFrameBuffer;
+	VkFramebuffer depthFrameBuffer;
 
 	// Framebuffer
 	std::vector<VkFramebuffer> framebuffers;
@@ -92,8 +92,8 @@ public:
 	VkDescriptorPool descriptorPool;
 
 	// Pipeline and pipeline layout (Blinn Phong Shader)
-	VkPipelineLayout deferredPipelineLayout;
-	VkPipeline deferredPipeline;
+	VkPipelineLayout geometryPipelineLayout;
+	VkPipeline geometryPipeline;
 	// Pipeline for Shading
 	VkPipelineLayout shadingPipelineLayout;
 	VkPipeline shadingPipeline;
@@ -101,8 +101,8 @@ public:
 	VkPipelineLayout shadowPipelineLayout;
 	VkPipeline shadowPipeline;
 	// Pipeline for depth pre pass
-	VkPipelineLayout depthPrePipelineLayout;
-	VkPipeline depthPrePipeline;
+	VkPipelineLayout depthPipelineLayout;
+	VkPipeline depthPipeline;
 
 	// Scene Descriptor sets
 	VkDescriptorSetLayout sceneDescriptorSetLayout;
@@ -144,8 +144,8 @@ public:
 	VkShaderModule shadowGeomShader;
 	VkShaderModule shadowFragShader;
 
-	VkShaderModule depthPreVertShader;
-	VkShaderModule depthPreFragShader;
+	VkShaderModule depthVertShader;
+	VkShaderModule depthFragShader;
 
 	// ======================================
 	VulkanAllocatedImage shadowCubeMap;
@@ -193,7 +193,7 @@ public:
 	void createDepthBuffer(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, const VkExtent2D& swapchainExtent);
 
 	void createSwapchainFramebuffer(VkDevice& logicalDevice, std::vector<VkImageView>& swapchainImageViews,
-		std::vector<VkFramebuffer>& framebuffers, VulkanFramebuffer& offscreenFramebuffer, VkRenderPass& deferredRenderPass, VkRenderPass& renderPass, VkImageView& depthImageView, 
+		std::vector<VkFramebuffer>& framebuffers, VulkanFramebuffer& offscreenFramebuffer, VkRenderPass& geometryRenderPass, VkRenderPass& renderPass, VkImageView& depthImageView, 
 		VkExtent2D swapchainExtent);
 
 	void createShadowFramebuffer(VkDevice& logicalDevice, VkFramebuffer& shadowFramebuffer, VkRenderPass& shadowRenderPass, u32 width, u32 height);
@@ -219,6 +219,12 @@ public:
 
 	// Initialise descriptor sets for deferred rendering
 	void initAttachmentDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
+
+	// Pipeline init
+	void initGeometryPipeline(VkDevice& logicalDevice);
+	void initDepthPipeline(VkDevice& logicalDevice);
+	void initShadowPipeline(VkDevice& logicalDevice);
+	void initShadingPipeline(VkDevice& logicalDevice);
 
 	// GUI
 	void initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue, VkSurfaceKHR& surface);

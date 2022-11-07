@@ -27,10 +27,12 @@ void main()
 	lod = textureQueryLod(texColor[2], texCoord).x;
 	vec4 tAlbedo = texture(texColor[2], texCoord, lod);
 
-	lod = textureQueryLod(texColor[3], texCoord).x;
+	// As the texture of metallic and roughness map is using the same value for all pixels. Sample the texture using min lod to save performance
+	// 30 should be enough to select the lowest lod for all textures in different resolution
+	lod = 30;
 	float tMetallic = texture(texColor[3], texCoord, lod).r;
 
-	lod = textureQueryLod(texColor[4], texCoord).x;
+	lod = 30;
 	float tRoughness = texture(texColor[4], texCoord, lod).r;
 
 	GBuffer0 = vec4(vec3(tPosition), tMetallic);
