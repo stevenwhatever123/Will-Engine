@@ -111,21 +111,21 @@ void main()
 	// D - The normal distribution
 	float alpha = roughness * roughness;
 	float alphaSq = alpha * alpha;
-	float normalDotHalfVector = max(0, dot(normal, halfVector));
+	float normalDotHalfVector = max(0.001, dot(normal, halfVector));
 	float normalDotHalfVectorSq = normalDotHalfVector * normalDotHalfVector;
-	float d = alphaSq / (radians(180) * (pow(normalDotHalfVectorSq * (alpha - 1) + 1, 2)));
+	float d = max(0.001, alphaSq / (radians(180) * (pow(normalDotHalfVectorSq * (alpha - 1) + 1, 2))));
 
 	// The result of BRDF specular
-	vec4 specular = (f * g * d) / (4 * max(0, dot(normal, lightDirection)) * max(0, dot(normal, viewDirection)) + 0.0001);
-	vec4 brdfSpecular = specular;
+	vec4 specular = (f * g * d) / (4 * max(0.001, dot(normal, lightDirection)) * max(0.001, dot(normal, viewDirection)) + 0.0001);
 
 	// BRDF Diffuse
 	// Using the formula of (1 - F(v*h))(cDiff / pi)
-	vec4 cDiff = mix(albedo * (1 - dielectricSpecular.x), black, metallic);
+	vec4 cDiff = mix(albedo * (1 - dielectricSpecular.r), black, metallic);
+	//vec4 cDiff = mix(black, albedo * (1 - dielectricSpecular.r), metallic);
 	vec4 diffuse = (1 - f) * (cDiff / radians(180));
-	vec4 brdfDiffuse = diffuse;
 
-	vec4 brdfResult = (diffuse + specular) * lightColor * intensity * max(0, dot(normal, lightDirection));
+	vec4 brdfResult = (diffuse + specular) * lightColor * intensity * max(0.001, dot(normal, lightDirection));
+	//vec4 brdfResult = cDiff;
 
 	float shadow = ShadowCalculation(position, normal);
 
