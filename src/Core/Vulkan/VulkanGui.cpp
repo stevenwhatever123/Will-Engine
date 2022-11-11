@@ -50,6 +50,8 @@ void VulkanGui::init(GLFWwindow* window, VkInstance& instance, VkDevice& logical
 	ImGui::CreateContext();
 
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	// Enable Docking
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
 	ImGui::StyleColorsDark();
 
@@ -113,55 +115,114 @@ void VulkanGui::cleanUp(VkDevice& logicalDevice)
 	ImGui::DestroyContext();
 }
 
-void VulkanGui::update(bool renderWithBRDF, VulkanFramebuffer& attachments, std::vector<Mesh*>& meshes, std::vector<Material*>& materials, std::vector<Light*>& lights, bool& updateTexture, bool& updateColor,
+void VulkanGui::setLayout()
+{
+	const ImGuiViewport* viewport = ImGui::GetMainViewport();
+	ImGui::SetNextWindowPos(viewport->WorkPos);
+	ImGui::SetNextWindowSize(viewport->WorkSize);
+	ImGui::SetNextWindowViewport(viewport->ID);
+
+	ImGui::DockSpaceOverViewport();
+
+	ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+
+	ImGui::DockBuilderRemoveNode(dockspace_id);
+	ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_None);
+
+	ImGui::DockBuilderSetNodeSize(dockspace_id, ImGui::GetMainViewport()->WorkSize);
+	ImGui::DockBuilderSetNodePos(dockspace_id, ImGui::GetMainViewport()->WorkPos);
+
+	ImGuiID dock_left_id = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.15f, nullptr, &dockspace_id);
+	ImGuiID dock_left_down_id = ImGui::DockBuilderSplitNode(dock_left_id, ImGuiDir_Down, 0.2f, nullptr, &dock_left_id);
+	ImGuiID dock_right_id = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, 0.23f, nullptr, &dockspace_id);
+
+
+	ImGui::DockBuilderDockWindow("Scene", dockspace_id);
+	ImGui::DockBuilderDockWindow("Meshes Viewer", dock_left_id);
+	ImGui::DockBuilderDockWindow("Light Control", dock_left_down_id);
+	ImGui::DockBuilderDockWindow("Material Viewer", dock_right_id);
+	ImGui::DockBuilderDockWindow("Rendering Debugger", dock_right_id);
+
+	firstLoop = false;
+}
+
+void VulkanGui::updateMenuBar()
+{
+	if (ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::BeginMenu("Options"))
+		{
+			if (ImGui::MenuItem("Fullscreen", NULL, nullptr))
+			{
+				printf("Hello World\n");
+			}
+
+			ImGui::EndMenu();
+		}
+
+		ImGui::EndMainMenuBar();
+	}
+}
+
+void VulkanGui::update(VkDescriptorSet& shadedImage, VulkanFramebuffer& attachments, std::vector<Mesh*>& meshes, std::vector<Material*>& materials, std::vector<Light*>& lights, bool& updateTexture, bool& updateColor,
 	u32& materialIndex, u32& textureIndex, std::string& textureFilepath)
 {
+	const ImGuiViewport* viewport = ImGui::GetMainViewport();
+	ImGui::SetNextWindowPos(viewport->WorkPos);
+	ImGui::SetNextWindowSize(viewport->WorkSize);
+
 	ImGuiIO& io = ImGui::GetIO();
 
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 
-	if(show_demo_window)
-		ImGui::ShowDemoWindow(&show_demo_window);
+	if (firstLoop)
+		setLayout();
 
-	ImGui::Begin("Meshes Viewer");
+	updateMenuBar();
 
-	for (u32 i = 0; i < meshes.size(); i++)
+	//if(show_demo_window)
+	//	ImGui::ShowDemoWindow(&show_demo_window);
+
 	{
-		ImGui::PushID(i);
+		ImGui::Begin("Meshes Viewer");
 
-		if (ImGui::TreeNode(meshes[i]->name.c_str()))
-		{
-
-			ImGui::DragFloat3("Position", &meshes[i]->transformPosition.x, 0.1f);
-
-			ImGui::Text("Material: %s", materials[meshes[i]->materialIndex]->name.c_str());
-
-			ImGui::Image((ImTextureID) materials[meshes[i]->materialIndex]->textures[2].imguiTextureDescriptorSet, ImVec2(200, 200));
-
-			ImGui::TreePop();
-		}
-
-		ImGui::PopID();
-	}
-	ImGui::End();
-
-
-
-	ImGui::Begin("Material Viewer");
-
-	std::string phongMaterials[4] = { "Emissive", "Ambient", "Diffuse", "Specular" };
-	std::string brdfMaterials[5] = { "Emissive", "Ambient", "Albedo", "Metallic", "Roughness" };
-
-	for (u32 i = 0; i < materials.size(); i++)
-	{
-		if (ImGui::TreeNode(materials[i]->name.c_str()))
+		for (u32 i = 0; i < meshes.size(); i++)
 		{
 			ImGui::PushID(i);
 
-			if (renderWithBRDF)
+			if (ImGui::TreeNode(meshes[i]->name.c_str()))
 			{
+
+				ImGui::DragFloat3("Position", &meshes[i]->transformPosition.x, 0.1f);
+
+				ImGui::Text("Material: %s", materials[meshes[i]->materialIndex]->name.c_str());
+
+				ImGui::Image((ImTextureID)materials[meshes[i]->materialIndex]->textures[2].imguiTextureDescriptorSet, ImVec2(200, 200));
+
+				ImGui::TreePop();
+			}
+
+			ImGui::PopID();
+		}
+		ImGui::End();
+	}
+
+
+
+	{
+		ImGui::Begin("Material Viewer");
+
+		std::string phongMaterials[4] = { "Emissive", "Ambient", "Diffuse", "Specular" };
+		std::string brdfMaterials[5] = { "Emissive", "Ambient", "Albedo", "Metallic", "Roughness" };
+
+		for (u32 i = 0; i < materials.size(); i++)
+		{
+			if (ImGui::TreeNode(materials[i]->name.c_str()))
+			{
+				ImGui::PushID(i);
+
 				// BRDF materials
 				if (ImGui::BeginTable("BRDF material", 1, ImGuiTableFlags_BordersV))
 				{
@@ -292,157 +353,54 @@ void VulkanGui::update(bool renderWithBRDF, VulkanFramebuffer& attachments, std:
 
 					ImGui::PopID();
 				}
+
+				ImGui::PopID();
+
+				ImGui::TreePop();
 			}
-			else
-			{
-				// Phong materials
-				if (ImGui::BeginTable("Phong material", 1, ImGuiTableFlags_BordersV))
-				{
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Phong material properties");
-
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					vec4 emissiveTemp = materials[i]->phongMaterialUniform.emissiveColor;
-					ImGui::DragFloat3("Emissive", &materials[i]->phongMaterialUniform.emissiveColor.x, 0.01f, 0, 1);
-					vec4 emissiveDiff = glm::epsilonNotEqual(emissiveTemp, materials[i]->phongMaterialUniform.emissiveColor, 0.0001f);
-					if (emissiveDiff.x || emissiveDiff.y || emissiveDiff.z)
-					{
-						updateColor = true;
-						materialIndex = i;
-						textureIndex = 0;
-					}
-
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					vec4 ambientTemp = materials[i]->phongMaterialUniform.ambientColor;
-					ImGui::DragFloat3("Ambient", &materials[i]->phongMaterialUniform.ambientColor.x, 0.01f, 0, 1);
-					vec4 ambientDiff = glm::epsilonNotEqual(ambientTemp, materials[i]->phongMaterialUniform.ambientColor, 0.0001f);
-					if (ambientDiff.x || ambientDiff.y || ambientDiff.z)
-					{
-						updateColor = true;
-						materialIndex = i;
-						textureIndex = 1;
-					}
-
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					vec4 diffuseTemp = materials[i]->phongMaterialUniform.diffuseColor;
-					ImGui::DragFloat3("Diffuse", &materials[i]->phongMaterialUniform.diffuseColor.x, 0.01f, 0, 1);
-					vec4 diffuseDiff = glm::epsilonNotEqual(diffuseTemp, materials[i]->phongMaterialUniform.diffuseColor, 0.0001f);
-					if (diffuseDiff.x || diffuseDiff.y || diffuseDiff.z)
-					{
-						updateColor = true;
-						materialIndex = i;
-						textureIndex = 2;
-					}
-
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					vec4 specularTemp = materials[i]->phongMaterialUniform.specularColor;
-					ImGui::DragFloat3("Specular", &materials[i]->phongMaterialUniform.specularColor.x, 0.01f, 0, 1);
-					vec4 specularDiff = glm::epsilonNotEqual(specularTemp, materials[i]->phongMaterialUniform.specularColor, 0.0001f);
-					if (specularDiff.x || specularDiff.y || specularDiff.z)
-					{
-						updateColor = true;
-						materialIndex = i;
-						textureIndex = 3;
-					}
-
-					for (u32 j = 0; j < 4; j++)
-					{
-						ImGui::PushID(j);
-
-						ImGui::Text(phongMaterials[j].c_str());
-
-						bool lastUseTexture = materials[i]->textures[j].useTexture;
-						ImGui::Checkbox("Use Texture", &materials[i]->textures[j].useTexture);
-
-						bool checkBoxChanged = (lastUseTexture == true && materials[i]->textures[j].useTexture == false)
-							|| (lastUseTexture == false && materials[i]->textures[j].useTexture == true);
-
-						if (checkBoxChanged)
-						{
-							if (materials[i]->textures[j].useTexture)
-							{
-								updateTexture = true;
-								materialIndex = i;
-								textureIndex = j;
-							}
-							else
-							{
-								updateColor = true;
-								materialIndex = i;
-								textureIndex = j;
-							}
-						}
-
-						if (materials[i]->hasTexture(j, materials[i]->textures) || materials[i]->textures[j].useTexture)
-						{
-							if (ImGui::ImageButton((ImTextureID)materials[i]->textures[j].imguiTextureDescriptorSet, ImVec2(150, 150)))
-							{
-								bool readSuccess;
-								std::string filename;
-
-								std::tie(readSuccess, filename) = WillEngine::Utils::selectFile();
-
-								if (!readSuccess)
-								{
-									printf("Failed to read %s\n", filename.c_str());
-
-									updateTexture = false;
-									materialIndex = 0;
-									textureIndex = 0;
-									textureFilepath = "";
-								}
-								else
-								{
-									updateTexture = true;
-									materialIndex = i;
-									textureIndex = j;
-									textureFilepath = filename;
-								}
-							}
-						}
-						ImGui::PopID();
-					}
-
-					ImGui::EndTable();
-				}
-			}
-			ImGui::PopID();
-
-			ImGui::TreePop();
-		}
-	}
-
-	ImGui::End();
-
-
-
-	if (lights.size() > 0)
-	{
-		ImGui::Begin("Light Control");
-
-		for (u32 i = 0; i < lights.size(); i++)
-		{
-			ImGui::PushID(i);
-
-			ImGui::Text("Light %u", i);
-
-			ImGui::DragFloat3("", &lights[i]->position.x, 0.1f);
-
-			ImGui::DragFloat("Intensity", &lights[i]->lightUniform.intensity, 0.1f, 0, 100);
-
-			ImGui::PopID();
 		}
 
 		ImGui::End();
 	}
+	
+
 
 	{
-		ImGui::Begin("Rendering control");
+		ImGui::Begin("Scene");
+
+		ImVec2 extent(ImGui::GetWindowWidth(), ImGui::GetWindowHeight());
+
+		ImGui::Image((ImTextureID)shadedImage, extent);
+
+		ImGui::End();
+	}
+
+
+
+	{
+		if (lights.size() > 0)
+		{
+			ImGui::Begin("Light Control");
+
+			for (u32 i = 0; i < lights.size(); i++)
+			{
+				ImGui::PushID(i);
+
+				ImGui::Text("Light %u", i);
+
+				ImGui::DragFloat3("", &lights[i]->position.x, 0.1f);
+
+				ImGui::DragFloat("Intensity", &lights[i]->lightUniform.intensity, 0.1f, 0, 100);
+
+				ImGui::PopID();
+			}
+
+			ImGui::End();
+		}
+	}
+
+	{
+		ImGui::Begin("Rendering Debugger");
 
 		ImGui::Text("GBuffer0");
 		ImGui::Image((ImTextureID)attachments.GBuffer0.imguiTextureDescriptorSet, ImVec2(352, 240));
@@ -473,4 +431,9 @@ void VulkanGui::renderUI(VkCommandBuffer& commandBuffer, VkExtent2D extent)
 	{
 		ImGui_ImplVulkan_RenderDrawData(draw_data, commandBuffer);
 	}
+}
+
+VkDescriptorPool& VulkanGui::getDescriptorPool()
+{
+	return imguiDescriptorPool;
 }

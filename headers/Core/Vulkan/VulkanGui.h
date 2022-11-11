@@ -19,6 +19,8 @@ public:
 	bool show_another_window = false;
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
+	bool firstLoop = true;
+
 public:
 
 	VulkanGui();
@@ -26,11 +28,17 @@ public:
 
 	void init(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface,
 		u32 queueFamily, VkCommandPool& commandPool, VkDescriptorPool& descriptorPool, u32 imageCount, VkRenderPass& renderPass, VkExtent2D extent);
-
 	void cleanUp(VkDevice& logicalDevice);
 
-	void update(bool renderWithBRDF, VulkanFramebuffer& attachments, std::vector<Mesh*>& meshes, std::vector<Material*>& materials, std::vector<Light*>& lights, bool& updateTexture, bool& updateColor,
-		u32& materialIndex, u32& textureIndex, std::string& textureFilepath);
+	void setLayout();
+
+	void updateMenuBar();
+
+	void update(VkDescriptorSet& shadedImage, VulkanFramebuffer& attachments, std::vector<Mesh*>& meshes, std::vector<Material*>& materials, std::vector<Light*>& lights, 
+		bool& updateTexture, bool& updateColor, u32& materialIndex, u32& textureIndex, std::string& textureFilepath);
 
 	void renderUI(VkCommandBuffer& commandBuffer, VkExtent2D extent);
+
+	// Getters
+	VkDescriptorPool& getDescriptorPool();
 };

@@ -9,7 +9,7 @@ VulkanEngine::VulkanEngine() :
 	lights(),
 	vmaAllocator(VK_NULL_HANDLE),
 	geometryRenderPass(VK_NULL_HANDLE),
-	renderPass(VK_NULL_HANDLE),
+	shadingRenderPass(VK_NULL_HANDLE),
 	swapchain(VK_NULL_HANDLE),
 	swapchainImageFormat(),
 	depthImageView(VK_NULL_HANDLE),
@@ -62,13 +62,18 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	createSwapchainImageViews(logicalDevice);
 
 	createDepthPrePass(logicalDevice, depthRenderPass, depthFormat);
-	createRenderPass(logicalDevice, renderPass, swapchainImageFormat, depthFormat);
+	createShadingRenderPass(logicalDevice, shadingRenderPass, swapchainImageFormat, depthFormat);
 	createShadowRenderPass(logicalDevice, shadowRenderPass, shadowDepthFormat);
 	createGeometryRenderPass(logicalDevice, geometryRenderPass, VK_FORMAT_R16G16B16A16_SFLOAT, depthFormat);
+	createPresentRenderPass(logicalDevice, presentRenderPass, swapchainImageFormat);
 
 	createDepthBuffer(logicalDevice, vmaAllocator, swapchainExtent);
 
-	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, geometryRenderPass, renderPass, depthImageView, swapchainExtent);
+	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, geometryRenderPass, shadingRenderPass, depthImageView, swapchainExtent);
+
+	WillEngine::VulkanUtil::createShadingImage(logicalDevice, vmaAllocator, swapchainImageFormat, swapchainExtent, shadingImage, shadingImageView);
+
+	createShadingFramebuffer(logicalDevice, shadingFrameBuffer, shadingRenderPass, swapchainExtent);
 
 	WillEngine::VulkanUtil::createAttachmentSampler(logicalDevice, attachmentSampler);
 
@@ -115,6 +120,8 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	initDepthPipeline(logicalDevice);
 	initShadowPipeline(logicalDevice);
 	initShadingPipeline(logicalDevice);
+
+	initRenderedDescriptors(logicalDevice, descriptorPool);
 }
 
 void VulkanEngine::cleanup(VkDevice& logicalDevice)
@@ -204,7 +211,7 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	vkDestroySwapchainKHR(logicalDevice, swapchain, nullptr);
 
 	// Destroy Render Pass
-	vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
+	vkDestroyRenderPass(logicalDevice, shadingRenderPass, nullptr);
 }
 
 void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, 
@@ -251,7 +258,8 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	// Update ImGui UI
 	updateGui(logicalDevice, graphicsQueue, renderWithBRDF);
 
-	recordCommands(commandBuffers[imageIndex], renderPass, framebuffers[imageIndex], swapchainExtent);
+	//recordCommands(commandBuffers[imageIndex], shadingRenderPass, framebuffers[imageIndex], swapchainExtent);
+	recordCommands(commandBuffers[imageIndex], framebuffers[imageIndex], swapchainExtent);
 
 	submitCommands(commandBuffers[imageIndex], imageAvailable, renderFinished, graphicsQueue, fences[imageIndex]);
 
@@ -310,7 +318,39 @@ void VulkanEngine::createDepthPrePass(VkDevice& logicalDevice, VkRenderPass& ren
 		throw std::runtime_error("Failed to create render pass");
 }
 
-void VulkanEngine::createRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, VkFormat& format, const VkFormat& depthFormat)
+void VulkanEngine::createPresentRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, const VkFormat& format)
+{
+	VkAttachmentDescription attachments[1]{};
+	attachments[0].format = format;
+	attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
+	attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+	// The out location of the fragment shader
+	// 0 is the color value for the framebuffer
+	VkAttachmentReference colorAttachment{};
+	colorAttachment.attachment = 0;
+	colorAttachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	VkSubpassDescription subpasses[1]{};
+	subpasses[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpasses[0].colorAttachmentCount = 1;
+	subpasses[0].pColorAttachments = &colorAttachment;
+
+	VkRenderPassCreateInfo passInfo{};
+	passInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	passInfo.attachmentCount = static_cast<u32>(sizeof(attachments) / sizeof(attachments[0]));
+	passInfo.pAttachments = attachments;
+	passInfo.subpassCount = static_cast<u32>(sizeof(subpasses) / sizeof(subpasses[0]));
+	passInfo.pSubpasses = subpasses;
+
+	if (vkCreateRenderPass(logicalDevice, &passInfo, nullptr, &renderPass) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create render pass");
+}
+
+void VulkanEngine::createShadingRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, VkFormat& format, const VkFormat& depthFormat)
 {
 	VkAttachmentDescription attachments[1]{};
 	// Framebuffer
@@ -319,7 +359,7 @@ void VulkanEngine::createRenderPass(VkDevice& logicalDevice, VkRenderPass& rende
 	attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 	attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	attachments[0].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 	// The out location of the fragment shader
 	// 0 is the color value for the framebuffer
@@ -572,7 +612,8 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 	{
 		createDepthPrePass(logicalDevice, depthRenderPass, depthFormat);
 		createGeometryRenderPass(logicalDevice, geometryRenderPass, swapchainImageFormat, depthFormat);
-		createRenderPass(logicalDevice, renderPass, swapchainImageFormat, depthFormat);
+		createShadingRenderPass(logicalDevice, shadingRenderPass, swapchainImageFormat, depthFormat);
+		createPresentRenderPass(logicalDevice, presentRenderPass, swapchainImageFormat);
 	}
 
 	if (extentChanged)
@@ -583,6 +624,12 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 
 		// Create a new depth buffer
 		createDepthBuffer(logicalDevice, vmaAllocator, swapchainExtent);
+
+		// Shading
+		vkDestroyImageView(logicalDevice, shadingImageView, nullptr);
+		vmaDestroyImage(vmaAllocator, shadingImage.image, shadingImage.allocation);
+
+		vkFreeDescriptorSets(logicalDevice, vulkanGui->getDescriptorPool(), 1, &imguiRenderedDescriptorSet);
 	}
 
 	// Recreate framebuffers
@@ -606,9 +653,17 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 
 	vkDestroyFramebuffer(logicalDevice, depthFrameBuffer, nullptr);
 
+	vkDestroyFramebuffer(logicalDevice, shadingFrameBuffer, nullptr);
+
+
 	createDepthFramebuffer(logicalDevice, depthFrameBuffer, depthRenderPass, swapchainExtent);
 
-	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, geometryRenderPass, renderPass, depthImageView, swapchainExtent);
+	WillEngine::VulkanUtil::createShadingImage(logicalDevice, vmaAllocator, swapchainImageFormat, swapchainExtent, shadingImage, shadingImageView);
+	imguiRenderedDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, shadingImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	createShadingFramebuffer(logicalDevice, shadingFrameBuffer, shadingRenderPass, swapchainExtent);
+
+
+	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, geometryRenderPass, shadingRenderPass, depthImageView, swapchainExtent);
 
 	if (extentChanged)
 	{
@@ -622,7 +677,7 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 			depthFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
 		WillEngine::VulkanUtil::createGeometryPipeline(logicalDevice, geometryPipeline, geometryPipelineLayout, geometryRenderPass, geometryVertShader,
 			geometryFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
-		WillEngine::VulkanUtil::createShadingPipeline(logicalDevice, shadingPipeline, shadingPipelineLayout, renderPass, shadingVertShader,
+		WillEngine::VulkanUtil::createShadingPipeline(logicalDevice, shadingPipeline, shadingPipelineLayout, shadingRenderPass, shadingVertShader,
 			shadingFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
 
 		// Recreate attachment descriptor sets
@@ -717,6 +772,24 @@ void VulkanEngine::createShadowFramebuffer(VkDevice& logicalDevice, VkFramebuffe
 	framebufferInfo.layers = 6;
 
 	if (vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &shadowFrameBuffer) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create framebuffer");
+}
+
+void VulkanEngine::createShadingFramebuffer(VkDevice& logicalDevice, VkFramebuffer& shadingFramebuffer, VkRenderPass& shadingRenderPass, VkExtent2D extent)
+{
+	VkImageView attachments[1]{};
+	attachments[0] = shadingImageView;
+
+	VkFramebufferCreateInfo framebufferInfo{};
+	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	framebufferInfo.renderPass = shadingRenderPass;
+	framebufferInfo.attachmentCount = static_cast<u32>(sizeof(attachments) / sizeof(attachments[0]));
+	framebufferInfo.pAttachments = attachments;
+	framebufferInfo.width = extent.width;
+	framebufferInfo.height = extent.height;
+	framebufferInfo.layers = 1;
+
+	if (vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &shadingFramebuffer) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create framebuffer");
 }
 
@@ -858,6 +931,11 @@ void VulkanEngine::initAttachmentDescriptors(VkDevice& logicalDevice, VkDescript
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 2, imageViews.size());
 }
 
+void VulkanEngine::initRenderedDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool)
+{
+	imguiRenderedDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, shadingImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+}
+
 void VulkanEngine::initGeometryPipeline(VkDevice& logicalDevice)
 {
 	// Set up shader modules
@@ -952,7 +1030,7 @@ void VulkanEngine::initShadingPipeline(VkDevice& logicalDevice)
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, shadingPipelineLayout, layoutSize, layout, 0, nullptr);
 
-	WillEngine::VulkanUtil::createShadingPipeline(logicalDevice, shadingPipeline, shadingPipelineLayout, renderPass, shadingVertShader, shadingFragShader,
+	WillEngine::VulkanUtil::createShadingPipeline(logicalDevice, shadingPipeline, shadingPipelineLayout, shadingRenderPass, shadingVertShader, shadingFragShader,
 		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
 }
 
@@ -966,13 +1044,13 @@ void VulkanEngine::initGui(GLFWwindow* window, VkInstance& instance, VkDevice& l
 	if (!graphicsFamilyIndicies.has_value())
 		std::runtime_error("Failed to get graphics queue family index");
 
-	vulkanGui->init(window, instance, logicalDevice, physicalDevice, surface, graphicsFamilyIndicies.value(), commandPool, descriptorPool, numSwapchainImage, renderPass,
+	vulkanGui->init(window, instance, logicalDevice, physicalDevice, surface, graphicsFamilyIndicies.value(), commandPool, descriptorPool, numSwapchainImage, shadingRenderPass,
 		swapchainExtent);
 }
 
 void VulkanEngine::updateGui(VkDevice& logicalDevice, VkQueue& graphicsQueue, bool renderWithBRDF)
 {
-	vulkanGui->update(renderWithBRDF, offscreenFramebuffer, meshes, materials, lights, updateTexture, updateColor, selectedMaterialIndex, 
+	vulkanGui->update(imguiRenderedDescriptorSet, offscreenFramebuffer, meshes, materials, lights, updateTexture, updateColor, selectedMaterialIndex, 
 		selectedTextureIndex, textureFilepath);
 }
 
@@ -992,7 +1070,7 @@ void VulkanEngine::updateLightUniform(Camera* camera)
 	}
 }
 
-void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D& extent)
+void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkFramebuffer& framebuffer, VkExtent2D& extent)
 {
 	// Begin command buffer
 	VkCommandBufferBeginInfo commandBeginInfo{};
@@ -1028,34 +1106,11 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& 
 		lights[0]->shadowRendered();
 	}
 
-
-	// Combine offscreen framebuffer
-	VkClearValue clearValue[2];
-	// Clear color
-	clearValue[0].color.float32[0] = 0.5f;
-	clearValue[0].color.float32[1] = 0.5f;
-	clearValue[0].color.float32[2] = 0.5f;
-	clearValue[0].color.float32[3] = 1.0f;
-	// Clear Depth
-	clearValue[1].depthStencil.depth = 1.0f;
-
-	VkRenderPassBeginInfo passBeginInfo{};
-	passBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	passBeginInfo.renderPass = renderPass;
-	passBeginInfo.framebuffer = framebuffer;
-	passBeginInfo.renderArea.extent = extent;
-	passBeginInfo.clearValueCount = static_cast<u32>(sizeof(clearValue) / sizeof(clearValue[0]));
-	passBeginInfo.pClearValues = clearValue;
-
-	vkCmdBeginRenderPass(commandBuffer, &passBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
 	// Shading
-	shadingPasses(commandBuffer, renderPass, framebuffer, extent);
+	shadingPasses(commandBuffer, shadingRenderPass, shadingFrameBuffer, extent);
 
 	// UI rendering pass
-	UIPasses(commandBuffer, extent);
-
-	vkCmdEndRenderPass(commandBuffer);
+	UIPasses(commandBuffer, presentRenderPass, framebuffer, extent);
 
 	// ========================================================
 
@@ -1213,8 +1268,31 @@ void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 
 void VulkanEngine::shadingPasses(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D extent)
 {
+	// Combine offscreen framebuffer
+	VkClearValue clearValue[2];
+	// Clear color
+	clearValue[0].color.float32[0] = 0.5f;
+	clearValue[0].color.float32[1] = 0.5f;
+	clearValue[0].color.float32[2] = 0.5f;
+	clearValue[0].color.float32[3] = 1.0f;
+	// Clear Depth
+	clearValue[1].depthStencil.depth = 1.0f;
+
+	VkRenderPassBeginInfo passBeginInfo{};
+	passBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	passBeginInfo.renderPass = renderPass;
+	passBeginInfo.framebuffer = framebuffer;
+	passBeginInfo.renderArea.extent = extent;
+	passBeginInfo.clearValueCount = static_cast<u32>(sizeof(clearValue) / sizeof(clearValue[0]));
+	passBeginInfo.pClearValues = clearValue;
+
+	vkCmdBeginRenderPass(commandBuffer, &passBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
 	if (meshes.size() < 1)
+	{
+		vkCmdEndRenderPass(commandBuffer);
 		return;
+	}
 
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadingPipeline);
 
@@ -1229,12 +1307,34 @@ void VulkanEngine::shadingPasses(VkCommandBuffer& commandBuffer, VkRenderPass& r
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadingPipelineLayout, 3, 1, &shadowMapDescriptorSets, 0, nullptr);
 
 	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+
+	vkCmdEndRenderPass(commandBuffer);
 }
 
-void VulkanEngine::UIPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent)
+void VulkanEngine::UIPasses(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D extent)
 {
+	// Combine offscreen framebuffer
+	VkClearValue clearValue[1];
+	// Clear color
+	clearValue[0].color.float32[0] = 0.5f;
+	clearValue[0].color.float32[1] = 0.5f;
+	clearValue[0].color.float32[2] = 0.5f;
+	clearValue[0].color.float32[3] = 1.0f;
+
+	VkRenderPassBeginInfo passBeginInfo{};
+	passBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	passBeginInfo.renderPass = renderPass;
+	passBeginInfo.framebuffer = framebuffer;
+	passBeginInfo.renderArea.extent = extent;
+	passBeginInfo.clearValueCount = static_cast<u32>(sizeof(clearValue) / sizeof(clearValue[0]));
+	passBeginInfo.pClearValues = clearValue;
+
+	vkCmdBeginRenderPass(commandBuffer, &passBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
 	// ImGui UI rendering
 	vulkanGui->renderUI(commandBuffer, extent);
+
+	vkCmdEndRenderPass(commandBuffer);
 }
 
 void VulkanEngine::submitCommands(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore,

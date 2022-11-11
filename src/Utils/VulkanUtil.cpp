@@ -1399,3 +1399,10 @@ void WillEngine::VulkanUtil::createFramebufferAttachment(VkDevice& logicalDevice
     attachment.vulkanImage = createImage(logicalDevice, vmaAllocator, format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, extent.width, extent.height, 1);
     createImageView(logicalDevice, attachment.vulkanImage.image, attachment.imageView, 1, format, VK_IMAGE_ASPECT_COLOR_BIT);
 }
+
+void WillEngine::VulkanUtil::createShadingImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkExtent2D extent, 
+    VulkanAllocatedImage& image, VkImageView& imageView)
+{
+    image = createImage(logicalDevice, vmaAllocator, format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, extent.width, extent.height, 1);
+    createImageView(logicalDevice, image.image, imageView, 1, format, VK_IMAGE_ASPECT_COLOR_BIT);
+}

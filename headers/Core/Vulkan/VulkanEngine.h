@@ -46,7 +46,8 @@ public:
 	VkRenderPass depthRenderPass;
 	VkRenderPass geometryRenderPass;
 	VkRenderPass shadowRenderPass;
-	VkRenderPass renderPass;
+	VkRenderPass shadingRenderPass;
+	VkRenderPass presentRenderPass;
 
 	// Swapchain
 	VkSwapchainKHR swapchain;
@@ -67,6 +68,11 @@ public:
 
 	// Framebuffer for depth pre-pass
 	VkFramebuffer depthFrameBuffer;
+
+	VulkanAllocatedImage shadingImage;
+	VkFramebuffer shadingFrameBuffer;
+	VkImageView shadingImageView;
+	VkDescriptorSet imguiRenderedDescriptorSet;
 
 	// Framebuffer
 	std::vector<VkFramebuffer> framebuffers;
@@ -186,7 +192,8 @@ public:
 	void recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface);
 
 	void createDepthPrePass(VkDevice& logicalDevice, VkRenderPass& renderPass, const VkFormat& depthFormat);
-	void createRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, VkFormat& format, const VkFormat& depthFormat);
+	void createPresentRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, const VkFormat& format);
+	void createShadingRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, VkFormat& format, const VkFormat& depthFormat);
 	void createShadowRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, const VkFormat& depthFormat);
 	void createGeometryRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, VkFormat format, const VkFormat& depthFormat);
 
@@ -197,6 +204,8 @@ public:
 		VkExtent2D swapchainExtent);
 
 	void createShadowFramebuffer(VkDevice& logicalDevice, VkFramebuffer& shadowFramebuffer, VkRenderPass& shadowRenderPass, u32 width, u32 height);
+
+	void createShadingFramebuffer(VkDevice& logicalDevice, VkFramebuffer& shadingFramebuffer, VkRenderPass& shadingRenderPass, VkExtent2D extent);
 
 	void createDepthFramebuffer(VkDevice& logicalDevice, VkFramebuffer& depthFramebuffer, VkRenderPass& depthRenderPass, VkExtent2D swapchainExtent);
 
@@ -220,6 +229,8 @@ public:
 	// Initialise descriptor sets for deferred rendering
 	void initAttachmentDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
 
+	void initRenderedDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
+
 	// Pipeline init
 	void initGeometryPipeline(VkDevice& logicalDevice);
 	void initDepthPipeline(VkDevice& logicalDevice);
@@ -235,14 +246,14 @@ public:
 	void updateSceneUniform(Camera* camera);
 	void updateLightUniform(Camera* camera);
 
-	void recordCommands(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D& extent);
+	void recordCommands(VkCommandBuffer& commandBuffer, VkFramebuffer& framebuffer, VkExtent2D& extent);
 
 	// Render passes
 	void depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 	void geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 	void shadowPasses(VkCommandBuffer& commandBuffer);
-	void shadingPasses(VkCommandBuffer& commandBuffer, VkRenderPass& renderpass, VkFramebuffer& framebuffer, VkExtent2D extent);
-	void UIPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
+	void shadingPasses(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D extent);
+	void UIPasses(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D extent);
 
 	void submitCommands(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, 
 		VkQueue& graphicsQueue, VkFence& fence);
