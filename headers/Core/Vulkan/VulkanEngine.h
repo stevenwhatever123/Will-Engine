@@ -11,24 +11,17 @@
 
 #include "Utils/VulkanUtil.h"
 
+#include "Core/GameState.h"
+
 class VulkanEngine
 {
 private:
 
 public:
 
-	bool updateTexture = false;
-	bool updateColor = false;
-	u32 selectedMaterialIndex = 0;
-	u32 selectedTextureIndex = 0;
-	std::string textureFilepath = "";
+	GameState* gameState;
 
 	Camera* camera;
-
-	std::vector<Mesh*> meshes;
-	std::vector<Material*> materials;
-
-	std::vector<Light*> lights;
 
 public:
 
@@ -177,7 +170,7 @@ public:
 	~VulkanEngine();
 
 	void init(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue& queue, 
-		bool renderWithBRDF);
+		GameState* gameState);
 	void cleanup(VkDevice& logicalDevice);
 
 	void update(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue graphicsQueue, bool renderWithBRDF);
@@ -266,6 +259,5 @@ private:
 
 	VkPresentModeKHR selectSwapchainPresentMode(std::vector<VkPresentModeKHR>& presentModes);
 
-	void changeMaterialTexture(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& graphicsQueue, bool& updateTexture, 
-		bool& updateColor, u32 materialIndex, u32 textureIndex, std::string filename);
+	void changeMaterialTexture(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& graphicsQueue, GameState* gameState);
 };

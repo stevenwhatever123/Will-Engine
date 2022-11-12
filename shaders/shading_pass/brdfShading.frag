@@ -67,10 +67,7 @@ float ShadowCalculation(vec4 position, vec4 normal)
 				closestDepth = offset_lookup(fragToLight, vec3(x, y, z), texmapscale.x).r;
 				closestDepth *= 2000;
 
-				if(currentDepth - elipson > closestDepth)
-				{
-					sum += closestDepth / 2000;
-				}
+				sum = (currentDepth - elipson > closestDepth)? sum + closestDepth / 2000 : sum;
 			}
 		}
 	}

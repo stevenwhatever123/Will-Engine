@@ -9,16 +9,17 @@
 #include "Utils/Logging.h"
 #include "Utils/ModelImporter.h"
 
+#include "Core/GameState.h"
+
+#include "Core/EngineGui/ScenePanel.h"
+
 class SystemManager
 {
 private:
 
 	bool renderWithBRDF = true;
 
-	std::vector<Mesh*> meshes;
-	std::vector<Material*> materials;
-
-	std::vector<Light*> lights;
+	GameState gameState;
 
 public:
 
@@ -66,6 +67,7 @@ public:
 	void updateInputs();
 	void updateCamera();
 	void updateLight();
+	void updateGui();
 
 	// Utils
 	void readFile();

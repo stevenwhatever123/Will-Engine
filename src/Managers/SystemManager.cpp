@@ -3,9 +3,7 @@
 #include "Managers/SystemManager.h"
 
 SystemManager::SystemManager() :
-    meshes(),
-    materials(),
-    lights(),
+    gameState(),
     vulkanWindow(nullptr),
     windowWidth(0),
     windowHeight(0),
@@ -36,9 +34,6 @@ void SystemManager::init(i32 windowWidth, i32 windowHeight)
     initVulkanWindow();
     glfwSetWindowUserPointer(vulkanWindow->window, this);
 
-    // Add light to vulkan engine
-    vulkanWindow->vulkanEngine->lights.push_back(lights[0]);
-
     // Add camera to vulkan engine
     vulkanWindow->vulkanEngine->camera = camera;
 
@@ -68,7 +63,7 @@ void SystemManager::initLight()
     light->matrices[4] = lightProjectionMatrix * glm::lookAt(light->position, light->position + vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 1.0f, 0.0f));
     light->matrices[5] = lightProjectionMatrix * glm::lookAt(light->position, light->position + vec3(0.0f, 0.0f, -1.0f), vec3(0.0f, 1.0f, 0.0f));
 
-    lights.push_back(light);
+    gameState.graphicsResources.lights.push_back(light);
 }
 
 void SystemManager::initVulkanWindow()
@@ -80,7 +75,7 @@ void SystemManager::initVulkanWindow()
     inputManager = new InputManager();
     inputManager->init(vulkanWindow->window);
 
-    vulkanWindow->initVulkan(renderWithBRDF);
+    vulkanWindow->initVulkan(&gameState);
 }
 
 void SystemManager::update()
@@ -104,6 +99,8 @@ void SystemManager::update()
 
         return;
     }
+
+    //updateGui();
 
     vulkanWindow->vulkanEngine->updateSceneUniform(camera);
     vulkanWindow->vulkanEngine->updateLightUniform(camera);
@@ -136,7 +133,7 @@ void SystemManager::updateInputs()
 
         std::tie(loadedMeshes, loadedMaterials) = WillEngine::Utils::readModel(filename.c_str());
 
-        u32 currentMaterialSize = vulkanWindow->vulkanEngine->materials.size();
+        u32 currentMaterialSize = gameState.graphicsResources.materials.size();
 
         for (Material* material : loadedMaterials)
         {
@@ -164,8 +161,8 @@ void SystemManager::updateInputs()
             mesh->materialIndex = currentMaterialSize + mesh->materialIndex;
         }
 
-        vulkanWindow->vulkanEngine->meshes.insert(vulkanWindow->vulkanEngine->meshes.end(), loadedMeshes.begin(), loadedMeshes.end());
-        vulkanWindow->vulkanEngine->materials.insert(vulkanWindow->vulkanEngine->materials.end(), loadedMaterials.begin(), loadedMaterials.end());
+        gameState.graphicsResources.meshes.insert(gameState.graphicsResources.meshes.end(), loadedMeshes.begin(), loadedMeshes.end());
+        gameState.graphicsResources.materials.insert(gameState.graphicsResources.materials.end(), loadedMaterials.begin(), loadedMaterials.end());
     }
 }
 
@@ -194,10 +191,15 @@ void SystemManager::updateCamera()
 
 void SystemManager::updateLight()
 {
-    for (u32 i = 0; i < lights.size(); i++)
+    for (u32 i = 0; i < gameState.graphicsResources.lights.size(); i++)
     {
-        lights[i]->update();
+        gameState.graphicsResources.lights[i]->update();
     }
+}
+
+void SystemManager::updateGui()
+{
+    WillEngine::EngineGui::ScenePanel::update(gameState.graphicsState.renderedImage);
 }
 
 void SystemManager::readFile()

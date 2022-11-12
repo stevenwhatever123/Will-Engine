@@ -3,14 +3,22 @@
 #include "Core/Material.h"
 #include "Core/Light.h"
 
+#include "Core/GameState.h"
+
 #include "Core/Vulkan/VulkanFramebuffer.h"
+
+// Panels
+#include "Core/EngineGui/ScenePanel.h"
+#include "Core/EngineGui/MeshPanel.h"
+#include "Core/EngineGui/MaterialPanel.h"
+#include "Core/EngineGui/DebuggingPanel.h"
+#include "Core/EngineGui/LightPanel.h"
 
 class VulkanGui
 {
 private:
 
 	VkDescriptorPool imguiDescriptorPool = VK_NULL_HANDLE;
-
 	VkCommandBuffer imguiCommandBuffer = VK_NULL_HANDLE;
 
 public:
@@ -35,7 +43,7 @@ public:
 	void updateMenuBar();
 
 	void update(VkDescriptorSet& shadedImage, VulkanFramebuffer& attachments, std::vector<Mesh*>& meshes, std::vector<Material*>& materials, std::vector<Light*>& lights, 
-		bool& updateTexture, bool& updateColor, u32& materialIndex, u32& textureIndex, std::string& textureFilepath);
+		GameState* gamestate);
 
 	void renderUI(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 

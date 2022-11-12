@@ -4,9 +4,6 @@
 
 VulkanEngine::VulkanEngine() :
 	camera(nullptr),
-	meshes(),
-	materials(),
-	lights(),
 	vmaAllocator(VK_NULL_HANDLE),
 	geometryRenderPass(VK_NULL_HANDLE),
 	shadingRenderPass(VK_NULL_HANDLE),
@@ -53,8 +50,10 @@ VulkanEngine::~VulkanEngine()
 }
 
 void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue& queue, 
-	bool renderWithBRDF)
+	GameState* gameState)
 {
+	this->gameState = gameState;
+
 	createVmaAllocator(instance, physicalDevice, logicalDevice);
 
 	createSwapchain(window, logicalDevice, physicalDevice, surface);
@@ -108,7 +107,7 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	initUniformBuffer(logicalDevice, descriptorPool, cameraUniformBuffer, cameraDescriptorSet, cameraDescriptorSetLayout, 1, sizeof(vec4), VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	// Phong: 4, BRDF: 5
-	u32 descriptorSize = renderWithBRDF ? 5 : 4;
+	u32 descriptorSize = 5;
 
 	// Texture Descriptor with binding 1 in fragment shader
 	// We only need to know the layout of the descriptor
@@ -158,14 +157,14 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	vkDestroyShaderModule(logicalDevice, geometryFragShader, nullptr);
 
 	// Destroy all data from a material
-	for (auto* material : materials)
+	for (auto* material : gameState->graphicsResources.materials)
 	{
 		material->cleanUp(logicalDevice, vmaAllocator, descriptorPool);
 		delete material;
 	}
 
 	// Destroy all data from a mesh
-	for (auto* mesh : meshes)
+	for (auto* mesh : gameState->graphicsResources.meshes)
 	{
 		mesh->cleanup(logicalDevice, vmaAllocator);
 		delete mesh;
@@ -249,10 +248,10 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	vkResetCommandBuffer(commandBuffers[imageIndex], 0);
 
 	// Update Texture
-	if (updateTexture || updateColor)
+	if (gameState->materialUpdateInfo.updateTexture || gameState->materialUpdateInfo.updateColor)
 	{
-		changeMaterialTexture(logicalDevice, physicalDevice, graphicsQueue, updateTexture, updateColor, selectedMaterialIndex, selectedTextureIndex, textureFilepath);
-		textureFilepath = "";
+		changeMaterialTexture(logicalDevice, physicalDevice, graphicsQueue, gameState);
+		gameState->materialUpdateInfo.textureFilepath = "";
 	}
 
 	// Update ImGui UI
@@ -629,7 +628,7 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 		vkDestroyImageView(logicalDevice, shadingImageView, nullptr);
 		vmaDestroyImage(vmaAllocator, shadingImage.image, shadingImage.allocation);
 
-		vkFreeDescriptorSets(logicalDevice, vulkanGui->getDescriptorPool(), 1, &imguiRenderedDescriptorSet);
+		vkFreeDescriptorSets(logicalDevice, vulkanGui->getDescriptorPool(), 1, &gameState->graphicsState.renderedImage);
 	}
 
 	// Recreate framebuffers
@@ -659,7 +658,7 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 	createDepthFramebuffer(logicalDevice, depthFrameBuffer, depthRenderPass, swapchainExtent);
 
 	WillEngine::VulkanUtil::createShadingImage(logicalDevice, vmaAllocator, swapchainImageFormat, swapchainExtent, shadingImage, shadingImageView);
-	imguiRenderedDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, shadingImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	gameState->graphicsState.renderedImage = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, shadingImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	createShadingFramebuffer(logicalDevice, shadingFrameBuffer, shadingRenderPass, swapchainExtent);
 
 
@@ -933,7 +932,8 @@ void VulkanEngine::initAttachmentDescriptors(VkDevice& logicalDevice, VkDescript
 
 void VulkanEngine::initRenderedDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool)
 {
-	imguiRenderedDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, shadingImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	//imguiRenderedDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, shadingImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	gameState->graphicsState.renderedImage = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, shadingImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
 void VulkanEngine::initGeometryPipeline(VkDevice& logicalDevice)
@@ -1050,8 +1050,8 @@ void VulkanEngine::initGui(GLFWwindow* window, VkInstance& instance, VkDevice& l
 
 void VulkanEngine::updateGui(VkDevice& logicalDevice, VkQueue& graphicsQueue, bool renderWithBRDF)
 {
-	vulkanGui->update(imguiRenderedDescriptorSet, offscreenFramebuffer, meshes, materials, lights, updateTexture, updateColor, selectedMaterialIndex, 
-		selectedTextureIndex, textureFilepath);
+	vulkanGui->update(gameState->graphicsState.renderedImage, offscreenFramebuffer, gameState->graphicsResources.meshes, 
+		gameState->graphicsResources.materials, gameState->graphicsResources.lights, gameState);
 }
 
 void VulkanEngine::updateSceneUniform(Camera* camera)
@@ -1064,7 +1064,7 @@ void VulkanEngine::updateSceneUniform(Camera* camera)
 void VulkanEngine::updateLightUniform(Camera* camera)
 {
 	// Update Light's Position
-	for (auto light : lights)
+	for (auto light : gameState->graphicsResources.lights)
 	{
 		light->lightUniform.transformedPosition = vec4(light->position.x, light->position.y, light->position.z, 1);
 	}
@@ -1084,7 +1084,7 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkFramebuffer&
 	vkCmdUpdateBuffer(commandBuffer, sceneUniformBuffer.buffer, 0, sizeof(sceneMatrix), &sceneMatrix);
 
 	// Update light uniform buffers
-	vkCmdUpdateBuffer(commandBuffer, lightUniformBuffer.buffer, 0, sizeof(lights[0]->lightUniform), &lights[0]->lightUniform);
+	vkCmdUpdateBuffer(commandBuffer, lightUniformBuffer.buffer, 0, sizeof(gameState->graphicsResources.lights[0]->lightUniform), &gameState->graphicsResources.lights[0]->lightUniform);
 
 	vec4 cameraPosition = vec4(camera->position, 1);
 
@@ -1100,10 +1100,10 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkFramebuffer&
 	geometryPasses(commandBuffer, extent);
 
 	// Shadow pass
-	if (lights[0]->shouldRenderShadow())
+	if (gameState->graphicsResources.lights[0]->shouldRenderShadow())
 	{
 		shadowPasses(commandBuffer);
-		lights[0]->shadowRendered();
+		gameState->graphicsResources.lights[0]->shadowRendered();
 	}
 
 	// Shading
@@ -1139,7 +1139,7 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 	// Bind Scene Uniform Buffer
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPipelineLayout, 0, 1, &sceneDescriptorSet, 0, nullptr);
 
-	for (auto mesh : meshes)
+	for (auto mesh : gameState->graphicsResources.meshes)
 	{
 		VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
 
@@ -1190,7 +1190,7 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 	// Bind Scene Uniform Buffer
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 0, 1, &sceneDescriptorSet, 0, nullptr);
 
-	for (auto mesh : meshes)
+	for (auto mesh : gameState->graphicsResources.meshes)
 	{
 		VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
 
@@ -1202,7 +1202,7 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 		// Bind Texture
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1, &materials[mesh->materialIndex]->textureDescriptorSet, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1, &gameState->graphicsResources.materials[mesh->materialIndex]->textureDescriptorSet, 0, nullptr);
 
 		// Push constant for model matrix
 		mesh->updateForPushConstant();
@@ -1218,7 +1218,7 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 {
 	// Update light matrices buffer
-	vkCmdUpdateBuffer(commandBuffer, lightMatrixUniformBuffer.buffer, 0, sizeof(mat4) * 6, &lights[0]->matrices);
+	vkCmdUpdateBuffer(commandBuffer, lightMatrixUniformBuffer.buffer, 0, sizeof(mat4) * 6, &gameState->graphicsResources.lights[0]->matrices);
 
 	VkClearValue clearValue[1];
 	// Clear Depth
@@ -1245,7 +1245,7 @@ void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 	// Bind light matrices
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadowPipelineLayout, 0, 1, &lightMatrixDescriptorSet, 0, nullptr);
 
-	for (auto mesh : meshes)
+	for (auto mesh : gameState->graphicsResources.meshes)
 	{
 		VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
 
@@ -1288,7 +1288,7 @@ void VulkanEngine::shadingPasses(VkCommandBuffer& commandBuffer, VkRenderPass& r
 
 	vkCmdBeginRenderPass(commandBuffer, &passBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	if (meshes.size() < 1)
+	if (gameState->graphicsResources.meshes.size() < 1)
 	{
 		vkCmdEndRenderPass(commandBuffer);
 		return;
@@ -1399,72 +1399,75 @@ VkPresentModeKHR VulkanEngine::selectSwapchainPresentMode(std::vector<VkPresentM
 	return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& graphicsQueue, bool& updateTexture, 
-	bool& updateColor, u32 materialIndex, u32 textureIndex, std::string filename)
+void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& graphicsQueue, GameState* gameState)
 {
 	vkDeviceWaitIdle(logicalDevice);
 
-	if (updateTexture)
+	Material* currentMaterial = gameState->graphicsResources.materials[gameState->materialUpdateInfo.materialIndex];
+	u32& textureIndex = gameState->materialUpdateInfo.textureIndex;
+	TextureDescriptorSet& currentTexture = currentMaterial->brdfTextures[textureIndex];
+
+	if (gameState->materialUpdateInfo.updateTexture)
 	{
 		// Load the texture first, if we cannot read the texture, we proceed to changing the color
 		Image* textureImage = new Image();
-		materials[materialIndex]->brdfTextures[textureIndex].textureImage = textureImage;
+		currentTexture.textureImage = textureImage;
 
 		// Don't update the texture path if it's the same one or an empty string
-		if (filename.compare("") != 0 &&
-			(materials[materialIndex]->brdfTextures[textureIndex].texture_path.size() < 1 || materials[materialIndex]->brdfTextures[textureIndex].texture_path.compare(filename) != 0))
+		if (gameState->materialUpdateInfo.textureFilepath.compare("") != 0 &&
+			(currentTexture.texture_path.size() < 1 ||
+				currentTexture.texture_path.compare(gameState->materialUpdateInfo.textureFilepath) != 0))
 		{
-			materials[materialIndex]->brdfTextures[textureIndex].texture_path = filename;
+			currentTexture.texture_path = gameState->materialUpdateInfo.textureFilepath;
 		}
 
-		materials[materialIndex]->brdfTextures[textureIndex].textureImage->readImage(materials[materialIndex]->brdfTextures[textureIndex].texture_path.c_str(),
-			materials[materialIndex]->brdfTextures[textureIndex].width, materials[materialIndex]->brdfTextures[textureIndex].height, materials[materialIndex]->brdfTextures[textureIndex].numChannels);
+		currentTexture.textureImage->readImage(currentTexture.texture_path.c_str(), currentTexture.width, currentTexture.height, currentTexture.numChannels);
 
 		// If we cannot load the texture, create a color texture
-		if (materials[materialIndex]->brdfTextures[textureIndex].textureImage->data == NULL)
+		if (currentTexture.textureImage->data == NULL)
 		{
 			delete textureImage;
-			materials[materialIndex]->brdfTextures[textureIndex].texture_path = "";
-			updateColor = true;
+			currentTexture.texture_path = "";
+			gameState->materialUpdateInfo.updateColor = true;
 		}
 		
-		updateTexture = false;
+		gameState->materialUpdateInfo.updateTexture = false;
 	}
 
-	if (updateColor)
+	if (gameState->materialUpdateInfo.updateColor)
 	{
 		// Create new data
 		Image* textureImage = new Image();
 
-		materials[materialIndex]->brdfTextures[textureIndex].textureImage = textureImage;
+		currentTexture.textureImage = textureImage;
 
-		materials[materialIndex]->brdfTextures[textureIndex].width = 1;
-		materials[materialIndex]->brdfTextures[textureIndex].height = 1;
+		currentTexture.width = 1;
+		currentTexture.height = 1;
 
 		switch (textureIndex)
 		{
 		case 0:
-			materials[materialIndex]->brdfTextures[textureIndex].textureImage->setImageColor(materials[materialIndex]->brdfMaterialUniform.emissive);
+			currentMaterial->brdfTextures[textureIndex].textureImage->setImageColor(currentMaterial->brdfMaterialUniform.emissive);
 			break;
 		case 1:
-			materials[materialIndex]->brdfTextures[textureIndex].textureImage->setImageColor(materials[materialIndex]->brdfMaterialUniform.ambient);
+			currentMaterial->brdfTextures[textureIndex].textureImage->setImageColor(currentMaterial->brdfMaterialUniform.ambient);
 			break;
 		case 2:
-			materials[materialIndex]->brdfTextures[textureIndex].textureImage->setImageColor(materials[materialIndex]->brdfMaterialUniform.albedo);
+			currentMaterial->brdfTextures[textureIndex].textureImage->setImageColor(currentMaterial->brdfMaterialUniform.albedo);
 			break;
 		case 3:
-			materials[materialIndex]->brdfTextures[textureIndex].textureImage->setImageColor(materials[materialIndex]->brdfMaterialUniform.metallic);
+			currentMaterial->brdfTextures[textureIndex].textureImage->setImageColor(currentMaterial->brdfMaterialUniform.metallic);
 			break;
 		case 4:
-			materials[materialIndex]->brdfTextures[textureIndex].textureImage->setImageColor(materials[materialIndex]->brdfMaterialUniform.roughness);
+			currentMaterial->brdfTextures[textureIndex].textureImage->setImageColor(currentMaterial->brdfMaterialUniform.roughness);
 			break;
 		}
 
-		materials[materialIndex]->brdfTextures[textureIndex].has_texture = false;
+		currentTexture.has_texture = false;
 
-		updateColor = false;
+		gameState->materialUpdateInfo.updateColor = false;
 	}
 
 	// Update the associated descriptor set
-	materials[materialIndex]->updateBrdfDescriptorSet(logicalDevice, physicalDevice, vmaAllocator, commandPool, descriptorPool, graphicsQueue, textureIndex);
+	currentMaterial->updateBrdfDescriptorSet(logicalDevice, physicalDevice, vmaAllocator, commandPool, descriptorPool, graphicsQueue, textureIndex);
 }

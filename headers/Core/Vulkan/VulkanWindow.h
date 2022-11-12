@@ -1,6 +1,8 @@
 #pragma once
 #include "Core/Vulkan/VulkanEngine.h"
 
+#include "Core/GameState.h"
+
 #include "Utils/VulkanUtil.h"
 
 class VulkanWindow
@@ -51,7 +53,7 @@ public:
 	~VulkanWindow();
 
 	void createWindow(i32 windowWidth, i32 windowHeight);
-	void initVulkan(bool renderWithBRDF);
+	void initVulkan(GameState* gameState);
 	void cleanup();
 	void update(bool renderWithBRDF);
 
@@ -67,7 +69,7 @@ public:
 
 	void createSurface();
 
-	void initVulkanEngine(bool renderWithBRDF);
+	void initVulkanEngine(GameState* gameState);
 
 	// Return
 	bool shouldCloseWindow() const { return closeWindow; };

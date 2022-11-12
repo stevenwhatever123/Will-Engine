@@ -88,25 +88,27 @@ project "WillEngine"
 
 	vpaths
 	{
-		["Precompiled Headers"]			= {"*.h", "*.cpp"},
+		["Precompiled Headers"]				= {"*.h", "*.cpp"},
 
-		["Headers"]						= {"headers/*.h"},
-		["Headers/Managers"]			= {"headers/Managers/*.h"},
-		["Headers/Utils"]				= {"headers/Utils/*.h"},
-		["Headers/Core"]				= {"headers/Core/*.h"},
-		["Headers/Core/OpenGL"]			= {"headers/Core/OpenGL/*.h"},
-		["Headers/Core/Vulkan"]			= {"headers/Core/Vulkan/*.h"},
+		["Headers"]							= {"headers/*.h"},
+		["Headers/Managers"]				= {"headers/Managers/*.h"},
+		["Headers/Utils"]					= {"headers/Utils/*.h"},
+		["Headers/Core"]					= {"headers/Core/*.h"},
+		["Headers/Core/OpenGL"]				= {"headers/Core/OpenGL/*.h"},
+		["Headers/Core/Vulkan"]				= {"headers/Core/Vulkan/*.h"},
+		["Headers/Core/EngineGui"]			= {"headers/Core/EngineGui/*.h"},
 
-		["Source Files"]				= {"src/*.cpp"},
-		["Source Files/Managers"]		= {"src/Managers/*.cpp"},
-		["Source Files/Utils"]			= {"src/Utils/*.cpp"},
-		["Source Files/Core"]			= {"src/Core/*.cpp"},
-		["Source Files/Core/OpenGL"]	= {"src/Core/OpenGL/*.cpp"},
-		["Source Files/Core/Vulkan"]	= {"src/Core/Vulkan/*.cpp"},
+		["Source Files"]					= {"src/*.cpp"},
+		["Source Files/Managers"]			= {"src/Managers/*.cpp"},
+		["Source Files/Utils"]				= {"src/Utils/*.cpp"},
+		["Source Files/Core"]				= {"src/Core/*.cpp"},
+		["Source Files/Core/OpenGL"]		= {"src/Core/OpenGL/*.cpp"},
+		["Source Files/Core/Vulkan"]		= {"src/Core/Vulkan/*.cpp"},
+		["Source Files/Core/EngineGui"]		= {"src/Core/EngineGui/*.cpp"},
 
-		["Shaders"]						= {"shaders/**.vert"},
-		["Shaders"]						= {"shaders/**.frag"},
-		["Shaders"]						= {"shaders/**.geom"},
+		["Shaders"]							= {"shaders/**.vert"},
+		["Shaders"]							= {"shaders/**.frag"},
+		["Shaders"]							= {"shaders/**.geom"},
 
 	}
 

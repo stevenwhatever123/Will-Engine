@@ -41,7 +41,7 @@ void VulkanWindow::createWindow(i32 windowWidth, i32 windowHeight)
     glfwMakeContextCurrent(window);
 }
 
-void VulkanWindow::initVulkan(bool renderWithBRDF)
+void VulkanWindow::initVulkan(GameState* gameState)
 {
     if (glfwVulkanSupported())
     {
@@ -51,7 +51,7 @@ void VulkanWindow::initVulkan(bool renderWithBRDF)
         selectPhysicalDevice();
         createLogicalDevice();
 
-        initVulkanEngine(renderWithBRDF);
+        initVulkanEngine(gameState);
     }
 }
 
@@ -288,10 +288,10 @@ void VulkanWindow::createSurface()
         throw std::runtime_error("Failed to create window surface");
 }
 
-void VulkanWindow::initVulkanEngine(bool renderWithBRDF)
+void VulkanWindow::initVulkanEngine(GameState* gameState)
 {
     vulkanEngine = new VulkanEngine();
-    vulkanEngine->init(window, instance, logicalDevice, physicalDevice, surface, graphicsQueue, renderWithBRDF);
+    vulkanEngine->init(window, instance, logicalDevice, physicalDevice, surface, graphicsQueue, gameState);
 }
 
 //=============================================================================================
