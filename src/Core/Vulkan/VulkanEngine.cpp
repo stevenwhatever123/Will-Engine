@@ -661,24 +661,10 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 	gameState->graphicsState.renderedImage = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, shadingImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	createShadingFramebuffer(logicalDevice, shadingFrameBuffer, shadingRenderPass, swapchainExtent);
 
-
 	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, geometryRenderPass, shadingRenderPass, depthImageView, swapchainExtent);
 
 	if (extentChanged)
 	{
-		// Destroy old pipeline
-		vkDestroyPipeline(logicalDevice, depthPipeline, nullptr);
-		vkDestroyPipeline(logicalDevice, geometryPipeline, nullptr);
-		vkDestroyPipeline(logicalDevice, shadingPipeline, nullptr);
-
-		// Create new pipeline
-		WillEngine::VulkanUtil::createDepthPipeline(logicalDevice, depthPipeline, depthPipelineLayout, depthRenderPass, depthVertShader,
-			depthFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
-		WillEngine::VulkanUtil::createGeometryPipeline(logicalDevice, geometryPipeline, geometryPipelineLayout, geometryRenderPass, geometryVertShader,
-			geometryFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
-		WillEngine::VulkanUtil::createShadingPipeline(logicalDevice, shadingPipeline, shadingPipelineLayout, shadingRenderPass, shadingVertShader,
-			shadingFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, swapchainExtent);
-
 		// Recreate attachment descriptor sets
 		initAttachmentDescriptors(logicalDevice, descriptorPool);
 	}
@@ -1091,6 +1077,12 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkFramebuffer&
 	// Update camera uniform buffers
 	vkCmdUpdateBuffer(commandBuffer, cameraUniformBuffer.buffer, 0, sizeof(vec4), &cameraPosition);
 
+	// Set dynamic viewport and scissor
+	VkViewport viewport = WillEngine::VulkanUtil::getViewport(swapchainExtent);
+	VkRect2D scissor = WillEngine::VulkanUtil::getScissor(swapchainExtent);
+	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
 	// ========================================================
 	// Recording all the rendering command
 
@@ -1288,13 +1280,13 @@ void VulkanEngine::shadingPasses(VkCommandBuffer& commandBuffer, VkRenderPass& r
 
 	vkCmdBeginRenderPass(commandBuffer, &passBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadingPipeline);
+
 	if (gameState->graphicsResources.meshes.size() < 1)
 	{
 		vkCmdEndRenderPass(commandBuffer);
 		return;
 	}
-
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadingPipeline);
 
 	// Bind Light Uniform Buffer
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadingPipelineLayout, 0, 1, &lightDescriptorSet, 0, nullptr);

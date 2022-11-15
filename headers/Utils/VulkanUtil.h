@@ -21,6 +21,12 @@ namespace WillEngine::VulkanUtil
 	// Swapchain Details
 	VkExtent2D getSwapchainExtent(GLFWwindow* window, VkSurfaceCapabilitiesKHR& capabilities);
 
+	// Viewport
+	VkViewport getViewport(VkExtent2D extent);
+
+	// Scissor
+	VkRect2D getScissor(VkExtent2D extent);
+
 	//Images
 	VulkanAllocatedImage createImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkImageUsageFlags usage, u32 width, 
 		u32 height, u32 mipLevels);
