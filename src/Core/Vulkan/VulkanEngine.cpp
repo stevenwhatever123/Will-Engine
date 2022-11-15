@@ -654,13 +654,10 @@ void VulkanEngine::recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice
 	vkDestroyFramebuffer(logicalDevice, shadingFrameBuffer, nullptr);
 
 
-	//createDepthFramebuffer(logicalDevice, depthFrameBuffer, depthRenderPass, swapchainExtent);
 	createDepthFramebuffer(logicalDevice, depthFrameBuffer, depthRenderPass, sceneExtent);
 
-	//WillEngine::VulkanUtil::createShadingImage(logicalDevice, vmaAllocator, swapchainImageFormat, swapchainExtent, shadingImage, shadingImageView);
 	WillEngine::VulkanUtil::createShadingImage(logicalDevice, vmaAllocator, swapchainImageFormat, sceneExtent, shadingImage, shadingImageView);
 	gameState->graphicsState.renderedImage = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, shadingImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	//createShadingFramebuffer(logicalDevice, shadingFrameBuffer, shadingRenderPass, swapchainExtent);
 	createShadingFramebuffer(logicalDevice, shadingFrameBuffer, shadingRenderPass, sceneExtent);
 
 	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, geometryRenderPass, shadingRenderPass, depthImageView, swapchainExtent);

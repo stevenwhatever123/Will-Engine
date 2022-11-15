@@ -1287,14 +1287,6 @@ void WillEngine::VulkanUtil::createShadowPipeline(VkDevice& logicalDevice, VkPip
     depthInfo.minDepthBounds = 0.0f;
     depthInfo.maxDepthBounds = 1.0f;
 
-    // Dynamic Viewport and Scissor
-    std::vector<VkDynamicState> dynamicState = { VK_DYNAMIC_STATE_VIEWPORT , VK_DYNAMIC_STATE_SCISSOR };
-
-    VkPipelineDynamicStateCreateInfo dynamicStateInfo{};
-    dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamicStateInfo.dynamicStateCount = static_cast<u32>(dynamicState.size());
-    dynamicStateInfo.pDynamicStates = dynamicState.data();
-
     // Create graphics pipeline
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -1307,7 +1299,7 @@ void WillEngine::VulkanUtil::createShadowPipeline(VkDevice& logicalDevice, VkPip
     pipelineInfo.pMultisampleState = &multisampleInfo;
     pipelineInfo.pDepthStencilState = &depthInfo;
     pipelineInfo.pColorBlendState = nullptr;
-    pipelineInfo.pDynamicState = &dynamicStateInfo;
+    pipelineInfo.pDynamicState = nullptr;
     pipelineInfo.layout = pipelineLayout;
     pipelineInfo.renderPass = renderpass;
     pipelineInfo.subpass = 0;
