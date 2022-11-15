@@ -100,7 +100,7 @@ void SystemManager::update()
         return;
     }
 
-    //updateGui();
+    updateGui();
 
     vulkanWindow->vulkanEngine->updateSceneUniform(camera);
     vulkanWindow->vulkanEngine->updateLightUniform(camera);
@@ -199,7 +199,11 @@ void SystemManager::updateLight()
 
 void SystemManager::updateGui()
 {
-    WillEngine::EngineGui::ScenePanel::update(gameState.graphicsState.renderedImage);
+    VulkanEngine* vulkanEngine = vulkanWindow->vulkanEngine;
+    VulkanGui* vulkanGui = vulkanEngine->vulkanGui;
+
+    vulkanGui->update(gameState.graphicsState.renderedImage, vulkanEngine->offscreenFramebuffer, gameState.graphicsResources.meshes,
+        gameState.graphicsResources.materials, gameState.graphicsResources.lights, &gameState, vulkanEngine->sceneExtent, vulkanEngine->sceneExtentChanged);
 }
 
 void SystemManager::readFile()

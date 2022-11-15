@@ -43,7 +43,7 @@ public:
 	void updateMenuBar();
 
 	void update(VkDescriptorSet& shadedImage, VulkanFramebuffer& attachments, std::vector<Mesh*>& meshes, std::vector<Material*>& materials, std::vector<Light*>& lights, 
-		GameState* gamestate);
+		GameState* gamestate, VkExtent2D& sceneExtent, bool& sceneExtentChanged);
 
 	void renderUI(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 

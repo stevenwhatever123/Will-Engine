@@ -165,7 +165,7 @@ void VulkanGui::updateMenuBar()
 }
 
 void VulkanGui::update(VkDescriptorSet& shadedImage, VulkanFramebuffer& attachments, std::vector<Mesh*>& meshes, std::vector<Material*>& materials, std::vector<Light*>& lights, 
-	GameState* gameState)
+	GameState* gameState, VkExtent2D& sceneExtent, bool& sceneExtentChanged)
 {
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
 	ImGui::SetNextWindowPos(viewport->WorkPos);
@@ -198,7 +198,7 @@ void VulkanGui::update(VkDescriptorSet& shadedImage, VulkanFramebuffer& attachme
 
 
 	{
-		WillEngine::EngineGui::ScenePanel::update((ImTextureID)shadedImage);
+		WillEngine::EngineGui::ScenePanel::update((ImTextureID)shadedImage, sceneExtent, sceneExtentChanged);
 	}
 
 
@@ -212,6 +212,8 @@ void VulkanGui::update(VkDescriptorSet& shadedImage, VulkanFramebuffer& attachme
 	{
 		WillEngine::EngineGui::DebuggingPanel::update(attachments);
 	}
+
+	ImGui::EndFrame();
 }
 
 void VulkanGui::renderUI(VkCommandBuffer& commandBuffer, VkExtent2D extent)

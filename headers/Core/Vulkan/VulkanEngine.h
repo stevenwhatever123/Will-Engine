@@ -50,7 +50,12 @@ public:
 
 	VkFormat swapchainImageFormat;
 
+	// The whole window application size
 	VkExtent2D swapchainExtent;
+
+	// The scene window size
+	VkExtent2D sceneExtent = {1044, 900};
+	bool sceneExtentChanged = true;
 
 	// Depth buffer
 	VulkanAllocatedImage depthImage;
@@ -232,8 +237,6 @@ public:
 
 	// GUI
 	void initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue, VkSurfaceKHR& surface);
-
-	void updateGui(VkDevice& logicalDevice, VkQueue& graphicsQueue, bool renderWithBRDF);
 
 	// Update
 	void updateSceneUniform(Camera* camera);
