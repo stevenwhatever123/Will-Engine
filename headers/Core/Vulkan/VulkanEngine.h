@@ -54,7 +54,7 @@ public:
 	VkExtent2D swapchainExtent;
 
 	// The scene window size
-	VkExtent2D sceneExtent = {1044, 900};
+	VkExtent2D sceneExtent = {100, 100};
 	bool sceneExtentChanged = true;
 
 	// Depth buffer
@@ -62,13 +62,13 @@ public:
 	VkImageView depthImageView;
 
 	// Shadow map framebuffer
-	VkFramebuffer shadowFrameBuffer;
+	VkFramebuffer shadowFramebuffer;
 
 	// Framebuffer for depth pre-pass
-	VkFramebuffer depthFrameBuffer;
+	VkFramebuffer depthFramebuffer;
 
 	VulkanAllocatedImage shadingImage;
-	VkFramebuffer shadingFrameBuffer;
+	VkFramebuffer shadingFramebuffer;
 	VkImageView shadingImageView;
 	VkDescriptorSet imguiRenderedDescriptorSet;
 
@@ -187,7 +187,6 @@ public:
 	void createSwapchain(GLFWwindow* window, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface);
 	void getSwapchainImages(VkDevice& logicalDevice);
 	void createSwapchainImageViews(VkDevice& logicalDevice);
-	void recreateSwapchain(GLFWwindow* window, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface);
 
 	void createDepthPrePass(VkDevice& logicalDevice, VkRenderPass& renderPass, const VkFormat& depthFormat);
 	void createPresentRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, const VkFormat& format);
@@ -195,17 +194,19 @@ public:
 	void createShadowRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, const VkFormat& depthFormat);
 	void createGeometryRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, VkFormat format, const VkFormat& depthFormat);
 
-	void createDepthBuffer(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, const VkExtent2D& swapchainExtent);
+	void createDepthBuffer(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, const VkExtent2D& extent);
+	void createOffscreenAttachments(VkDevice& logicalDevice, const VkExtent2D& extent);
 
 	void createSwapchainFramebuffer(VkDevice& logicalDevice, std::vector<VkImageView>& swapchainImageViews,
 		std::vector<VkFramebuffer>& framebuffers, VulkanFramebuffer& offscreenFramebuffer, VkRenderPass& geometryRenderPass, VkRenderPass& renderPass, VkImageView& depthImageView, 
-		VkExtent2D swapchainExtent);
+		VkExtent2D extent);
+	void recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface);
 
 	void createShadowFramebuffer(VkDevice& logicalDevice, VkFramebuffer& shadowFramebuffer, VkRenderPass& shadowRenderPass, u32 width, u32 height);
 
 	void createShadingFramebuffer(VkDevice& logicalDevice, VkFramebuffer& shadingFramebuffer, VkRenderPass& shadingRenderPass, VkExtent2D extent);
 
-	void createDepthFramebuffer(VkDevice& logicalDevice, VkFramebuffer& depthFramebuffer, VkRenderPass& depthRenderPass, VkExtent2D swapchainExtent);
+	void createDepthFramebuffer(VkDevice& logicalDevice, VkFramebuffer& depthFramebuffer, VkRenderPass& depthRenderPass, VkExtent2D extent);
 
 	void createCommandPool(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, VkCommandPool& commandPool);
 

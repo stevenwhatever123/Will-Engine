@@ -34,4 +34,6 @@ public:
 	VulkanFramebuffer();
 	VulkanFramebuffer(VkFramebuffer framebuffer);
 	~VulkanFramebuffer();
+
+	void cleanUp(VkDevice& logicalDevice, VmaAllocator& vmaAllocator);
 };

@@ -748,7 +748,7 @@ void WillEngine::VulkanUtil::createPipelineLayout(VkDevice& logicalDevice, VkPip
 }
 
 void WillEngine::VulkanUtil::createPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass, 
-    VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D swapchainExtent)
+    VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D extent)
 {
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -814,14 +814,14 @@ void WillEngine::VulkanUtil::createPipeline(VkDevice& logicalDevice, VkPipeline&
     VkViewport viewport{};
     viewport.x = 0;
     viewport.y = 0;
-    viewport.width = swapchainExtent.width;
-    viewport.height = swapchainExtent.height;
+    viewport.width = extent.width;
+    viewport.height = extent.height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     // Scissor
     VkRect2D scissor{};
-    scissor.extent = swapchainExtent;
+    scissor.extent = extent;
     scissor.offset = { 0, 0 };
 
     VkPipelineViewportStateCreateInfo viewportInfo{};
@@ -899,7 +899,7 @@ void WillEngine::VulkanUtil::createPipeline(VkDevice& logicalDevice, VkPipeline&
 }
 
 void WillEngine::VulkanUtil::createGeometryPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
-    VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D swapchainExtent)
+    VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D extent)
 {
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -965,14 +965,14 @@ void WillEngine::VulkanUtil::createGeometryPipeline(VkDevice& logicalDevice, VkP
     VkViewport viewport{};
     viewport.x = 0;
     viewport.y = 0;
-    viewport.width = swapchainExtent.width;
-    viewport.height = swapchainExtent.height;
+    viewport.width = extent.width;
+    viewport.height = extent.height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     // Scissor
     VkRect2D scissor{};
-    scissor.extent = swapchainExtent;
+    scissor.extent = extent;
     scissor.offset = { 0, 0 };
 
     VkPipelineViewportStateCreateInfo viewportInfo{};
@@ -1053,7 +1053,7 @@ void WillEngine::VulkanUtil::createGeometryPipeline(VkDevice& logicalDevice, VkP
 }
 
 void WillEngine::VulkanUtil::createShadingPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
-    VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D swapchainExtent)
+    VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D extent)
 {
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -1087,14 +1087,14 @@ void WillEngine::VulkanUtil::createShadingPipeline(VkDevice& logicalDevice, VkPi
     VkViewport viewport{};
     viewport.x = 0;
     viewport.y = 0;
-    viewport.width = swapchainExtent.width;
-    viewport.height = swapchainExtent.height;
+    viewport.width = extent.width;
+    viewport.height = extent.height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     // Scissor
     VkRect2D scissor{};
-    scissor.extent = swapchainExtent;
+    scissor.extent = extent;
     scissor.offset = { 0, 0 };
 
     VkPipelineViewportStateCreateInfo viewportInfo{};
@@ -1309,7 +1309,7 @@ void WillEngine::VulkanUtil::createShadowPipeline(VkDevice& logicalDevice, VkPip
 }
 
 void WillEngine::VulkanUtil::createDepthPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
-    VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D swapchainExtent)
+    VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D extent)
 {
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -1375,14 +1375,14 @@ void WillEngine::VulkanUtil::createDepthPipeline(VkDevice& logicalDevice, VkPipe
     VkViewport viewport{};
     viewport.x = 0;
     viewport.y = 0;
-    viewport.width = swapchainExtent.width;
-    viewport.height = swapchainExtent.height;
+    viewport.width = extent.width;
+    viewport.height = extent.height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     // Scissor
     VkRect2D scissor{};
-    scissor.extent = swapchainExtent;
+    scissor.extent = extent;
     scissor.offset = { 0, 0 };
 
     VkPipelineViewportStateCreateInfo viewportInfo{};
