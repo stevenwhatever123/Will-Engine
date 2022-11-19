@@ -202,7 +202,10 @@ void SystemManager::updateGui()
     VulkanEngine* vulkanEngine = vulkanWindow->vulkanEngine;
     VulkanGui* vulkanGui = vulkanEngine->vulkanGui;
 
-    vulkanGui->update(gameState.graphicsState.renderedImage, vulkanEngine->offscreenFramebuffer, gameState.graphicsResources.meshes,
+    //vulkanGui->update(gameState.graphicsState.renderedImage_ImGui, vulkanEngine->offscreenFramebuffer, gameState.graphicsResources.meshes,
+    //    gameState.graphicsResources.materials, gameState.graphicsResources.lights, &gameState, vulkanEngine->sceneExtent, vulkanEngine->sceneExtentChanged);
+
+    vulkanGui->update(gameState.graphicsState.computedImage_ImGui, vulkanEngine->offscreenFramebuffer, gameState.graphicsResources.meshes,
         gameState.graphicsResources.materials, gameState.graphicsResources.lights, &gameState, vulkanEngine->sceneExtent, vulkanEngine->sceneExtentChanged);
 }
 

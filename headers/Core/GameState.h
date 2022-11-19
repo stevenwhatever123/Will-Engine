@@ -9,7 +9,16 @@ struct GameState
 {
 	struct GraphicsState
 	{
+		VkDescriptorSet renderedImage_ImGui;
+
+		VkDescriptorSetLayout renderedImageLayout;
 		VkDescriptorSet renderedImage;
+
+		VkDescriptorSet computedImage_ImGui;
+
+		VkDescriptorSetLayout computedImageLayout;
+		VkDescriptorSet computedImage;
+
 		VulkanFramebuffer GBuffers;
 	} graphicsState;
 	

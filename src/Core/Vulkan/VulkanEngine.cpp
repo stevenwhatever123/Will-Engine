@@ -49,7 +49,7 @@ VulkanEngine::~VulkanEngine()
 
 }
 
-void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue& queue, 
+void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue& graphicsQueue,
 	GameState* gameState)
 {
 	this->gameState = gameState;
@@ -57,8 +57,8 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	// Create / Allocate resources
 	createVmaAllocator(instance, physicalDevice, logicalDevice);
 	createCommandPool(logicalDevice, physicalDevice, surface, commandPool);
-	createCommandBuffer(logicalDevice, commandBuffers);
-	createSemaphore(logicalDevice, imageAvailable, renderFinished);
+	createCommandBuffer(logicalDevice, commandBuffers, computeCommandBuffers, presentCommandBuffers);
+	createSemaphore(logicalDevice, imageAvailable, renderFinished, readyToPresent, computeFinished);
 	createFence(logicalDevice, fences, VK_FENCE_CREATE_SIGNALED_BIT);
 	createDescriptionPool(logicalDevice);
 
@@ -82,11 +82,13 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	createShadingFramebuffer(logicalDevice, shadingFramebuffer, shadingRenderPass, sceneExtent);
 	WillEngine::VulkanUtil::createAttachmentSampler(logicalDevice, attachmentSampler);
 
+	WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, swapchainImageFormat, sceneExtent, postProcessedImage, postProcessedImageView);
+
 	// Create and allocate framebuffer for presenting
 	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, geometryRenderPass, shadingRenderPass, depthImageView, swapchainExtent);
 
 	// Gui
-	initGui(window, instance, logicalDevice, physicalDevice, queue, surface);
+	initGui(window, instance, logicalDevice, physicalDevice, graphicsQueue, surface);
 
 	// Used in mostly all passes
 	// Scene Descriptors for scene matrix with binding 0 in vertex shader
@@ -113,6 +115,8 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 		VK_SHADER_STAGE_FRAGMENT_BIT, 1, descriptorSize);
 
+	WillEngine::VulkanUtil::createDefaultSampler(logicalDevice, defaultSampler);
+
 
 	// Graphics Pipeline
 	initDepthPipeline(logicalDevice);
@@ -122,6 +126,11 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 
 	// Descriptor Set for the final shaded image to be used in the UI rendering
 	initRenderedDescriptors(logicalDevice, descriptorPool);
+
+	initComputedImageDescriptors(logicalDevice, descriptorPool);
+
+	// Compute Pipeline for bloom
+	initBloomDownscalePipeline(logicalDevice);
 }
 
 void VulkanEngine::cleanup(VkDevice& logicalDevice)
@@ -245,6 +254,8 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 
 	// Make sure command buffer finishes executing
 	vkResetCommandBuffer(commandBuffers[imageIndex], 0);
+	vkResetCommandBuffer(computeCommandBuffers[imageIndex], 0);
+	vkResetCommandBuffer(presentCommandBuffers[imageIndex], 0);
 
 	// Update Texture
 	if (gameState->materialUpdateInfo.updateTexture || gameState->materialUpdateInfo.updateColor)
@@ -253,12 +264,23 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 		gameState->materialUpdateInfo.textureFilepath = "";
 	}
 
-	//recordCommands(commandBuffers[imageIndex], shadingRenderPass, framebuffers[imageIndex], swapchainExtent);
-	recordCommands(commandBuffers[imageIndex], framebuffers[imageIndex], swapchainExtent);
+	// Rendering command
 
+	recordCommands(commandBuffers[imageIndex], framebuffers[imageIndex], swapchainExtent);
 	submitCommands(commandBuffers[imageIndex], imageAvailable, renderFinished, graphicsQueue, fences[imageIndex]);
 
-	presentImage(graphicsQueue, renderFinished, swapchain, imageIndex);
+	recordComputeCommands(computeCommandBuffers[imageIndex]);
+	submitComputeCommands(computeCommandBuffers[imageIndex], renderFinished, computeFinished, graphicsQueue, fences[imageIndex]);
+
+	recordUICommands(presentCommandBuffers[imageIndex], framebuffers[imageIndex], swapchainExtent);
+	submitUICommands(presentCommandBuffers[imageIndex], computeFinished, readyToPresent, graphicsQueue, fences[imageIndex]);
+
+	presentImage(graphicsQueue, readyToPresent, swapchain, imageIndex);
+
+	//recordCommands(commandBuffers[imageIndex], framebuffers[imageIndex], swapchainExtent);
+	//submitCommands(commandBuffers[imageIndex], imageAvailable, renderFinished, graphicsQueue, fences[imageIndex]);
+
+	//presentImage(graphicsQueue, renderFinished, swapchain, imageIndex);
 }
 
 void VulkanEngine::createVmaAllocator(VkInstance& instance, VkPhysicalDevice& physicalDevice, VkDevice& logicalDevice)
@@ -696,7 +718,11 @@ void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& lo
 		vkDestroyImageView(logicalDevice, shadingImageView, nullptr);
 		vmaDestroyImage(vmaAllocator, shadingImage.image, shadingImage.allocation);
 
-		vkFreeDescriptorSets(logicalDevice, vulkanGui->getDescriptorPool(), 1, &gameState->graphicsState.renderedImage);
+		// Computed
+		vkDestroyImageView(logicalDevice, postProcessedImageView, nullptr);
+		vmaDestroyImage(vmaAllocator, postProcessedImage.image, nullptr);
+
+		vkFreeDescriptorSets(logicalDevice, vulkanGui->getDescriptorPool(), 1, &gameState->graphicsState.renderedImage_ImGui);
 	}
 
 	// Destroy old framebuffers
@@ -719,8 +745,9 @@ void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& lo
 	createOffscreenAttachments(logicalDevice, sceneExtent);
 
 	WillEngine::VulkanUtil::createShadingImage(logicalDevice, vmaAllocator, swapchainImageFormat, sceneExtent, shadingImage, shadingImageView);
-	gameState->graphicsState.renderedImage = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, shadingImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	createShadingFramebuffer(logicalDevice, shadingFramebuffer, shadingRenderPass, sceneExtent);
+
+	WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, swapchainImageFormat, sceneExtent, postProcessedImage, postProcessedImageView);
 
 	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, geometryRenderPass, shadingRenderPass, depthImageView, swapchainExtent);
 
@@ -728,6 +755,8 @@ void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& lo
 	{
 		// Recreate attachment descriptor sets
 		initAttachmentDescriptors(logicalDevice, descriptorPool);
+		initRenderedDescriptors(logicalDevice, descriptorPool);
+		initComputedImageDescriptors(logicalDevice, descriptorPool);
 
 		sceneExtentChanged = false;
 	}
@@ -793,17 +822,23 @@ void VulkanEngine::createCommandPool(VkDevice& logicalDevice, VkPhysicalDevice& 
 	commandPool = WillEngine::VulkanUtil::createCommandPool(logicalDevice, physicalDevice, surface);
 }
 
-void VulkanEngine::createCommandBuffer(VkDevice& logicalDevice, std::vector<VkCommandBuffer>& commandBuffers)
+void VulkanEngine::createCommandBuffer(VkDevice& logicalDevice, std::vector<VkCommandBuffer>& commandBuffers, 
+	std::vector<VkCommandBuffer>& computeCommandBuffers, std::vector<VkCommandBuffer>& presentCommandBuffers)
 {
 	commandBuffers.resize(numSwapchainImage);
+	computeCommandBuffers.resize(numSwapchainImage);
+	presentCommandBuffers.resize(numSwapchainImage);
 
 	for (u32 i = 0; i < commandBuffers.size(); i++)
 	{
 		commandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPool);
+		computeCommandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPool);
+		presentCommandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPool);
 	}
 }
 
-void VulkanEngine::createSemaphore(VkDevice& logicalDevice, VkSemaphore& waitImageAvailable, VkSemaphore& signalRenderFinish)
+void VulkanEngine::createSemaphore(VkDevice& logicalDevice, VkSemaphore& waitImageAvailable, VkSemaphore& signalRenderFinish, VkSemaphore& signalReadyToPresent,
+	VkSemaphore& signalComputeFinished)
 {
 	VkSemaphoreCreateInfo semaphoreInfo{};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -813,6 +848,12 @@ void VulkanEngine::createSemaphore(VkDevice& logicalDevice, VkSemaphore& waitIma
 
 	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &signalRenderFinish) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create signal render finish semaphore");
+
+	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &signalReadyToPresent) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create signal ready to present semaphore");
+
+	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &signalComputeFinished) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create signal ready to present semaphore");
 }
 
 void VulkanEngine::createFence(VkDevice& logicalDevice, std::vector<VkFence>& fences, VkFenceCreateFlagBits flag)
@@ -876,7 +917,7 @@ void VulkanEngine::initShadowMapDescriptors(VkDevice& logicalDevice, VkDescripto
 	std::vector<VkImageView> imageViews = { shadowCubeMapView };
 
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, shadowMapDescriptorSets, &shadowSampler, imageViews.data(),
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 3, imageViews.size());
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, imageViews.size());
 }
 
 void VulkanEngine::initAttachmentDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool)
@@ -904,13 +945,36 @@ void VulkanEngine::initAttachmentDescriptors(VkDevice& logicalDevice, VkDescript
 		offscreenFramebuffer.GBuffer3.imageView, offscreenFramebuffer.GBuffer4.imageView };
 
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, attachmentDescriptorSets, &attachmentSampler, imageViews.data(),
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 2, imageViews.size());
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, imageViews.size());
 }
 
 void VulkanEngine::initRenderedDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool)
 {
-	//imguiRenderedDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, shadingImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	gameState->graphicsState.renderedImage = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, shadingImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, gameState->graphicsState.renderedImageLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+		VK_SHADER_STAGE_COMPUTE_BIT, 0, 1);
+
+	WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, gameState->graphicsState.renderedImageLayout, gameState->graphicsState.renderedImage);
+
+	std::vector<VkImageView> imageViews = { shadingImageView };
+
+	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, gameState->graphicsState.renderedImage, &defaultSampler, imageViews.data(),
+		VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, 1);
+
+	gameState->graphicsState.renderedImage_ImGui = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, shadingImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+}
+
+void VulkanEngine::initComputedImageDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool)
+{
+	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, gameState->graphicsState.computedImageLayout, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, 1, 1);
+
+	WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, gameState->graphicsState.computedImageLayout, gameState->graphicsState.computedImage);
+
+	std::vector<VkImageView> imageViews = { postProcessedImageView };
+
+	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, gameState->graphicsState.computedImage, &defaultSampler, imageViews.data(), VK_IMAGE_LAYOUT_GENERAL,
+		VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, 1);
+
+	gameState->graphicsState.computedImage_ImGui = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(defaultSampler, postProcessedImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
 void VulkanEngine::initGeometryPipeline(VkDevice& logicalDevice)
@@ -1011,6 +1075,20 @@ void VulkanEngine::initShadingPipeline(VkDevice& logicalDevice)
 		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, sceneExtent);
 }
 
+void VulkanEngine::initBloomDownscalePipeline(VkDevice& logicalDevice)
+{
+	
+	WillEngine::VulkanUtil::initBloomDownscaleShaderModule(logicalDevice, bloomDownscaleCompShader);
+	
+	VkDescriptorSetLayout layout[] = {gameState->graphicsState.renderedImageLayout, gameState->graphicsState.computedImageLayout};
+	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
+
+	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, bloomDownscalePipelineLayout, layoutSize, layout, 0, nullptr);
+
+	WillEngine::VulkanUtil::createBloomDownscalePipeline(logicalDevice, bloomDownscalePipeline, bloomDownscalePipelineLayout, bloomDownscaleCompShader);
+
+}
+
 void VulkanEngine::initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue,
 	VkSurfaceKHR& surface)
 {
@@ -1089,7 +1167,7 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkFramebuffer&
 	shadingPasses(commandBuffer, shadingRenderPass, shadingFramebuffer, sceneExtent);
 
 	// UI rendering pass
-	UIPasses(commandBuffer, presentRenderPass, framebuffer, extent);
+	//UIPasses(commandBuffer, presentRenderPass, framebuffer, extent);
 
 	// ========================================================
 
@@ -1331,7 +1409,80 @@ void VulkanEngine::submitCommands(VkCommandBuffer& commandBuffer, VkSemaphore& w
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = &signalSemaphore;
 
-	vkQueueSubmit(graphicsQueue, 1, &submitInfo, fence);
+	//vkQueueSubmit(graphicsQueue, 1, &submitInfo, fence);
+	vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+}
+
+void VulkanEngine::recordComputeCommands(VkCommandBuffer& commandBuffer)
+{
+	// Begin command buffer
+	VkCommandBufferBeginInfo commandBeginInfo{};
+	commandBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	commandBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	if (vkBeginCommandBuffer(commandBuffer, &commandBeginInfo) != VK_SUCCESS)
+		throw std::runtime_error("Failed to begin command buffer");
+
+	// Bind Pipeline
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, bloomDownscalePipeline);
+
+	// Bind Descriptor sets
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, bloomDownscalePipelineLayout, 0, 1, &gameState->graphicsState.renderedImage, 0, nullptr);
+
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, bloomDownscalePipelineLayout, 1, 1, &gameState->graphicsState.computedImage, 0, nullptr);
+
+	// Dispatch compute job.
+	vkCmdDispatch(commandBuffer, sceneExtent.width / 16, sceneExtent.height / 16, 1);
+
+	vkEndCommandBuffer(commandBuffer);
+}
+
+void VulkanEngine::submitComputeCommands(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, VkQueue& queue, VkFence& fence)
+{
+	VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = &waitSemaphore;
+	submitInfo.pWaitDstStageMask = &dstStageMask;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = &signalSemaphore;
+
+	vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+}
+
+void VulkanEngine::recordUICommands(VkCommandBuffer& commandBuffer, VkFramebuffer& framebuffer, VkExtent2D& extent)
+{
+	// Begin command buffer
+	VkCommandBufferBeginInfo commandBeginInfo{};
+	commandBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	commandBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	if (vkBeginCommandBuffer(commandBuffer, &commandBeginInfo) != VK_SUCCESS)
+		throw std::runtime_error("Failed to begin command buffer");
+
+	UIPasses(commandBuffer, presentRenderPass, framebuffer, extent);
+
+	vkEndCommandBuffer(commandBuffer);
+}
+
+void VulkanEngine::submitUICommands(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, VkQueue& queue, VkFence& fence)
+{
+	VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = &waitSemaphore;
+	submitInfo.pWaitDstStageMask = &dstStageMask;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = &signalSemaphore;
+
+	vkQueueSubmit(queue, 1, &submitInfo, fence);
 }
 
 void VulkanEngine::presentImage(VkQueue& graphicsQueue, VkSemaphore& waitSemaphore, VkSwapchainKHR& swapchain, u32& swapchainIndex)

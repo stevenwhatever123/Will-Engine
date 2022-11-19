@@ -177,6 +177,37 @@ VulkanAllocatedImage WillEngine::VulkanUtil::createImageWithFlags(VkDevice& logi
     return std::move(vulkanImage);
 }
 
+VulkanAllocatedImage WillEngine::VulkanUtil::createImageWithLayouts(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkImageUsageFlags usage, 
+    VkImageLayout layout, u32 width, u32 height, u32 mipLevels)
+{
+    // Image Info
+    VkImageCreateInfo imageInfo{};
+    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageInfo.format = format;
+    imageInfo.extent.width = width;
+    imageInfo.extent.height = height;
+    imageInfo.extent.depth = 1;
+    imageInfo.mipLevels = mipLevels;
+    imageInfo.arrayLayers = 1;
+    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imageInfo.usage = usage | VK_IMAGE_USAGE_SAMPLED_BIT;
+    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    imageInfo.initialLayout = layout;
+
+    // Allocate Memory
+    VmaAllocationCreateInfo allocInfo{};
+    allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+    VulkanAllocatedImage vulkanImage;
+
+    if (vmaCreateImage(vmaAllocator, &imageInfo, &allocInfo, &vulkanImage.image, &vulkanImage.allocation, nullptr) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create image");
+
+    return std::move(vulkanImage);
+}
+
 void WillEngine::VulkanUtil::loadTextureImage(VkDevice& logicalDevice, VmaAllocator vmaAllocator, VkCommandPool& commandPool, VkQueue& queue, 
     VulkanAllocatedImage& vulkanImage, u32 mipLevels, u32 width, u32 height, unsigned char* textureImage)
 {
@@ -419,8 +450,8 @@ void WillEngine::VulkanUtil::createDefaultSampler(VkDevice& logicalDevice, VkSam
     samplerInfo.magFilter = VK_FILTER_LINEAR;
     samplerInfo.minFilter = VK_FILTER_LINEAR;
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
 
@@ -657,6 +688,15 @@ void WillEngine::VulkanUtil::initDepthShaderModule(VkDevice& logicalDevice, VkSh
     fragShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, fragShaderCode);
 }
 
+void WillEngine::VulkanUtil::initBloomDownscaleShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader)
+{
+    const char* shaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/post_processing/bloomDownscale.comp.spv";
+
+    auto shaderCode = WillEngine::Utils::readSprivShader(shaderPath);
+
+    compShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, shaderCode);
+}
+
 void WillEngine::VulkanUtil::createDescriptorSetLayout(VkDevice& logicalDevice, VkDescriptorSetLayout& descriptorSetLayout,
     VkDescriptorType descriptorType, VkShaderStageFlags shaderStage, u32 binding, u32 descriptorCount)
 {
@@ -706,7 +746,7 @@ void WillEngine::VulkanUtil::writeDescriptorSetBuffer(VkDevice& logicalDevice, V
 }
 
 void WillEngine::VulkanUtil::writeDescriptorSetImage(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkSampler* sampler, 
-    VkImageView* imageView, VkImageLayout imageLayout, u32 binding, u32 descriptorCount)
+    VkImageView* imageView, VkImageLayout imageLayout, VkDescriptorType descriptorType, u32 binding, u32 descriptorCount)
 {
     std::vector<VkDescriptorImageInfo> imageInfos(descriptorCount);
     u32 samplerSize = sizeof(sampler) / sizeof(sampler[0]);
@@ -726,7 +766,8 @@ void WillEngine::VulkanUtil::writeDescriptorSetImage(VkDevice& logicalDevice, Vk
     writeSet.dstSet = descriptorSet;
     writeSet.dstBinding = binding;
     writeSet.descriptorCount = descriptorCount;
-    writeSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    //writeSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    writeSet.descriptorType = descriptorType;
     writeSet.pImageInfo = imageInfos.data();
 
     vkUpdateDescriptorSets(logicalDevice, 1, &writeSet, 0, nullptr);
@@ -1447,6 +1488,23 @@ void WillEngine::VulkanUtil::createDepthPipeline(VkDevice& logicalDevice, VkPipe
         throw std::runtime_error("Failed to create graphics pipeline");
 }
 
+void WillEngine::VulkanUtil::createBloomDownscalePipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkShaderModule& compShader)
+{
+    VkPipelineShaderStageCreateInfo shaderStageInfo{};
+    shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    shaderStageInfo.module = compShader;
+    shaderStageInfo.pName = "main";
+    
+    VkComputePipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    pipelineInfo.stage = shaderStageInfo;
+    pipelineInfo.layout = pipelineLayout;
+
+    if (vkCreateComputePipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create compute pipeline");
+}
+
 void WillEngine::VulkanUtil::createFramebufferAttachment(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkExtent2D extent, 
     VulkanFramebufferAttachment& attachment)
 {
@@ -1458,6 +1516,16 @@ void WillEngine::VulkanUtil::createFramebufferAttachment(VkDevice& logicalDevice
 void WillEngine::VulkanUtil::createShadingImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkExtent2D extent, 
     VulkanAllocatedImage& image, VkImageView& imageView)
 {
-    image = createImage(logicalDevice, vmaAllocator, format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, extent.width, extent.height, 1);
+    image = createImage(logicalDevice, vmaAllocator, format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT, extent.width, extent.height, 1);
+    createImageView(logicalDevice, image.image, imageView, 1, format, VK_IMAGE_ASPECT_COLOR_BIT);
+}
+
+void WillEngine::VulkanUtil::createComputedImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkExtent2D extent,
+    VulkanAllocatedImage& image, VkImageView& imageView)
+{
+    image = createImageWithLayouts(logicalDevice, vmaAllocator, format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT, 
+        VK_IMAGE_LAYOUT_GENERAL, extent.width, extent.height, 1);
+
+    //image = createImage(logicalDevice, vmaAllocator, format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT, extent.width, extent.height, 1);
     createImageView(logicalDevice, image.image, imageView, 1, format, VK_IMAGE_ASPECT_COLOR_BIT);
 }

@@ -120,7 +120,7 @@ void Material::initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& phys
 	}
 
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers.data(), imageViews.data(),
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 4);
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 4);
 }
 
 void Material::initBrdfDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
@@ -152,7 +152,7 @@ void Material::initBrdfDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& 
 	}
 
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers.data(), imageViews.data(),
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, textureSize);
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, textureSize);
 }
 
 void Material::updateDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
@@ -179,7 +179,7 @@ void Material::updateDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& ph
 	}
 
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers.data(), imageViews.data(),
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 4);
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 4);
 }
 
 void Material::updateBrdfDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
@@ -206,7 +206,7 @@ void Material::updateBrdfDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice
 	}
 
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers.data(), imageViews.data(),
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 5);
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 5);
 }
 
 const bool Material::hasTexture(u32 index, TextureDescriptorSet* textures)

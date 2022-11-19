@@ -70,7 +70,9 @@ public:
 	VulkanAllocatedImage shadingImage;
 	VkFramebuffer shadingFramebuffer;
 	VkImageView shadingImageView;
-	VkDescriptorSet imguiRenderedDescriptorSet;
+
+	VulkanAllocatedImage postProcessedImage;
+	VkImageView postProcessedImageView;
 
 	// Framebuffer
 	std::vector<VkFramebuffer> framebuffers;
@@ -79,15 +81,22 @@ public:
 
 	// Sampler to sample framebuffer's color attachment
 	VkSampler attachmentSampler;
+	VkSampler defaultSampler;
 
 	// Command pool and buffer
 	VkCommandPool commandPool;
 	std::vector<VkCommandBuffer> commandBuffers;
+	std::vector<VkCommandBuffer> computeCommandBuffers;
+	std::vector<VkCommandBuffer> presentCommandBuffers;
 
 	// Semaphore for waiting and signaling
 	// Used for GPU - GPU sync
 	VkSemaphore imageAvailable;
 	VkSemaphore renderFinished;
+
+	VkSemaphore computeFinished;
+
+	VkSemaphore readyToPresent;
 
 	// Fence 
 	// Used for CPU - GPU symc
@@ -107,6 +116,9 @@ public:
 	// Pipeline for depth pre pass
 	VkPipelineLayout depthPipelineLayout;
 	VkPipeline depthPipeline;
+	// Pipeline for bloom post-processing
+	VkPipelineLayout bloomDownscalePipelineLayout;
+	VkPipeline bloomDownscalePipeline;
 
 	// Scene Descriptor sets
 	VkDescriptorSetLayout sceneDescriptorSetLayout;
@@ -151,6 +163,8 @@ public:
 	VkShaderModule depthVertShader;
 	VkShaderModule depthFragShader;
 
+	VkShaderModule bloomDownscaleCompShader;
+
 	// ======================================
 	VulkanAllocatedImage shadowCubeMap;
 	VkImageView shadowCubeMapView;
@@ -174,7 +188,7 @@ public:
 	VulkanEngine();
 	~VulkanEngine();
 
-	void init(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue& queue, 
+	void init(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue& graphicsQueue, 
 		GameState* gameState);
 	void cleanup(VkDevice& logicalDevice);
 
@@ -210,9 +224,11 @@ public:
 
 	void createCommandPool(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, VkCommandPool& commandPool);
 
-	void createCommandBuffer(VkDevice& logicalDevice, std::vector<VkCommandBuffer>& commandBuffers);
+	void createCommandBuffer(VkDevice& logicalDevice, std::vector<VkCommandBuffer>& commandBuffers, std::vector<VkCommandBuffer>& computeCommandBuffers,
+		std::vector<VkCommandBuffer>& presentCommandBuffers);
 
-	void createSemaphore(VkDevice& logicalDevice, VkSemaphore& waitImageAvailable, VkSemaphore& signalRenderFinish);
+	void createSemaphore(VkDevice& logicalDevice, VkSemaphore& waitImageAvailable, VkSemaphore& signalRenderFinish, VkSemaphore& signalReadyToPresent,
+		VkSemaphore& signalComputeFinished);
 
 	void createFence(VkDevice& logicalDevice, std::vector<VkFence>& fences, VkFenceCreateFlagBits flag);
 
@@ -230,11 +246,15 @@ public:
 
 	void initRenderedDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
 
+	void initComputedImageDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
+
 	// Pipeline init
 	void initGeometryPipeline(VkDevice& logicalDevice);
 	void initDepthPipeline(VkDevice& logicalDevice);
 	void initShadowPipeline(VkDevice& logicalDevice);
 	void initShadingPipeline(VkDevice& logicalDevice);
+
+	void initBloomDownscalePipeline(VkDevice& logicalDevice);
 
 	// GUI
 	void initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue, VkSurfaceKHR& surface);
@@ -254,6 +274,12 @@ public:
 
 	void submitCommands(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, 
 		VkQueue& graphicsQueue, VkFence& fence);
+
+	void recordComputeCommands(VkCommandBuffer& commandBuffer);
+	void submitComputeCommands(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, VkQueue& queue, VkFence& fence);
+
+	void recordUICommands(VkCommandBuffer& commandBuffer, VkFramebuffer& framebuffer, VkExtent2D& extent);
+	void submitUICommands(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, VkQueue& queue, VkFence& fence);
 
 	void presentImage(VkQueue& graphicsQueue, VkSemaphore& waitSemaphore, VkSwapchainKHR& swapchain, u32& swapchainIndex);
 

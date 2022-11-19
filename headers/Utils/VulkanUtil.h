@@ -34,6 +34,9 @@ namespace WillEngine::VulkanUtil
 	VulkanAllocatedImage createImageWithFlags(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkImageUsageFlags usage, VkImageCreateFlags flags,
 		u32 width, u32 height, u32 mipLevels, u32 arrayLayers);
 
+	VulkanAllocatedImage createImageWithLayouts(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkImageUsageFlags usage, VkImageLayout layout,
+		u32 width, u32 height, u32 mipLevels);
+
 	void loadTextureImage(VkDevice& logicalDevice, VmaAllocator vmaAllocator, VkCommandPool& commandPool, VkQueue& queue, VulkanAllocatedImage& vulkanImage, 
 		u32 mipLevels, u32 width, u32 height, unsigned char* textureImage);
 
@@ -83,6 +86,8 @@ namespace WillEngine::VulkanUtil
 	void initShadowShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& geomShader, VkShaderModule& fragShader);
 	void initDepthShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader);
 
+	void initBloomDownscaleShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader);
+
 	// Descriptors related
 	void createDescriptorSetLayout(VkDevice& logicalDevice, VkDescriptorSetLayout& descriptorSetLayout,VkDescriptorType descriptorType, 
 		VkShaderStageFlags shaderStage, u32 binding, u32 descriptorCount);
@@ -93,7 +98,7 @@ namespace WillEngine::VulkanUtil
 	void writeDescriptorSetBuffer(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkBuffer& descriptorBuffer, u32 binding);
 
 	void writeDescriptorSetImage(VkDevice& logicalDevice, VkDescriptorSet& descriptorSet, VkSampler* sampler,
-		VkImageView* imageView, VkImageLayout imageLayout, u32 binding, u32 descriptorCount);
+		VkImageView* imageView, VkImageLayout imageLayout, VkDescriptorType descriptorType, u32 binding, u32 descriptorCount);
 
 	// Pipeline
 	void createPipelineLayout(VkDevice& logicalDevice, VkPipelineLayout& pipelineLayout, u32 size,
@@ -110,9 +115,13 @@ namespace WillEngine::VulkanUtil
 	void createDepthPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
 		VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D extent);
 
+	void createBloomDownscalePipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkShaderModule& compShader);
+
 	// Framebuffer
 	void createFramebufferAttachment(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkExtent2D extent, 
 		VulkanFramebufferAttachment& attachment);
 	void createShadingImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkExtent2D extent, VulkanAllocatedImage& image,
+		VkImageView& imageView);
+	void createComputedImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkExtent2D extent, VulkanAllocatedImage& image, 
 		VkImageView& imageView);
 }

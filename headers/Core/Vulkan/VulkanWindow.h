@@ -40,6 +40,8 @@ public:
 
 	VkQueue graphicsQueue;
 
+	VkQueue computeQueue;
+
 	VkQueue presentQueue;
 
 	VkSurfaceKHR surface;

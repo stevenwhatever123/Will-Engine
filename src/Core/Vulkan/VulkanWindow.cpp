@@ -14,6 +14,7 @@ VulkanWindow::VulkanWindow() :
     physicalDevice(VK_NULL_HANDLE),
     logicalDevice(VK_NULL_HANDLE),
     graphicsQueue(VK_NULL_HANDLE),
+    computeQueue(VK_NULL_HANDLE),
     presentQueue(VK_NULL_HANDLE),
     surface(VK_NULL_HANDLE),
     vulkanEngine(nullptr)
@@ -214,6 +215,7 @@ void VulkanWindow::createLogicalDevice()
         throw std::runtime_error("GPU does not have required Present Queue Family");
 
     u32 queueFamilyIndicies = WillEngine::VulkanUtil::findQueueFamilies(physicalDevice, VK_QUEUE_GRAPHICS_BIT, VK_NULL_HANDLE).value();
+    u32 computeFamilyIndicies = WillEngine::VulkanUtil::findQueueFamilies(physicalDevice, VK_QUEUE_COMPUTE_BIT, VK_NULL_HANDLE).value();
     u32 presentFamilyIndicies = WillEngine::VulkanUtil::findQueueFamilies(physicalDevice, VK_QUEUE_GRAPHICS_BIT, surface).value();
 
     f32 queuePriorities = 1.0f;
@@ -235,14 +237,14 @@ void VulkanWindow::createLogicalDevice()
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 
     std::vector<u32> uniqueQueueFaimiles;
-    if (queueFamilyIndicies == presentFamilyIndicies)
+    if (queueFamilyIndicies == presentFamilyIndicies && queueFamilyIndicies == computeFamilyIndicies)
     {
         uniqueQueueFaimiles.push_back(queueFamilyIndicies);
     }
     else
     {
         uniqueQueueFaimiles.insert(uniqueQueueFaimiles.end(),
-            { queueFamilyIndicies,  presentFamilyIndicies });
+            { queueFamilyIndicies, computeFamilyIndicies, presentFamilyIndicies });
     }
 
     // Create queue infos based on the queue family
@@ -380,6 +382,9 @@ bool VulkanWindow::isDeviceSuitable(VkPhysicalDevice& device, VkSurfaceKHR& surf
     // Check if the device have the queue family we need
     if (!WillEngine::VulkanUtil::findQueueFamilies(physicalDevice, VK_QUEUE_GRAPHICS_BIT, VK_NULL_HANDLE).has_value())
         throw std::runtime_error("GPU does not have required Graphics Queue Family");
+
+    if (!WillEngine::VulkanUtil::findQueueFamilies(physicalDevice, VK_QUEUE_COMPUTE_BIT, VK_NULL_HANDLE).has_value())
+        throw std::runtime_error("GPU does not have required Compute Queue Family");
 
     // Check if the device have the extensions we need
     if (!WillEngine::VulkanUtil::checkDeviceExtensionSupport(physicalDevice, physicalDeviceExtensions))
