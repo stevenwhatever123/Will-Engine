@@ -82,7 +82,7 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	createShadingFramebuffer(logicalDevice, shadingFramebuffer, shadingRenderPass, sceneExtent);
 	WillEngine::VulkanUtil::createAttachmentSampler(logicalDevice, attachmentSampler);
 
-	WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, swapchainImageFormat, sceneExtent, postProcessedImage, postProcessedImageView);
+	WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPool, graphicsQueue, swapchainImageFormat, sceneExtent, postProcessedImage, postProcessedImageView);
 
 	// Create and allocate framebuffer for presenting
 	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, geometryRenderPass, shadingRenderPass, depthImageView, swapchainExtent);
@@ -234,7 +234,7 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	{	
 		vkDeviceWaitIdle(logicalDevice);
 
-		recreateSwapchainFramebuffer(window, logicalDevice, physicalDevice, surface);
+		recreateSwapchainFramebuffer(window, logicalDevice, physicalDevice, surface, graphicsQueue);
 
 		return;
 	}
@@ -257,13 +257,6 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	vkResetCommandBuffer(computeCommandBuffers[imageIndex], 0);
 	vkResetCommandBuffer(presentCommandBuffers[imageIndex], 0);
 
-	// Update Texture
-	if (gameState->materialUpdateInfo.updateTexture || gameState->materialUpdateInfo.updateColor)
-	{
-		changeMaterialTexture(logicalDevice, physicalDevice, graphicsQueue, gameState);
-		gameState->materialUpdateInfo.textureFilepath = "";
-	}
-
 	// Rendering command
 
 	recordCommands(commandBuffers[imageIndex], framebuffers[imageIndex], swapchainExtent);
@@ -276,6 +269,13 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	submitUICommands(presentCommandBuffers[imageIndex], computeFinished, readyToPresent, graphicsQueue, fences[imageIndex]);
 
 	presentImage(graphicsQueue, readyToPresent, swapchain, imageIndex);
+
+	// Update Texture after recording all rendering commands
+	if (gameState->materialUpdateInfo.updateTexture || gameState->materialUpdateInfo.updateColor)
+	{
+		changeMaterialTexture(logicalDevice, physicalDevice, graphicsQueue, gameState);
+		gameState->materialUpdateInfo.textureFilepath = "";
+	}
 
 	//recordCommands(commandBuffers[imageIndex], framebuffers[imageIndex], swapchainExtent);
 	//submitCommands(commandBuffers[imageIndex], imageAvailable, renderFinished, graphicsQueue, fences[imageIndex]);
@@ -663,7 +663,7 @@ void VulkanEngine::createSwapchainFramebuffer(VkDevice& logicalDevice, std::vect
 	assert(swapchainImageViews.size() == framebuffers.size());
 }
 
-void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface)
+void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, VkQueue graphicsQueue)
 {
 	auto const oldFormat = swapchainImageFormat;
 	auto const oldExtent = swapchainExtent;
@@ -722,7 +722,13 @@ void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& lo
 		vkDestroyImageView(logicalDevice, postProcessedImageView, nullptr);
 		vmaDestroyImage(vmaAllocator, postProcessedImage.image, nullptr);
 
+		vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &gameState->graphicsState.renderedImage);
+		vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.renderedImageLayout, nullptr);
 		vkFreeDescriptorSets(logicalDevice, vulkanGui->getDescriptorPool(), 1, &gameState->graphicsState.renderedImage_ImGui);
+
+		vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &gameState->graphicsState.computedImage);
+		vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.computedImageLayout, nullptr);
+		vkFreeDescriptorSets(logicalDevice, vulkanGui->getDescriptorPool(), 1, &gameState->graphicsState.computedImage_ImGui);
 	}
 
 	// Destroy old framebuffers
@@ -747,7 +753,7 @@ void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& lo
 	WillEngine::VulkanUtil::createShadingImage(logicalDevice, vmaAllocator, swapchainImageFormat, sceneExtent, shadingImage, shadingImageView);
 	createShadingFramebuffer(logicalDevice, shadingFramebuffer, shadingRenderPass, sceneExtent);
 
-	WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, swapchainImageFormat, sceneExtent, postProcessedImage, postProcessedImageView);
+	WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPool, graphicsQueue, swapchainImageFormat, sceneExtent, postProcessedImage, postProcessedImageView);
 
 	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, geometryRenderPass, shadingRenderPass, depthImageView, swapchainExtent);
 
@@ -958,7 +964,7 @@ void VulkanEngine::initRenderedDescriptors(VkDevice& logicalDevice, VkDescriptor
 	std::vector<VkImageView> imageViews = { shadingImageView };
 
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, gameState->graphicsState.renderedImage, &defaultSampler, imageViews.data(),
-		VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, 1);
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, 1);
 
 	gameState->graphicsState.renderedImage_ImGui = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, shadingImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
@@ -974,7 +980,8 @@ void VulkanEngine::initComputedImageDescriptors(VkDevice& logicalDevice, VkDescr
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, gameState->graphicsState.computedImage, &defaultSampler, imageViews.data(), VK_IMAGE_LAYOUT_GENERAL,
 		VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, 1);
 
-	gameState->graphicsState.computedImage_ImGui = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(defaultSampler, postProcessedImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	//gameState->graphicsState.computedImage_ImGui = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(defaultSampler, postProcessedImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	gameState->graphicsState.computedImage_ImGui = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(defaultSampler, postProcessedImageView, VK_IMAGE_LAYOUT_GENERAL);
 }
 
 void VulkanEngine::initGeometryPipeline(VkDevice& logicalDevice)

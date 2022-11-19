@@ -51,6 +51,9 @@ namespace WillEngine::VulkanUtil
 	void createDepthImageView(VkDevice& logicalDevice, VkImage& image, VkImageView& imageView, u32 mipLevels, VkFormat format,
 		VkImageAspectFlags aspectMask);
 
+	void setImageLayout(VkCommandBuffer& commandBuffer, VkImage& image, VkImageAspectFlags aspectMask, VkImageLayout oldLayout, VkImageLayout newLayout,
+		VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+
 	// Samplers
 	void createDefaultSampler(VkDevice& logicalDevice, VkSampler& sampler);
 
@@ -122,6 +125,6 @@ namespace WillEngine::VulkanUtil
 		VulkanFramebufferAttachment& attachment);
 	void createShadingImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkExtent2D extent, VulkanAllocatedImage& image,
 		VkImageView& imageView);
-	void createComputedImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkExtent2D extent, VulkanAllocatedImage& image, 
-		VkImageView& imageView);
+	void createComputedImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool, VkQueue& graphicsQueue, VkFormat format, 
+		VkExtent2D extent, VulkanAllocatedImage& image, VkImageView& imageView);
 }

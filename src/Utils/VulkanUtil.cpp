@@ -205,6 +205,8 @@ VulkanAllocatedImage WillEngine::VulkanUtil::createImageWithLayouts(VkDevice& lo
     if (vmaCreateImage(vmaAllocator, &imageInfo, &allocInfo, &vulkanImage.image, &vulkanImage.allocation, nullptr) != VK_SUCCESS)
         throw std::runtime_error("Failed to create image");
 
+
+
     return std::move(vulkanImage);
 }
 
@@ -441,6 +443,20 @@ void WillEngine::VulkanUtil::createDepthImageView(VkDevice& logicalDevice, VkIma
 
     if (vkCreateImageView(logicalDevice, &imageViewInfo, nullptr, &imageView) != VK_SUCCESS)
         throw std::runtime_error("Failed to create image view");
+}
+
+void WillEngine::VulkanUtil::setImageLayout(VkCommandBuffer& commandBuffer, VkImage& image, VkImageAspectFlags aspectMask, VkImageLayout oldLayout, VkImageLayout newLayout,
+    VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask)
+{
+    VkImageSubresourceRange subresourceRange = {};
+    subresourceRange.aspectMask = aspectMask;
+    subresourceRange.baseMipLevel = 0;
+    subresourceRange.levelCount = 1;
+    subresourceRange.layerCount = 1;
+
+    imageBarrier(commandBuffer, image, VK_ACCESS_UNIFORM_READ_BIT, VK_ACCESS_UNIFORM_READ_BIT, oldLayout, newLayout,
+        VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT , 0, 1, 0, 1 }, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 }
 
 void WillEngine::VulkanUtil::createDefaultSampler(VkDevice& logicalDevice, VkSampler& sampler)
@@ -1520,11 +1536,47 @@ void WillEngine::VulkanUtil::createShadingImage(VkDevice& logicalDevice, VmaAllo
     createImageView(logicalDevice, image.image, imageView, 1, format, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-void WillEngine::VulkanUtil::createComputedImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkExtent2D extent,
-    VulkanAllocatedImage& image, VkImageView& imageView)
+void WillEngine::VulkanUtil::createComputedImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool, VkQueue& graphicsQueue, 
+    VkFormat format, VkExtent2D extent, VulkanAllocatedImage& image, VkImageView& imageView)
 {
-    image = createImageWithLayouts(logicalDevice, vmaAllocator, format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT, 
-        VK_IMAGE_LAYOUT_GENERAL, extent.width, extent.height, 1);
+    //image = createImageWithLayouts(logicalDevice, vmaAllocator, format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT, 
+    //    VK_IMAGE_LAYOUT_GENERAL, extent.width, extent.height, 1);
+    //image = createImageWithLayouts(logicalDevice, vmaAllocator, format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+    //    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, extent.width, extent.height, 1);
+    image = createImageWithLayouts(logicalDevice, vmaAllocator, format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+        VK_IMAGE_LAYOUT_UNDEFINED, extent.width, extent.height, 1);
+
+    // Set image layout to General
+    VkCommandBuffer commandBuffer = createCommandBuffer(logicalDevice, commandPool);
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = 0;
+    beginInfo.pInheritanceInfo = nullptr;
+
+    if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
+        throw std::runtime_error("Failed to begin command buffer");
+
+    setImageLayout(commandBuffer, image.image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+
+    vkEndCommandBuffer(commandBuffer);
+
+    VkFence uploadComplete = createFence(logicalDevice, false);
+
+    // Submit the recorded commands
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+
+    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, uploadComplete) != VK_SUCCESS)
+        throw std::runtime_error("Failed to submit commands");
+
+    if (vkWaitForFences(logicalDevice, 1, &uploadComplete, VK_TRUE, std::numeric_limits<u64>::max()) != VK_SUCCESS)
+        throw std::runtime_error("Failed to wait for fence");
+
+    vkFreeCommandBuffers(logicalDevice, commandPool, 1, &commandBuffer);
+    vkDestroyFence(logicalDevice, uploadComplete, nullptr);
 
     //image = createImage(logicalDevice, vmaAllocator, format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT, extent.width, extent.height, 1);
     createImageView(logicalDevice, image.image, imageView, 1, format, VK_IMAGE_ASPECT_COLOR_BIT);
