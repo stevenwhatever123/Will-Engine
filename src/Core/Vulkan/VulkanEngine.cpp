@@ -376,7 +376,8 @@ void VulkanEngine::createShadingRenderPass(VkDevice& logicalDevice, VkRenderPass
 	attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 	attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachments[0].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	//attachments[0].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	attachments[0].finalLayout = VK_IMAGE_LAYOUT_GENERAL;
 
 	// The out location of the fragment shader
 	// 0 is the color value for the framebuffer
@@ -956,7 +957,17 @@ void VulkanEngine::initAttachmentDescriptors(VkDevice& logicalDevice, VkDescript
 
 void VulkanEngine::initRenderedDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool)
 {
-	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, gameState->graphicsState.renderedImageLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+	//WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, gameState->graphicsState.renderedImageLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+	//	VK_SHADER_STAGE_COMPUTE_BIT, 0, 1);
+
+	//WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, gameState->graphicsState.renderedImageLayout, gameState->graphicsState.renderedImage);
+
+	//std::vector<VkImageView> imageViews = { shadingImageView };
+
+	//WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, gameState->graphicsState.renderedImage, &defaultSampler, imageViews.data(),
+	//	VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, 1);
+
+	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, gameState->graphicsState.renderedImageLayout, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
 		VK_SHADER_STAGE_COMPUTE_BIT, 0, 1);
 
 	WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, gameState->graphicsState.renderedImageLayout, gameState->graphicsState.renderedImage);
@@ -964,9 +975,9 @@ void VulkanEngine::initRenderedDescriptors(VkDevice& logicalDevice, VkDescriptor
 	std::vector<VkImageView> imageViews = { shadingImageView };
 
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, gameState->graphicsState.renderedImage, &defaultSampler, imageViews.data(),
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, 1);
+		VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 0, 1);
 
-	gameState->graphicsState.renderedImage_ImGui = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, shadingImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	gameState->graphicsState.renderedImage_ImGui = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, shadingImageView, VK_IMAGE_LAYOUT_GENERAL);
 }
 
 void VulkanEngine::initComputedImageDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool)
