@@ -123,8 +123,7 @@ namespace WillEngine::VulkanUtil
 	// Framebuffer
 	void createFramebufferAttachment(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkExtent2D extent, 
 		VulkanFramebufferAttachment& attachment);
-	void createShadingImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkExtent2D extent, VulkanAllocatedImage& image,
-		VkImageView& imageView);
+	void createShadingImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkExtent2D extent, VulkanAllocatedImage& image);
 	void createComputedImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool, VkQueue& graphicsQueue, VkFormat format, 
-		VkExtent2D extent, VulkanAllocatedImage& image, VkImageView& imageView);
+		VkExtent2D extent, VulkanAllocatedImage& image);
 }

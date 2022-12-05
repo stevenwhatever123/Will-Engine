@@ -7,6 +7,7 @@
 #include "Core/UniformClass.h"
 
 #include "Core/Vulkan/VulkanFramebuffer.h"
+#include "Core/Vulkan/VulkanDescriptorSet.h"
 #include "Core/Vulkan/VulkanGui.h"
 
 #include "Utils/VulkanUtil.h"
@@ -59,7 +60,6 @@ public:
 
 	// Depth buffer
 	VulkanAllocatedImage depthImage;
-	VkImageView depthImageView;
 
 	// Shadow map framebuffer
 	VkFramebuffer shadowFramebuffer;
@@ -69,10 +69,10 @@ public:
 
 	VulkanAllocatedImage shadingImage;
 	VkFramebuffer shadingFramebuffer;
-	VkImageView shadingImageView;
 
-	VulkanAllocatedImage postProcessedImage;
-	VkImageView postProcessedImageView;
+	//VulkanAllocatedImage postProcessedImage;
+
+	std::array<VulkanAllocatedImage, 6> downSampleImages;
 
 	// Framebuffer
 	std::vector<VkFramebuffer> framebuffers;
@@ -121,20 +121,17 @@ public:
 	VkPipeline bloomDownscalePipeline;
 
 	// Scene Descriptor sets
-	VkDescriptorSetLayout sceneDescriptorSetLayout;
-	VkDescriptorSet sceneDescriptorSet;
+	VulkanDescriptorSet sceneDescriptorSet;
 	// Scene Uniform buffer
 	VulkanAllocatedMemory sceneUniformBuffer;
 
 	// Light Descriptor sets
-	VkDescriptorSetLayout lightDescriptorSetLayout;
-	VkDescriptorSet lightDescriptorSet;
+	VulkanDescriptorSet lightDescriptorSet;
 	// Lights Uniform buffer
 	VulkanAllocatedMemory lightUniformBuffer;
 
 	// Camera Descriptor sets
-	VkDescriptorSetLayout cameraDescriptorSetLayout;
-	VkDescriptorSet cameraDescriptorSet;
+	VulkanDescriptorSet cameraDescriptorSet;
 	// Camera Uniform buffer
 	VulkanAllocatedMemory cameraUniformBuffer;
 
@@ -142,12 +139,10 @@ public:
 	VkDescriptorSetLayout textureDescriptorSetLayout;
 
 	// Descriptor sets for shading from deferred rendering
-	VkDescriptorSetLayout attachmentDescriptorSetLayouts;
-	VkDescriptorSet attachmentDescriptorSets;
+	VulkanDescriptorSet attachmentDescriptorSet;
 
 	// Descriptor sets for shadow mapping
-	VkDescriptorSetLayout shadowMapDescriptorSetLayouts;
-	VkDescriptorSet shadowMapDescriptorSets;
+	VulkanDescriptorSet shadowMapDescriptorSet;
 
 	// Shader modules
 	VkShaderModule geometryVertShader;
@@ -167,11 +162,9 @@ public:
 
 	// ======================================
 	VulkanAllocatedImage shadowCubeMap;
-	VkImageView shadowCubeMapView;
 	VkSampler shadowSampler;
 
-	VkDescriptorSetLayout lightMatrixDescriptorSetLayout;
-	VkDescriptorSet lightMatrixDescriptorSet;
+	VulkanDescriptorSet lightMatrixDescriptorSet;
 	VulkanAllocatedMemory lightMatrixUniformBuffer;
 
 	// ======================================
@@ -204,7 +197,7 @@ public:
 
 	void createDepthPrePass(VkDevice& logicalDevice, VkRenderPass& renderPass, const VkFormat& depthFormat);
 	void createPresentRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, const VkFormat& format);
-	void createShadingRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, VkFormat& format, const VkFormat& depthFormat);
+	void createShadingRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, VkFormat format, const VkFormat& depthFormat);
 	void createShadowRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, const VkFormat& depthFormat);
 	void createGeometryRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, VkFormat format, const VkFormat& depthFormat);
 
@@ -272,14 +265,12 @@ public:
 	void shadingPasses(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D extent);
 	void UIPasses(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D extent);
 
-	void submitCommands(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, 
-		VkQueue& graphicsQueue, VkFence& fence);
-
 	void recordComputeCommands(VkCommandBuffer& commandBuffer);
-	void submitComputeCommands(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, VkQueue& queue, VkFence& fence);
 
 	void recordUICommands(VkCommandBuffer& commandBuffer, VkFramebuffer& framebuffer, VkExtent2D& extent);
-	void submitUICommands(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, VkQueue& queue, VkFence& fence);
+
+	void submitCommands(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, 
+		VkQueue& graphicsQueue, VkFence* fence);
 
 	void presentImage(VkQueue& graphicsQueue, VkSemaphore& waitSemaphore, VkSwapchainKHR& swapchain, u32& swapchainIndex);
 

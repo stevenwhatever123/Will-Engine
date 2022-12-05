@@ -3,21 +3,19 @@
 #include "Core/Material.h"
 #include "Core/Light.h"
 
+#include "Core/Vulkan/VulkanDescriptorSet.h"
 #include "Core/Vulkan/VulkanFramebuffer.h"
 
 struct GameState
 {
 	struct GraphicsState
 	{
-		VkDescriptorSet renderedImage_ImGui;
+		VulkanDescriptorSet renderedImage;
 
-		VkDescriptorSetLayout renderedImageLayout;
-		VkDescriptorSet renderedImage;
+		//VkDescriptorSetLayout downSampledImageDescriptorSetLayout;
+		std::array<VulkanDescriptorSet, 6> downSampledImageDescriptorSet;
 
-		VkDescriptorSet computedImage_ImGui;
-
-		VkDescriptorSetLayout computedImageLayout;
-		VkDescriptorSet computedImage;
+		std::array<VkDescriptorSet, 6> downSampledImage_ImGui;
 
 		VulkanFramebuffer GBuffers;
 	} graphicsState;
@@ -29,6 +27,11 @@ struct GameState
 		std::vector<Material*> materials;
 		std::vector<Light*> lights;
 	} graphicsResources;
+
+	struct PresetResources
+	{
+		Mesh* lightMesh;
+	} presetResources;
 	
 	struct MaterialUpdateInfo
 	{

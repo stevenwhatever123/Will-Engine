@@ -1,0 +1,20 @@
+#version 450
+
+layout (local_size_x = 16, local_size_y = 16) in;
+layout (set = 0, binding = 0, rgba16) uniform readonly image2D inputImage;
+layout (set = 1, binding = 1, rgba16) uniform image2D resultImage;
+
+void main()
+{
+	ivec2 currentPixel = ivec2(gl_GlobalInvocationID.xy);
+
+	vec4 iColor = imageLoad(inputImage, currentPixel);
+
+	//float brightness = dot(iColor.rgb, vec3(0.02126, 0.07152, 0.0722));
+	float brightness = iColor.r + iColor.g + iColor.b;
+
+	vec4 oColor = brightness > 1.0? iColor : vec4(vec3(0), 1);
+	oColor = iColor;
+
+	imageStore(resultImage, currentPixel, oColor);
+}

@@ -10,6 +10,8 @@ public:
 
 	bool renderShadow;
 
+	bool renderGui;
+
 	// For Point Light Shadow mapping
 	mat4 matrices[6];
 	

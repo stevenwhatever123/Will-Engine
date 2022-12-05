@@ -6,14 +6,13 @@ layout (set = 1, binding = 1, rgba16) uniform image2D resultImage;
 
 void main()
 {
-	//vec4 res = vec4(0.5f);
-
 	ivec2 currentPixel = ivec2(gl_GlobalInvocationID.xy);
-	ivec2 size = imageSize(resultImage);
 
-	vec2 texCoord = vec2(currentPixel) / size;
+	ivec2 targetPixel = currentPixel / 2;
 
+	//vec4 res = imageLoad(inputImage, currentPixel);
 	vec4 res = imageLoad(inputImage, currentPixel);
 
-	imageStore(resultImage, currentPixel, res);
+	//imageStore(resultImage, currentPixel, res);
+	imageStore(resultImage, targetPixel, res);
 }

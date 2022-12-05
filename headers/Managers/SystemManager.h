@@ -57,6 +57,7 @@ public:
 	void init(i32 windowWidth, i32 windowHeight);
 	void initCamera();
 	void initLight();
+	void initPresets();
 
 	// Vulkan init
 	void initVulkanWindow();

@@ -5,6 +5,7 @@ Light::Light() :
     lastPosition(0),
 	position(0),
     renderShadow(true),
+    renderGui(true),
     matrices(),
 	lightUniform({vec4(0, 0, 0, 1), vec4(1), vec4(0.02f, 0.02f, 0.02f, 1), 1})
 {
@@ -15,6 +16,7 @@ Light::Light(vec3 position):
     lastPosition(0),
 	position(position),
     renderShadow(true),
+    renderGui(true),
     matrices(),
 	lightUniform({ vec4(0, 0, 0, 1), vec4(1), vec4(0.02f, 0.02f, 0.02f, 1), 1 })
 {
@@ -25,6 +27,7 @@ Light::Light(vec3 position, vec4 color):
     lastPosition(0),
 	position(position),
     renderShadow(true),
+    renderGui(true),
     matrices(),
 	lightUniform({ vec4(0, 0, 0, 1), color, vec4(0.02f, 0.02f, 0.02f, 1), 1 })
 {

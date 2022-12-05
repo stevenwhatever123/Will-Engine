@@ -706,7 +706,8 @@ void WillEngine::VulkanUtil::initDepthShaderModule(VkDevice& logicalDevice, VkSh
 
 void WillEngine::VulkanUtil::initBloomDownscaleShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader)
 {
-    const char* shaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/post_processing/bloomDownscale.comp.spv";
+    //const char* shaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/post_processing/bloomDownscale.comp.spv";
+    const char* shaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/post_processing/filterBright.comp.spv";
 
     auto shaderCode = WillEngine::Utils::readSprivShader(shaderPath);
 
@@ -1530,19 +1531,15 @@ void WillEngine::VulkanUtil::createFramebufferAttachment(VkDevice& logicalDevice
 }
 
 void WillEngine::VulkanUtil::createShadingImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkExtent2D extent, 
-    VulkanAllocatedImage& image, VkImageView& imageView)
+    VulkanAllocatedImage& image)
 {
     image = createImage(logicalDevice, vmaAllocator, format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT, extent.width, extent.height, 1);
-    createImageView(logicalDevice, image.image, imageView, 1, format, VK_IMAGE_ASPECT_COLOR_BIT);
+    createImageView(logicalDevice, image.image, image.imageView, 1, format, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void WillEngine::VulkanUtil::createComputedImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool, VkQueue& graphicsQueue, 
-    VkFormat format, VkExtent2D extent, VulkanAllocatedImage& image, VkImageView& imageView)
+    VkFormat format, VkExtent2D extent, VulkanAllocatedImage& image)
 {
-    //image = createImageWithLayouts(logicalDevice, vmaAllocator, format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT, 
-    //    VK_IMAGE_LAYOUT_GENERAL, extent.width, extent.height, 1);
-    //image = createImageWithLayouts(logicalDevice, vmaAllocator, format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
-    //    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, extent.width, extent.height, 1);
     image = createImageWithLayouts(logicalDevice, vmaAllocator, format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
         VK_IMAGE_LAYOUT_UNDEFINED, extent.width, extent.height, 1);
 
@@ -1579,5 +1576,5 @@ void WillEngine::VulkanUtil::createComputedImage(VkDevice& logicalDevice, VmaAll
     vkDestroyFence(logicalDevice, uploadComplete, nullptr);
 
     //image = createImage(logicalDevice, vmaAllocator, format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT, extent.width, extent.height, 1);
-    createImageView(logicalDevice, image.image, imageView, 1, format, VK_IMAGE_ASPECT_COLOR_BIT);
+    createImageView(logicalDevice, image.image, image.imageView, 1, format, VK_IMAGE_ASPECT_COLOR_BIT);
 }

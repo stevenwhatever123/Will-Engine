@@ -17,6 +17,8 @@ void WillEngine::EngineGui::LightPanel::update(std::vector<Light*>& lights)
 
 			ImGui::DragFloat("Intensity", &lights[i]->lightUniform.intensity, 0.1f, 0, 100);
 
+			ImGui::Checkbox("Draw Gui", &lights[i]->renderGui);
+
 			ImGui::PopID();
 		}
 

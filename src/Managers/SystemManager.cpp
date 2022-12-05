@@ -66,6 +66,11 @@ void SystemManager::initLight()
     gameState.graphicsResources.lights.push_back(light);
 }
 
+void SystemManager::initPresets()
+{
+
+}
+
 void SystemManager::initVulkanWindow()
 {
     vulkanWindow = new VulkanWindow();
@@ -205,7 +210,7 @@ void SystemManager::updateGui()
     //vulkanGui->update(gameState.graphicsState.renderedImage_ImGui, vulkanEngine->offscreenFramebuffer, gameState.graphicsResources.meshes,
     //    gameState.graphicsResources.materials, gameState.graphicsResources.lights, &gameState, vulkanEngine->sceneExtent, vulkanEngine->sceneExtentChanged);
 
-    vulkanGui->update(gameState.graphicsState.computedImage_ImGui, vulkanEngine->offscreenFramebuffer, gameState.graphicsResources.meshes,
+    vulkanGui->update(gameState.graphicsState.downSampledImage_ImGui[0], vulkanEngine->offscreenFramebuffer, gameState.graphicsResources.meshes,
         gameState.graphicsResources.materials, gameState.graphicsResources.lights, &gameState, vulkanEngine->sceneExtent, vulkanEngine->sceneExtentChanged);
 }
 

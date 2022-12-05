@@ -8,5 +8,6 @@ struct VulkanAllocatedMemory
 struct VulkanAllocatedImage
 {
 	VkImage image;
+	VkImageView imageView;
 	VmaAllocation allocation;
 };
