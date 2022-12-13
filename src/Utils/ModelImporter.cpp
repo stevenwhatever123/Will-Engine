@@ -3,7 +3,9 @@
 
 #include "Utils/Image.h"
 
-std::tuple<std::vector<Mesh*>, std::vector<Material*>>
+using namespace WillEngine;
+
+std::tuple<std::vector<MeshComponent*>, std::vector<Material*>>
 	WillEngine::Utils::readModel(const char* filename)
 {
 	Assimp::Importer importer;
@@ -22,16 +24,16 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 	}
 	else
 	{
-		return { std::vector<Mesh*>() , std::vector<Material*>() };
+		return { std::vector<MeshComponent*>() , std::vector<Material*>() };
 	}
 }
 
-std::tuple<std::vector<Mesh*>, std::vector<Material*>> 
+std::tuple<std::vector<MeshComponent*>, std::vector<Material*>>
 	WillEngine::Utils::extractScene(const aiScene* scene)
 {
 	const aiVector3D zero3D(0.0f, 0.0f, 0.0f);
 
-	std::vector<Mesh*> meshes;
+	std::vector<MeshComponent*> meshes;
 	meshes.reserve(scene->mNumMeshes);
 
 	std::vector<Material*> materials;
@@ -42,7 +44,7 @@ std::tuple<std::vector<Mesh*>, std::vector<Material*>>
 	{
 		const aiMesh* currentAiMesh = scene->mMeshes[i];
 
-		Mesh* mesh = new Mesh();
+		MeshComponent* mesh = new MeshComponent();
 
 		mesh->name = currentAiMesh->mName.C_Str();
 

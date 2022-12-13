@@ -2,6 +2,8 @@
 
 #include "Managers/SystemManager.h"
 
+using namespace WillEngine;
+
 SystemManager::SystemManager() :
     gameState(),
     vulkanWindow(nullptr),
@@ -41,6 +43,10 @@ void SystemManager::init(i32 windowWidth, i32 windowHeight)
     currentTime = glfwGetTime();
     deltaTime = 0;
     lastTime = currentTime;
+
+    initPresets();
+
+    initECS();
 }
 
 void SystemManager::initCamera()
@@ -68,7 +74,12 @@ void SystemManager::initLight()
 
 void SystemManager::initPresets()
 {
+    
+}
 
+void SystemManager::initECS()
+{
+    WillEngine::initComponentType();
 }
 
 void SystemManager::initVulkanWindow()
@@ -91,6 +102,8 @@ void SystemManager::update()
         updateCamera();
 
     updateLight();
+
+    updateECS();
 
     // Update time
     currentTime = glfwGetTime();
@@ -133,7 +146,7 @@ void SystemManager::updateInputs()
             return;
         }
             
-        std::vector<Mesh*> loadedMeshes;
+        std::vector<MeshComponent*> loadedMeshes;
         std::vector<Material*> loadedMaterials;
 
         std::tie(loadedMeshes, loadedMaterials) = WillEngine::Utils::readModel(filename.c_str());
@@ -154,20 +167,36 @@ void SystemManager::updateInputs()
             }
         }
 
-        for (Mesh* mesh : loadedMeshes)
+        for (MeshComponent* mesh : loadedMeshes)
         {
             mesh->uploadDataToPhysicalDevice(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator, vulkanWindow->surface,
                 vulkanWindow->graphicsQueue);
         }
 
         // Modify mesh's material index based on the current size of materials
-        for (Mesh* mesh : loadedMeshes)
+        for (MeshComponent* mesh : loadedMeshes)
         {
             mesh->materialIndex = currentMaterialSize + mesh->materialIndex;
         }
 
+        std::vector<Entity*> entities(loadedMeshes.size());
+
+        for (u32 i = 0; i < entities.size(); i++)
+        {
+            entities[i] = new Entity();
+
+            TransformComponent* transform = new TransformComponent();
+
+            entities[i]->setName(loadedMeshes[i]->name.c_str());
+
+            entities[i]->addComponent(transform);
+            entities[i]->addComponent(loadedMeshes[i]);
+        }
+
         gameState.graphicsResources.meshes.insert(gameState.graphicsResources.meshes.end(), loadedMeshes.begin(), loadedMeshes.end());
         gameState.graphicsResources.materials.insert(gameState.graphicsResources.materials.end(), loadedMaterials.begin(), loadedMaterials.end());
+        
+        gameState.gameResources.entities.insert(gameState.gameResources.entities.end(), entities.begin(), entities.end());
     }
 }
 
@@ -212,6 +241,15 @@ void SystemManager::updateGui()
 
     vulkanGui->update(gameState.graphicsState.downSampledImage_ImGui[0], vulkanEngine->offscreenFramebuffer, gameState.graphicsResources.meshes,
         gameState.graphicsResources.materials, gameState.graphicsResources.lights, &gameState, vulkanEngine->sceneExtent, vulkanEngine->sceneExtentChanged);
+}
+
+void SystemManager::updateECS()
+{
+    // Update transform
+    for (auto entity : gameState.gameResources.entities)
+    {
+        entity->GetComponent<TransformComponent>()->updateModelTransformation();
+    }
 }
 
 void SystemManager::readFile()

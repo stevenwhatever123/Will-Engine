@@ -3,11 +3,14 @@
 #include "Managers/InputManager.h"
 #include "Core/Vulkan/VulkanWindow.h"
 #include "Core/Camera.h"
-#include "Core/Mesh.h"
+#include "Core/MeshComponent.h"
 #include "Core/Material.h"
+#include "Core/ECS/Entity.h"
 #include "Core/Light.h"
 #include "Utils/Logging.h"
 #include "Utils/ModelImporter.h"
+
+#include "Core/ECS/TransformComponent.h"
 
 #include "Core/GameState.h"
 
@@ -58,6 +61,7 @@ public:
 	void initCamera();
 	void initLight();
 	void initPresets();
+	void initECS();
 
 	// Vulkan init
 	void initVulkanWindow();
@@ -69,6 +73,7 @@ public:
 	void updateCamera();
 	void updateLight();
 	void updateGui();
+	void updateECS();
 
 	// Utils
 	void readFile();

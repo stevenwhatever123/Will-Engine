@@ -97,6 +97,7 @@ project "WillEngine"
 		["Headers/Core/OpenGL"]				= {"headers/Core/OpenGL/*.h"},
 		["Headers/Core/Vulkan"]				= {"headers/Core/Vulkan/*.h"},
 		["Headers/Core/EngineGui"]			= {"headers/Core/EngineGui/*.h"},
+		["Headers/Core/ECS"]				= {"headers/Core/ECS/*.h"},
 
 		["Source Files"]					= {"src/*.cpp"},
 		["Source Files/Managers"]			= {"src/Managers/*.cpp"},
@@ -105,6 +106,7 @@ project "WillEngine"
 		["Source Files/Core/OpenGL"]		= {"src/Core/OpenGL/*.cpp"},
 		["Source Files/Core/Vulkan"]		= {"src/Core/Vulkan/*.cpp"},
 		["Source Files/Core/EngineGui"]		= {"src/Core/EngineGui/*.cpp"},
+		["Source Files/Core/ECS"]			= {"src/Core/ECS/*.cpp"},
 
 		["Shaders"]							= {"shaders/**.vert"},
 		["Shaders"]							= {"shaders/**.frag"},

@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/Camera.h"
-#include "Core/Mesh.h"
+#include "Core/MeshComponent.h"
 #include "Core/Material.h"
 #include "Core/Light.h"
 #include "Core/Camera.h"
@@ -9,6 +9,8 @@
 #include "Core/Vulkan/VulkanFramebuffer.h"
 #include "Core/Vulkan/VulkanDescriptorSet.h"
 #include "Core/Vulkan/VulkanGui.h"
+
+#include "Core/ECS/TransformComponent.h"
 
 #include "Utils/VulkanUtil.h"
 

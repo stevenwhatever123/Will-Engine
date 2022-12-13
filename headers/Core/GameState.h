@@ -1,10 +1,14 @@
 #pragma once
-#include "Core/Mesh.h"
+#include "Core/MeshComponent.h"
 #include "Core/Material.h"
 #include "Core/Light.h"
 
+#include "Core/ECS/Entity.h"
+
 #include "Core/Vulkan/VulkanDescriptorSet.h"
 #include "Core/Vulkan/VulkanFramebuffer.h"
+
+using namespace WillEngine;
 
 struct GameState
 {
@@ -12,7 +16,6 @@ struct GameState
 	{
 		VulkanDescriptorSet renderedImage;
 
-		//VkDescriptorSetLayout downSampledImageDescriptorSetLayout;
 		std::array<VulkanDescriptorSet, 6> downSampledImageDescriptorSet;
 
 		std::array<VkDescriptorSet, 6> downSampledImage_ImGui;
@@ -23,14 +26,19 @@ struct GameState
 
 	struct GraphicsResources
 	{
-		std::vector<Mesh*> meshes;
+		std::vector<MeshComponent*> meshes;
 		std::vector<Material*> materials;
 		std::vector<Light*> lights;
 	} graphicsResources;
 
+	struct GameResources
+	{
+		std::vector<Entity*> entities;
+	} gameResources;
+
 	struct PresetResources
 	{
-		Mesh* lightMesh;
+		MeshComponent* lightMesh;
 	} presetResources;
 	
 	struct MaterialUpdateInfo

@@ -1,10 +1,11 @@
 #include "pch.h"
-#include "Core/Mesh.h"
+#include "Core/MeshComponent.h"
 
-Mesh::Mesh() :
+using namespace WillEngine;
+
+MeshComponent::MeshComponent() :
 	name(""),
 	materialIndex(0),
-	transformPosition(0),
 	modelMatrix(1),
 	positions(),
 	normals(),
@@ -20,12 +21,12 @@ Mesh::Mesh() :
 
 }
 
-Mesh::~Mesh()
+MeshComponent::~MeshComponent()
 {
 
 }
 
-void Mesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkSurfaceKHR& surface, VkQueue& queue)
+void MeshComponent::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkSurfaceKHR& surface, VkQueue& queue)
 {
 	// Buffer that is going to send to the GPU
 	positionBuffer = WillEngine::VulkanUtil::createBuffer(vmaAllocator, sizeof(vec3) * positions.size(),
@@ -164,15 +165,7 @@ void Mesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice&
 	indicies.shrink_to_fit();
 }
 
-void Mesh::updateForPushConstant()
-{
-	modelMatrix = glm::translate(mat4(1), transformPosition);
-	//modelMatrix = glm::scale(mat4(1), vec3(100, 100, 100));
-	pushConstant.modelTransform = modelMatrix;
-	//pushConstant.materialIndex = materialIndex;
-}
-
-void Mesh::cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator)
+void MeshComponent::cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator)
 {
 	// Vertex Buffer
 	vmaDestroyBuffer(vmaAllocator, positionBuffer.buffer, positionBuffer.allocation);

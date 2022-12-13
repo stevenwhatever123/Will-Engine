@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/Mesh.h"
+#include "Core/MeshComponent.h"
 #include "Core/Material.h"
 #include "Core/Light.h"
 
@@ -9,7 +9,7 @@
 
 // Panels
 #include "Core/EngineGui/ScenePanel.h"
-#include "Core/EngineGui/MeshPanel.h"
+#include "Core/EngineGui/EntitiesPanel.h"
 #include "Core/EngineGui/MaterialPanel.h"
 #include "Core/EngineGui/DebuggingPanel.h"
 #include "Core/EngineGui/LightPanel.h"
@@ -42,7 +42,7 @@ public:
 
 	void updateMenuBar();
 
-	void update(VkDescriptorSet& shadedImage, VulkanFramebuffer& attachments, std::vector<Mesh*>& meshes, std::vector<Material*>& materials, std::vector<Light*>& lights, 
+	void update(VkDescriptorSet& shadedImage, VulkanFramebuffer& attachments, std::vector<MeshComponent*>& meshes, std::vector<Material*>& materials, std::vector<Light*>& lights,
 		GameState* gamestate, VkExtent2D& sceneExtent, bool& sceneExtentChanged);
 
 	void renderUI(VkCommandBuffer& commandBuffer, VkExtent2D extent);

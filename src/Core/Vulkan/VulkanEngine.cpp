@@ -2,6 +2,8 @@
 
 #include "Core/Vulkan/VulkanEngine.h"
 
+using namespace WillEngine;
+
 VulkanEngine::VulkanEngine() :
 	camera(nullptr),
 	vmaAllocator(VK_NULL_HANDLE),
@@ -1239,22 +1241,32 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 	// Bind Scene Uniform Buffer
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPipelineLayout, 0, 1, &sceneDescriptorSet.descriptorSet, 0, nullptr);
 
-	for (auto mesh : gameState->graphicsResources.meshes)
+	for (auto entity : gameState->gameResources.entities)
 	{
-		VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
+		MeshComponent* meshComponent = entity->GetComponent<MeshComponent>();
+
+		if (!meshComponent)
+			continue;
+
+		TransformComponent* transformComponent = entity->GetComponent<TransformComponent>();
+
+		VkBuffer buffers[3] = { meshComponent->positionBuffer.buffer, meshComponent->normalBuffer.buffer, meshComponent->uvBuffer.buffer };
 
 		VkDeviceSize offsets[3]{};
 
 		// Bind buffers
 		vkCmdBindVertexBuffers(commandBuffer, 0, 3, buffers, offsets);
 
-		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(commandBuffer, meshComponent->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+		// Bind Texture
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndex]->textureDescriptorSet, 0, nullptr);
 
 		// Push constant for model matrix
-		mesh->updateForPushConstant();
-		vkCmdPushConstants(commandBuffer, depthPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mesh->pushConstant), &mesh->pushConstant);
+		vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+			sizeof(transformComponent->getModelTransformation()), &transformComponent->getModelTransformation());
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(meshComponent->indiciesSize), 3, 0, 0, 0);
 	}
 
 	vkCmdEndRenderPass(commandBuffer);
@@ -1290,25 +1302,32 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 	// Bind Scene Uniform Buffer
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 0, 1, &sceneDescriptorSet.descriptorSet, 0, nullptr);
 
-	for (auto mesh : gameState->graphicsResources.meshes)
+	for (auto entity : gameState->gameResources.entities)
 	{
-		VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
+		MeshComponent* meshComponent = entity->GetComponent<MeshComponent>();
+
+		if (!meshComponent)
+			continue;
+
+		TransformComponent* transformComponent = entity->components[typeid(TransformComponent)]->GetComponent<TransformComponent>();
+
+		VkBuffer buffers[3] = { meshComponent->positionBuffer.buffer, meshComponent->normalBuffer.buffer, meshComponent->uvBuffer.buffer };
 
 		VkDeviceSize offsets[3]{};
 
 		// Bind buffers
 		vkCmdBindVertexBuffers(commandBuffer, 0, 3, buffers, offsets);
 
-		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(commandBuffer, meshComponent->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 		// Bind Texture
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1, &gameState->graphicsResources.materials[mesh->materialIndex]->textureDescriptorSet, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndex]->textureDescriptorSet, 0, nullptr);
 
 		// Push constant for model matrix
-		mesh->updateForPushConstant();
-		vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mesh->pushConstant), &mesh->pushConstant);
+		vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, 
+			sizeof(transformComponent->getModelTransformation()), &transformComponent->getModelTransformation());
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(meshComponent->indiciesSize), 3, 0, 0, 0);
 	}
 
 	// End Render Pass
@@ -1345,22 +1364,27 @@ void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 	// Bind light matrices
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadowPipelineLayout, 0, 1, &lightMatrixDescriptorSet.descriptorSet, 0, nullptr);
 
-	for (auto mesh : gameState->graphicsResources.meshes)
+	for (auto entity : gameState->gameResources.entities)
 	{
-		VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
+		MeshComponent* meshComponent = entity->GetComponent<MeshComponent>();
+
+		if (!meshComponent)
+			continue;
+
+		VkBuffer buffers[3] = { meshComponent->positionBuffer.buffer, meshComponent->normalBuffer.buffer, meshComponent->uvBuffer.buffer };
 
 		VkDeviceSize offsets[3]{};
 
 		// Bind buffers
 		vkCmdBindVertexBuffers(commandBuffer, 0, 3, buffers, offsets);
 
-		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(commandBuffer, meshComponent->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 		// Push constant for model matrix
-		mesh->updateForPushConstant();
-		vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mesh->pushConstant), &mesh->pushConstant);
+		TransformComponent* transform = entity->GetComponent<TransformComponent>();
+		vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(transform->getModelTransformation()), &transform->getModelTransformation());
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(meshComponent->indiciesSize), 3, 0, 0, 0);
 	}
 
 	vkCmdEndRenderPass(commandBuffer);

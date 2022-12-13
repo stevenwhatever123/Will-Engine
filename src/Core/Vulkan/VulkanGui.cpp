@@ -4,6 +4,8 @@
 
 #include "Utils/VulkanUtil.h"
 
+using namespace WillEngine;
+
 VulkanGui::VulkanGui()
 {
 
@@ -138,7 +140,7 @@ void VulkanGui::setLayout()
 
 
 	ImGui::DockBuilderDockWindow("Scene", dockspace_id);
-	ImGui::DockBuilderDockWindow("Meshes Viewer", dock_left_id);
+	ImGui::DockBuilderDockWindow("Entities", dock_left_id);
 	ImGui::DockBuilderDockWindow("Light Control", dock_left_down_id);
 	ImGui::DockBuilderDockWindow("Material Viewer", dock_right_id);
 	ImGui::DockBuilderDockWindow("Rendering Debugger", dock_right_id);
@@ -164,7 +166,7 @@ void VulkanGui::updateMenuBar()
 	}
 }
 
-void VulkanGui::update(VkDescriptorSet& shadedImage, VulkanFramebuffer& attachments, std::vector<Mesh*>& meshes, std::vector<Material*>& materials, std::vector<Light*>& lights, 
+void VulkanGui::update(VkDescriptorSet& shadedImage, VulkanFramebuffer& attachments, std::vector<MeshComponent*>& meshes, std::vector<Material*>& materials, std::vector<Light*>& lights,
 	GameState* gameState, VkExtent2D& sceneExtent, bool& sceneExtentChanged)
 {
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -186,7 +188,7 @@ void VulkanGui::update(VkDescriptorSet& shadedImage, VulkanFramebuffer& attachme
 	//	ImGui::ShowDemoWindow(&show_demo_window);
 
 	{
-		WillEngine::EngineGui::MeshPanel::update(meshes, materials);
+		WillEngine::EngineGui::EntitiesPanel::update(gameState->gameResources.entities, materials);
 	}
 
 
