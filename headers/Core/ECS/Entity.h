@@ -33,5 +33,10 @@ namespace WillEngine
 		{
 			return dynamic_cast<T*>(components[typeid(T)]);
 		}
+
+		template<class T> inline bool HasComponent()
+		{
+			return components[typeid(T)] != nullptr;
+		}
 	};
 }
