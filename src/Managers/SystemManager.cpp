@@ -30,6 +30,8 @@ void SystemManager::init(i32 windowWidth, i32 windowHeight)
     this->windowWidth = windowWidth;
     this->windowHeight = windowHeight;
 
+    initECS();
+
     initCamera();
     initLight();
 
@@ -45,8 +47,6 @@ void SystemManager::init(i32 windowWidth, i32 windowHeight)
     lastTime = currentTime;
 
     initPresets();
-
-    initECS();
 }
 
 void SystemManager::initCamera()
@@ -56,20 +56,30 @@ void SystemManager::initCamera()
 
 void SystemManager::initLight()
 {
-    Light* light = new Light();
+    TransformComponent* transform = new TransformComponent();
+
+    LightComponent* light = new LightComponent(transform->getPosition());
 
     // View projection matrices for 6 different side of the cube map
     // Order: +x, -x, +y, -y, +z, -z
     mat4 lightProjectionMatrix = glm::perspective(90.0f, 1.0f, 1.0f, 100.0f);
 
-    light->matrices[0] = lightProjectionMatrix * glm::lookAt(light->position, light->position + vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
-    light->matrices[1] = lightProjectionMatrix * glm::lookAt(light->position, light->position + vec3(-1.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
-    light->matrices[2] = lightProjectionMatrix * glm::lookAt(light->position, light->position + vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f));
-    light->matrices[3] = lightProjectionMatrix * glm::lookAt(light->position, light->position + vec3(0.0f, -1.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f));
-    light->matrices[4] = lightProjectionMatrix * glm::lookAt(light->position, light->position + vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 1.0f, 0.0f));
-    light->matrices[5] = lightProjectionMatrix * glm::lookAt(light->position, light->position + vec3(0.0f, 0.0f, -1.0f), vec3(0.0f, 1.0f, 0.0f));
+    light->matrices[0] = lightProjectionMatrix * glm::lookAt(transform->getPosition(), transform->getPosition() + vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+    light->matrices[1] = lightProjectionMatrix * glm::lookAt(transform->getPosition(), transform->getPosition() + vec3(-1.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+    light->matrices[2] = lightProjectionMatrix * glm::lookAt(transform->getPosition(), transform->getPosition() + vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f));
+    light->matrices[3] = lightProjectionMatrix * glm::lookAt(transform->getPosition(), transform->getPosition() + vec3(0.0f, -1.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f));
+    light->matrices[4] = lightProjectionMatrix * glm::lookAt(transform->getPosition(), transform->getPosition() + vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 1.0f, 0.0f));
+    light->matrices[5] = lightProjectionMatrix * glm::lookAt(transform->getPosition(), transform->getPosition() + vec3(0.0f, 0.0f, -1.0f), vec3(0.0f, 1.0f, 0.0f));
 
     gameState.graphicsResources.lights.push_back(light);
+
+    Entity* entity = new Entity();
+
+    entity->setName("Light");
+    entity->addComponent(transform);
+    entity->addComponent(light);
+
+    gameState.gameResources.entities.push_back(entity);
 }
 
 void SystemManager::initPresets()
@@ -101,8 +111,6 @@ void SystemManager::update()
     if (camera)
         updateCamera();
 
-    updateLight();
-
     updateECS();
 
     // Update time
@@ -121,7 +129,6 @@ void SystemManager::update()
     updateGui();
 
     vulkanWindow->vulkanEngine->updateSceneUniform(camera);
-    vulkanWindow->vulkanEngine->updateLightUniform(camera);
     vulkanWindow->update(renderWithBRDF);
 }
 
@@ -193,7 +200,6 @@ void SystemManager::updateInputs()
             entities[i]->addComponent(loadedMeshes[i]);
         }
 
-        gameState.graphicsResources.meshes.insert(gameState.graphicsResources.meshes.end(), loadedMeshes.begin(), loadedMeshes.end());
         gameState.graphicsResources.materials.insert(gameState.graphicsResources.materials.end(), loadedMaterials.begin(), loadedMaterials.end());
         
         gameState.gameResources.entities.insert(gameState.gameResources.entities.end(), entities.begin(), entities.end());
@@ -223,32 +229,31 @@ void SystemManager::updateCamera()
     camera->updateCameraMatrix();
 }
 
-void SystemManager::updateLight()
-{
-    for (u32 i = 0; i < gameState.graphicsResources.lights.size(); i++)
-    {
-        gameState.graphicsResources.lights[i]->update();
-    }
-}
-
 void SystemManager::updateGui()
 {
     VulkanEngine* vulkanEngine = vulkanWindow->vulkanEngine;
     VulkanGui* vulkanGui = vulkanEngine->vulkanGui;
 
-    //vulkanGui->update(gameState.graphicsState.renderedImage_ImGui, vulkanEngine->offscreenFramebuffer, gameState.graphicsResources.meshes,
-    //    gameState.graphicsResources.materials, gameState.graphicsResources.lights, &gameState, vulkanEngine->sceneExtent, vulkanEngine->sceneExtentChanged);
-
-    vulkanGui->update(gameState.graphicsState.downSampledImage_ImGui[0], vulkanEngine->offscreenFramebuffer, gameState.graphicsResources.meshes,
-        gameState.graphicsResources.materials, gameState.graphicsResources.lights, &gameState, vulkanEngine->sceneExtent, vulkanEngine->sceneExtentChanged);
+    vulkanGui->update(gameState.graphicsState.downSampledImage_ImGui[0], vulkanEngine->offscreenFramebuffer, &gameState, vulkanEngine->sceneExtent, vulkanEngine->sceneExtentChanged);
 }
 
 void SystemManager::updateECS()
 {
-    // Update transform
     for (auto entity : gameState.gameResources.entities)
     {
-        entity->GetComponent<TransformComponent>()->updateModelTransformation();
+        // Update transform
+        if(entity->HasComponent<TransformComponent>())
+            entity->GetComponent<TransformComponent>()->update();
+
+        // Update light
+        if (entity->HasComponent<LightComponent>())
+        {
+            TransformComponent* transform = entity->GetComponent<TransformComponent>();
+            LightComponent* light = entity->GetComponent<LightComponent>();
+
+            light->updateLightPosition(transform->getPosition());
+            light->update();
+        }
     }
 }
 

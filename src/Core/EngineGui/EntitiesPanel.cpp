@@ -2,6 +2,8 @@
 #include "Core/EngineGui/EntitiesPanel.h"
 
 #include "Core/ECS/TransformComponent.h"
+#include "Core/MeshComponent.h"
+#include "Core/LightComponent.h"
 
 using namespace WillEngine::EngineGui;
 
@@ -15,16 +17,30 @@ void EntitiesPanel::update(std::vector<Entity*>& entities, std::vector<Material*
 
 		if (ImGui::TreeNode(entities[i]->name.c_str()))
 		{
-			MeshComponent* mesh = entities[i]->GetComponent<MeshComponent>();
-			TransformComponent* transform = entities[i]->GetComponent<TransformComponent>();
+			if (entities[i]->HasComponent<TransformComponent>())
+			{
+				TransformComponent* transform = entities[i]->GetComponent<TransformComponent>();
 
-			ImGui::DragFloat3("Position", &transform->getPosition().x, 0.1f);
+				ImGui::DragFloat3("Position", &transform->getPosition().x, 0.1f);
 
-			ImGui::DragFloat3("Rotation", &transform->getRotation().x, 0.1f);
+				ImGui::DragFloat3("Rotation", &transform->getRotation().x, 0.1f);
 
-			ImGui::DragFloat3("Scale", &transform->getScale().x, 0.1f, 1.0f);
+				ImGui::DragFloat3("Scale", &transform->getScale().x, 0.1f, 1.0f);
+			}
 
-			ImGui::Text("Material: %s", materials[mesh->materialIndex]->name.c_str());
+			if (entities[i]->HasComponent<MeshComponent>())
+			{
+				MeshComponent* mesh = entities[i]->GetComponent<MeshComponent>();
+
+				ImGui::Text("Material: %s", materials[mesh->materialIndex]->name.c_str());
+			}
+
+			if (entities[i]->HasComponent<LightComponent>())
+			{
+				LightComponent* light = entities[i]->GetComponent<LightComponent>();
+
+				ImGui::DragFloat("Intensity", &light->lightUniform.intensity, 0.1f, 0, 100);
+			}
 
 			ImGui::TreePop();
 		}

@@ -43,6 +43,8 @@ namespace WillEngine
 		MeshComponent();
 		virtual ~MeshComponent();
 
+		virtual void update() {};
+
 		void uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkSurfaceKHR& surface, VkQueue& queue);
 
 		void updateForPushConstant();

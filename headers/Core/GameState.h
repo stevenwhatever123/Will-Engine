@@ -1,7 +1,7 @@
 #pragma once
 #include "Core/MeshComponent.h"
 #include "Core/Material.h"
-#include "Core/Light.h"
+#include "Core/LightComponent.h"
 
 #include "Core/ECS/Entity.h"
 
@@ -26,9 +26,8 @@ struct GameState
 
 	struct GraphicsResources
 	{
-		std::vector<MeshComponent*> meshes;
 		std::vector<Material*> materials;
-		std::vector<Light*> lights;
+		std::vector<LightComponent*> lights;
 	} graphicsResources;
 
 	struct GameResources

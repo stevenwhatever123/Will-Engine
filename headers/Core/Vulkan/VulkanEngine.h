@@ -2,7 +2,7 @@
 #include "Core/Camera.h"
 #include "Core/MeshComponent.h"
 #include "Core/Material.h"
-#include "Core/Light.h"
+#include "Core/LightComponent.h"
 #include "Core/Camera.h"
 #include "Core/UniformClass.h"
 
@@ -256,7 +256,6 @@ public:
 
 	// Update
 	void updateSceneUniform(Camera* camera);
-	void updateLightUniform(Camera* camera);
 
 	void recordCommands(VkCommandBuffer& commandBuffer, VkFramebuffer& framebuffer, VkExtent2D& extent);
 

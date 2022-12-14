@@ -16,7 +16,7 @@ TransformComponent::~TransformComponent()
 
 }
 
-void TransformComponent::updateModelTransformation()
+void TransformComponent::update()
 {
 	mat4 initialMatrix(1);
 

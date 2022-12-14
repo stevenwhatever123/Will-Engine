@@ -183,10 +183,14 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	}
 
 	// Destroy all data from a mesh
-	for (auto* mesh : gameState->graphicsResources.meshes)
+	for (auto entity : gameState->gameResources.entities)
 	{
-		mesh->cleanup(logicalDevice, vmaAllocator);
-		delete mesh;
+		if (entity->HasComponent<MeshComponent>())
+		{
+			MeshComponent* mesh = entity->GetComponent<MeshComponent>();
+			mesh->cleanup(logicalDevice, vmaAllocator);
+			//	delete mesh;
+		}
 	}
 
 	// Destroy Descriptor Pool
@@ -1155,15 +1159,6 @@ void VulkanEngine::updateSceneUniform(Camera* camera)
 	sceneMatrix.projectionMatrix = camera->getProjectionMatrix(sceneExtent.width, sceneExtent.height);
 }
 
-void VulkanEngine::updateLightUniform(Camera* camera)
-{
-	// Update Light's Position
-	for (auto light : gameState->graphicsResources.lights)
-	{
-		light->lightUniform.transformedPosition = vec4(light->position.x, light->position.y, light->position.z, 1);
-	}
-}
-
 void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkFramebuffer& framebuffer, VkExtent2D& extent)
 {
 	// Begin command buffer
@@ -1413,12 +1408,6 @@ void VulkanEngine::shadingPasses(VkCommandBuffer& commandBuffer, VkRenderPass& r
 	vkCmdBeginRenderPass(commandBuffer, &passBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadingPipeline);
-
-	if (gameState->graphicsResources.meshes.size() < 1)
-	{
-		vkCmdEndRenderPass(commandBuffer);
-		return;
-	}
 
 	// Bind Light Uniform Buffer
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadingPipelineLayout, 0, 1, &lightDescriptorSet.descriptorSet, 0, nullptr);

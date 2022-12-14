@@ -12,6 +12,8 @@ namespace WillEngine
 		Component();
 		virtual ~Component();
 
+		virtual void update() {};
+
 		template<class T> inline T* GetComponent()
 		{
 			return dynamic_cast<T*>(this);

@@ -7,7 +7,8 @@ namespace WillEngine
 	{
 		AbstractType = 0,
 		TransformType,
-		MeshType
+		MeshType,
+		LightType
 	};
 
 	extern std::map<std::type_index, ComponentType> componentTypeMap;

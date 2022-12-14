@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Core/Light.h"
+#include "Core/LightComponent.h"
 
 namespace WillEngine::EngineGui::LightPanel
 {
-	void update(std::vector<Light*>& lights);
+	void update(std::vector<LightComponent*>& lights);
 }

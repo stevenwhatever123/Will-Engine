@@ -166,8 +166,7 @@ void VulkanGui::updateMenuBar()
 	}
 }
 
-void VulkanGui::update(VkDescriptorSet& shadedImage, VulkanFramebuffer& attachments, std::vector<MeshComponent*>& meshes, std::vector<Material*>& materials, std::vector<Light*>& lights,
-	GameState* gameState, VkExtent2D& sceneExtent, bool& sceneExtentChanged)
+void VulkanGui::update(VkDescriptorSet& shadedImage, VulkanFramebuffer& attachments, GameState* gameState, VkExtent2D& sceneExtent, bool& sceneExtentChanged)
 {
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
 	ImGui::SetNextWindowPos(viewport->WorkPos);
@@ -188,13 +187,13 @@ void VulkanGui::update(VkDescriptorSet& shadedImage, VulkanFramebuffer& attachme
 	//	ImGui::ShowDemoWindow(&show_demo_window);
 
 	{
-		WillEngine::EngineGui::EntitiesPanel::update(gameState->gameResources.entities, materials);
+		WillEngine::EngineGui::EntitiesPanel::update(gameState->gameResources.entities, gameState->graphicsResources.materials);
 	}
 
 
 
 	{
-		WillEngine::EngineGui::MaterialPanel::update(materials, gameState);
+		WillEngine::EngineGui::MaterialPanel::update(gameState->graphicsResources.materials, gameState);
 	}
 	
 
@@ -206,7 +205,7 @@ void VulkanGui::update(VkDescriptorSet& shadedImage, VulkanFramebuffer& attachme
 
 
 	{
-		WillEngine::EngineGui::LightPanel::update(lights);
+		WillEngine::EngineGui::LightPanel::update(gameState->graphicsResources.lights);
 	}
 
 

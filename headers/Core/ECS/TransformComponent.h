@@ -20,7 +20,7 @@ namespace WillEngine
 		TransformComponent();
 		virtual ~TransformComponent();
 
-		void updateModelTransformation();
+		virtual void update();
 
 		vec3& getPosition() { return position; };
 		vec3& getRotation() { return rotation; };

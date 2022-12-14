@@ -6,7 +6,7 @@
 #include "Core/MeshComponent.h"
 #include "Core/Material.h"
 #include "Core/ECS/Entity.h"
-#include "Core/Light.h"
+#include "Core/LightComponent.h"
 #include "Utils/Logging.h"
 #include "Utils/ModelImporter.h"
 
@@ -71,7 +71,6 @@ public:
 
 	void updateInputs();
 	void updateCamera();
-	void updateLight();
 	void updateGui();
 	void updateECS();
 

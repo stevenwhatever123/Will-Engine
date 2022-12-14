@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Core/EngineGui/LightPanel.h"
 
-void WillEngine::EngineGui::LightPanel::update(std::vector<Light*>& lights)
+void WillEngine::EngineGui::LightPanel::update(std::vector<LightComponent*>& lights)
 {
 	if (lights.size() > 0)
 	{
@@ -13,11 +13,7 @@ void WillEngine::EngineGui::LightPanel::update(std::vector<Light*>& lights)
 
 			ImGui::Text("Light %u", i);
 
-			ImGui::DragFloat3("", &lights[i]->position.x, 0.1f);
-
 			ImGui::DragFloat("Intensity", &lights[i]->lightUniform.intensity, 0.1f, 0, 100);
-
-			ImGui::Checkbox("Draw Gui", &lights[i]->renderGui);
 
 			ImGui::PopID();
 		}

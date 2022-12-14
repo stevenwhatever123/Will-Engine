@@ -4,13 +4,16 @@
 // Components
 #include "Core/ECS/TransformComponent.h"
 #include "Core/MeshComponent.h"
+#include "Core/LightComponent.h"
 
 using namespace WillEngine;
 
 Entity::Entity() :
 	isEnable(true),
 	name(""),
-	components()
+	components(),
+	parent(nullptr),
+	children()
 {
 
 }
@@ -18,7 +21,9 @@ Entity::Entity() :
 Entity::Entity(const char* name) :
 	isEnable(true),
 	name(name),
-	components()
+	components(),
+	parent(nullptr),
+	children()
 {
 
 }
@@ -53,3 +58,4 @@ void Entity::addComponent(T* comp)
 // Explicit initialization for addComponent
 template void Entity::addComponent(TransformComponent* comp);
 template void Entity::addComponent(MeshComponent* comp);
+template void Entity::addComponent(LightComponent* comp);
