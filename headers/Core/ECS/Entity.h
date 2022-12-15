@@ -10,7 +10,11 @@ namespace WillEngine
 	class Entity
 	{
 	public:
+
 		bool isEnable;
+
+		// A valid id must be larger than 0, i.e. starting from 1
+		const u32 id;
 
 		std::string name;
 
@@ -27,6 +31,11 @@ namespace WillEngine
 		~Entity();
 
 		void setName(const char* name);
+
+	private:
+
+		// Used for generating an id for an entity
+		static u32 idCounter;
 
 	public:
 		

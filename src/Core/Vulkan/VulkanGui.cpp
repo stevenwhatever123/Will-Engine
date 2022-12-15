@@ -141,9 +141,9 @@ void VulkanGui::setLayout()
 
 	ImGui::DockBuilderDockWindow("Scene", dockspace_id);
 	ImGui::DockBuilderDockWindow("Entities", dock_left_id);
-	ImGui::DockBuilderDockWindow("Light Control", dock_left_down_id);
 	ImGui::DockBuilderDockWindow("Material Viewer", dock_right_id);
 	ImGui::DockBuilderDockWindow("Rendering Debugger", dock_right_id);
+	ImGui::DockBuilderDockWindow("Inspector", dock_right_id);
 
 	firstLoop = false;
 }
@@ -187,31 +187,23 @@ void VulkanGui::update(VkDescriptorSet& shadedImage, VulkanFramebuffer& attachme
 	//	ImGui::ShowDemoWindow(&show_demo_window);
 
 	{
-		WillEngine::EngineGui::EntitiesPanel::update(gameState->gameResources.entities, gameState->graphicsResources.materials);
+		WillEngine::EngineGui::EntitiesPanel::update(gameState, gameState->graphicsResources.materials);
 	}
-
-
 
 	{
 		WillEngine::EngineGui::MaterialPanel::update(gameState->graphicsResources.materials, gameState);
 	}
 	
-
-
 	{
 		WillEngine::EngineGui::ScenePanel::update((ImTextureID)shadedImage, sceneExtent, sceneExtentChanged);
 	}
 
-
-
-	{
-		WillEngine::EngineGui::LightPanel::update(gameState->graphicsResources.lights);
-	}
-
-
-
 	{
 		WillEngine::EngineGui::DebuggingPanel::update(attachments);
+	}
+
+	{
+		WillEngine::EngineGui::InspectorPanel::update(gameState);
 	}
 
 	ImGui::EndFrame();

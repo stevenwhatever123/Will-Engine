@@ -8,8 +8,11 @@
 
 using namespace WillEngine;
 
+u32 Entity::idCounter = 0;
+
 Entity::Entity() :
 	isEnable(true),
+	id(++idCounter),
 	name(""),
 	components(),
 	parent(nullptr),
@@ -20,6 +23,7 @@ Entity::Entity() :
 
 Entity::Entity(const char* name) :
 	isEnable(true),
+	id(++idCounter),
 	name(name),
 	components(),
 	parent(nullptr),

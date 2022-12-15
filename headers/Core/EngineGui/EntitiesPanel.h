@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/GameState.h"
 
 #include "Core/ECS/Entity.h"
 
@@ -6,5 +7,5 @@
 
 namespace WillEngine::EngineGui::EntitiesPanel
 {
-	void update(std::vector<Entity*>& entities, std::vector<Material*>& materials);
+	void update(GameState* gameState, std::vector<Material*>& materials);
 }

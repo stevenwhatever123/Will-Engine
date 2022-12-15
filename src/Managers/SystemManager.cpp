@@ -79,7 +79,7 @@ void SystemManager::initLight()
     entity->addComponent(transform);
     entity->addComponent(light);
 
-    gameState.gameResources.entities.push_back(entity);
+    gameState.gameResources.entities[entity->id] = entity;
 }
 
 void SystemManager::initPresets()
@@ -198,11 +198,11 @@ void SystemManager::updateInputs()
 
             entities[i]->addComponent(transform);
             entities[i]->addComponent(loadedMeshes[i]);
+
+            gameState.gameResources.entities[entities[i]->id] = entities[i];
         }
 
         gameState.graphicsResources.materials.insert(gameState.graphicsResources.materials.end(), loadedMaterials.begin(), loadedMaterials.end());
-        
-        gameState.gameResources.entities.insert(gameState.gameResources.entities.end(), entities.begin(), entities.end());
     }
 }
 
@@ -239,8 +239,10 @@ void SystemManager::updateGui()
 
 void SystemManager::updateECS()
 {
-    for (auto entity : gameState.gameResources.entities)
+    for(auto it = gameState.gameResources.entities.begin(); it != gameState.gameResources.entities.end(); it++)
     {
+        Entity* entity = it->second;
+
         // Update transform
         if(entity->HasComponent<TransformComponent>())
             entity->GetComponent<TransformComponent>()->update();

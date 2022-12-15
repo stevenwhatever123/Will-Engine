@@ -32,8 +32,13 @@ struct GameState
 
 	struct GameResources
 	{
-		std::vector<Entity*> entities;
+		std::map<u32, Entity*> entities;
 	} gameResources;
+
+	struct UIParams
+	{
+		u32 selectedEntityId;
+	} uiParams;
 
 	struct PresetResources
 	{

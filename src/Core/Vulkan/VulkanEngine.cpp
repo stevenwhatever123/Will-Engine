@@ -183,8 +183,9 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	}
 
 	// Destroy all data from a mesh
-	for (auto entity : gameState->gameResources.entities)
+	for (auto it = gameState->gameResources.entities.begin(); it != gameState->gameResources.entities.end(); it++)
 	{
+		Entity* entity = it->second;
 		if (entity->HasComponent<MeshComponent>())
 		{
 			MeshComponent* mesh = entity->GetComponent<MeshComponent>();
@@ -1236,8 +1237,10 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 	// Bind Scene Uniform Buffer
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPipelineLayout, 0, 1, &sceneDescriptorSet.descriptorSet, 0, nullptr);
 
-	for (auto entity : gameState->gameResources.entities)
+	for (auto it = gameState->gameResources.entities.begin(); it != gameState->gameResources.entities.end(); it++)
 	{
+		Entity* entity = it->second;
+
 		MeshComponent* meshComponent = entity->GetComponent<MeshComponent>();
 
 		if (!meshComponent)
@@ -1297,8 +1300,10 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 	// Bind Scene Uniform Buffer
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 0, 1, &sceneDescriptorSet.descriptorSet, 0, nullptr);
 
-	for (auto entity : gameState->gameResources.entities)
+	for(auto it = gameState->gameResources.entities.begin(); it != gameState->gameResources.entities.end(); it++)
 	{
+		Entity* entity = it->second;
+
 		MeshComponent* meshComponent = entity->GetComponent<MeshComponent>();
 
 		if (!meshComponent)
@@ -1359,8 +1364,10 @@ void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 	// Bind light matrices
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadowPipelineLayout, 0, 1, &lightMatrixDescriptorSet.descriptorSet, 0, nullptr);
 
-	for (auto entity : gameState->gameResources.entities)
+	for(auto it = gameState->gameResources.entities.begin(); it != gameState->gameResources.entities.end(); it++)
 	{
+		Entity* entity = it->second;
+
 		MeshComponent* meshComponent = entity->GetComponent<MeshComponent>();
 
 		if (!meshComponent)
