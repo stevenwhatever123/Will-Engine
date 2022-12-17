@@ -56,9 +56,11 @@ void SystemManager::initCamera()
 
 void SystemManager::initLight()
 {
-    TransformComponent* transform = new TransformComponent();
+    Entity* entity = new Entity();
 
-    LightComponent* light = new LightComponent(transform->getPosition());
+    TransformComponent* transform = new TransformComponent(entity);
+
+    LightComponent* light = new LightComponent(entity, transform->getPosition());
 
     // View projection matrices for 6 different side of the cube map
     // Order: +x, -x, +y, -y, +z, -z
@@ -72,8 +74,6 @@ void SystemManager::initLight()
     light->matrices[5] = lightProjectionMatrix * glm::lookAt(transform->getPosition(), transform->getPosition() + vec3(0.0f, 0.0f, -1.0f), vec3(0.0f, 1.0f, 0.0f));
 
     gameState.graphicsResources.lights.push_back(light);
-
-    Entity* entity = new Entity();
 
     entity->setName("Light");
     entity->addComponent(transform);
@@ -107,6 +107,13 @@ void SystemManager::initVulkanWindow()
 void SystemManager::update()
 {
     updateInputs();
+
+    while (!gameState.meshesToUpload.meshes.empty())
+    {
+        MeshComponent* mesh = gameState.meshesToUpload.meshes.front();
+        mesh->uploadDataToPhysicalDevice(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator, vulkanWindow->surface, vulkanWindow->graphicsQueue);
+        gameState.meshesToUpload.meshes.pop();
+    }
 
     if (camera)
         updateCamera();
@@ -192,8 +199,9 @@ void SystemManager::updateInputs()
         {
             entities[i] = new Entity();
 
-            TransformComponent* transform = new TransformComponent();
+            TransformComponent* transform = new TransformComponent(entities[i]);
 
+            loadedMeshes[i]->setParent(entities[i]);
             entities[i]->setName(loadedMeshes[i]->name.c_str());
 
             entities[i]->addComponent(transform);

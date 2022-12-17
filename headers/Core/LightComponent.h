@@ -23,8 +23,9 @@ namespace WillEngine
 	public:
 
 		LightComponent();
-		LightComponent(vec3 position);
-		LightComponent(vec3 position, vec4 color);
+		LightComponent(Entity* entity);
+		LightComponent(Entity* entity, vec3 position);
+		LightComponent(Entity* entity, vec3 position, vec4 color);
 		virtual ~LightComponent();
 
 		virtual void update();
@@ -32,6 +33,8 @@ namespace WillEngine
 		virtual void updateLightUniform();
 
 		virtual void updateLightPosition(vec3 position);
+
+		virtual ComponentType getType() { return id; };
 
 		// Command call
 		void shadowRendered();

@@ -4,9 +4,9 @@
 using namespace WillEngine;
 
 MeshComponent::MeshComponent() :
+	Component(nullptr),
 	name(""),
 	materialIndex(0),
-	modelMatrix(1),
 	positions(),
 	normals(),
 	uvs(),
@@ -16,7 +16,46 @@ MeshComponent::MeshComponent() :
 	normalBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
 	uvBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
 	indexBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
-	primitive(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+	primitive(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST),
+	readyToDraw(false)
+{
+
+}
+
+MeshComponent::MeshComponent(Entity* entity) :
+	Component(entity),
+	name(""),
+	materialIndex(0),
+	positions(),
+	normals(),
+	uvs(),
+	indicies(),
+	indiciesSize(0),
+	positionBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
+	normalBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
+	uvBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
+	indexBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
+	primitive(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST),
+	readyToDraw(false)
+{
+
+}
+
+MeshComponent::MeshComponent(Entity* entity, const MeshComponent* mesh) :
+	Component(entity),
+	name(mesh->name),
+	materialIndex(mesh->materialIndex),
+	positions(mesh->positions),
+	normals(mesh->normals),
+	uvs(mesh->uvs),
+	indicies(mesh->indicies),
+	indiciesSize(mesh->indiciesSize),
+	positionBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
+	normalBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
+	uvBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
+	indexBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
+	primitive(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST),
+	readyToDraw(false)
 {
 
 }
@@ -141,6 +180,8 @@ void MeshComponent::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysic
 
 	if (vkWaitForFences(logicalDevice, 1, &uploadComplete, VK_TRUE, std::numeric_limits<u64>::max()) != VK_SUCCESS)
 		throw std::runtime_error("Failed to wait for fence");
+
+	readyToDraw = true;
 
 	// Clean up staging buffers
 	vmaDestroyBuffer(vmaAllocator, positionStagingBuffer.buffer, positionStagingBuffer.allocation);

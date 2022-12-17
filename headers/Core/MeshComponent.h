@@ -1,4 +1,6 @@
 #pragma once
+#include <queue>
+
 #include "Utils/VulkanUtil.h"
 
 #include "ECS/Component.h"
@@ -16,10 +18,10 @@ namespace WillEngine
 
 		static const ComponentType id = ComponentType::MeshType;
 
+	public:
+
 		std::string name;
 		u32 materialIndex;
-
-		mat4 modelMatrix;
 
 		std::vector<vec3> positions;
 		std::vector<vec3> normals;
@@ -38,17 +40,25 @@ namespace WillEngine
 
 		VkPrimitiveTopology primitive;
 
+	private:
+
+		bool readyToDraw;
+
 	public:
 
 		MeshComponent();
+		MeshComponent(Entity* entity);
+		MeshComponent(Entity* entity, const MeshComponent* mesh);
 		virtual ~MeshComponent();
 
 		virtual void update() {};
 
 		void uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkSurfaceKHR& surface, VkQueue& queue);
 
-		void updateForPushConstant();
+		virtual ComponentType getType() { return id; };
 
 		void cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator);
+
+		bool isReadyToDraw() const { return readyToDraw; };
 	};
 }

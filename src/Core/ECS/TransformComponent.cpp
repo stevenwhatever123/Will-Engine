@@ -4,6 +4,16 @@
 using namespace WillEngine;
 
 TransformComponent::TransformComponent():
+	Component(nullptr),
+	position(0),
+	rotation(0),
+	scale(1)
+{
+
+}
+
+TransformComponent::TransformComponent(Entity* entity) :
+	Component(entity),
 	position(0),
 	rotation(0),
 	scale(1)
@@ -20,12 +30,12 @@ void TransformComponent::update()
 {
 	mat4 initialMatrix(1);
 
-	// Scale
-	modelTransformation = glm::scale(initialMatrix, scale);
+	// Translate
+	modelTransformation = glm::translate(initialMatrix, position);
 
 	// Rotation
 	//modelTransformation = glm::rotate(modelTransformation, rotation);
 
-	// Translate
-	modelTransformation = glm::translate(modelTransformation, position);
+	// Scale
+	modelTransformation = glm::scale(modelTransformation, scale);
 }

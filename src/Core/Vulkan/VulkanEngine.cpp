@@ -1245,6 +1245,9 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 
 		if (!meshComponent)
 			continue;
+		
+		if (!meshComponent->isReadyToDraw())
+			continue;
 
 		TransformComponent* transformComponent = entity->GetComponent<TransformComponent>();
 
@@ -1309,6 +1312,9 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 		if (!meshComponent)
 			continue;
 
+		if (!meshComponent->isReadyToDraw())
+			continue;
+
 		TransformComponent* transformComponent = entity->components[typeid(TransformComponent)]->GetComponent<TransformComponent>();
 
 		VkBuffer buffers[3] = { meshComponent->positionBuffer.buffer, meshComponent->normalBuffer.buffer, meshComponent->uvBuffer.buffer };
@@ -1371,6 +1377,13 @@ void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 		MeshComponent* meshComponent = entity->GetComponent<MeshComponent>();
 
 		if (!meshComponent)
+			continue;
+
+		if (!meshComponent->isReadyToDraw())
+			continue;
+
+		// Ignore this entity if it is a light
+		if (entity->HasComponent<LightComponent>())
 			continue;
 
 		VkBuffer buffers[3] = { meshComponent->positionBuffer.buffer, meshComponent->normalBuffer.buffer, meshComponent->uvBuffer.buffer };

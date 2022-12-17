@@ -4,6 +4,7 @@
 using namespace WillEngine;
 
 LightComponent::LightComponent() :
+    Component(nullptr),
     lastPosition(0),
     currentPosition(0),
     renderShadow(true),
@@ -13,7 +14,19 @@ LightComponent::LightComponent() :
 
 }
 
-LightComponent::LightComponent(vec3 position):
+LightComponent::LightComponent(Entity* entity) :
+    Component(entity),
+    lastPosition(0),
+    currentPosition(0),
+    renderShadow(true),
+    matrices(),
+    lightUniform({ vec4(0, 0, 0, 1), vec4(1), vec4(0.02f, 0.02f, 0.02f, 1), 1 })
+{
+
+}
+
+LightComponent::LightComponent(Entity* entity, vec3 position):
+    Component(entity),
     lastPosition(0),
     currentPosition(position),
     renderShadow(true),
@@ -23,7 +36,8 @@ LightComponent::LightComponent(vec3 position):
 
 }
 
-LightComponent::LightComponent(vec3 position, vec4 color):
+LightComponent::LightComponent(Entity* entity, vec3 position, vec4 color):
+    Component(entity),
     lastPosition(0),
     currentPosition(position),
     renderShadow(true),

@@ -6,6 +6,8 @@
 #include "Core/MeshComponent.h"
 #include "Core/LightComponent.h"
 
+#include "Utils/ModelImporter.h"
+
 using namespace WillEngine;
 
 u32 Entity::idCounter = 0;
@@ -59,7 +61,58 @@ void Entity::addComponent(T* comp)
 	components[typeid(T)] = comp;
 }
 
-// Explicit initialization for addComponent
+// Explicit initialization for addComponent(T* comp)
 template void Entity::addComponent(TransformComponent* comp);
 template void Entity::addComponent(MeshComponent* comp);
 template void Entity::addComponent(LightComponent* comp);
+
+template<class T>
+void Entity::addComponent()
+{
+	T* comp = new T();
+
+	components[typeid(T)] = comp;
+}
+
+// Explicit initialization for addComponent<T>()
+template void Entity::addComponent<TransformComponent>();
+template void Entity::addComponent<MeshComponent>();
+template void Entity::addComponent<LightComponent>();
+
+void Entity::addComponent(ComponentType type)
+{
+	switch (type)
+	{
+		case TransformType:
+		{
+			TransformComponent* transform = new TransformComponent(this);
+			components[typeid(TransformComponent)] = transform;
+			break;
+		}
+		case MeshType:
+		{
+			std::vector<MeshComponent*> meshes;
+			std::vector<Material*> materials;
+
+			std::string defaultPreset = "C:/Users/Steven/source/repos/Will-Engine/presets/meshes/cube.fbx";
+			std::tie(meshes, materials) = WillEngine::Utils::readModel(defaultPreset.c_str());
+
+			MeshComponent* mesh = new MeshComponent(this, meshes[0]);
+			components[typeid(MeshComponent)] = mesh;
+
+			for (auto mesh : meshes)
+				delete mesh;
+
+			for (auto material : materials)
+				delete material;
+
+			break;
+		}
+		case LightType:
+		{
+			LightComponent* light = new LightComponent(this);
+			components[typeid(LightComponent)] = light;
+			break;
+		}
+	}
+}

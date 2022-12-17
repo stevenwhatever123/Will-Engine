@@ -1,4 +1,6 @@
 #pragma once
+#include <queue>
+
 #include "Core/MeshComponent.h"
 #include "Core/Material.h"
 #include "Core/LightComponent.h"
@@ -40,10 +42,10 @@ struct GameState
 		u32 selectedEntityId;
 	} uiParams;
 
-	struct PresetResources
+	struct MeshesToUpload
 	{
-		MeshComponent* lightMesh;
-	} presetResources;
+		std::queue<MeshComponent*> meshes;
+	} meshesToUpload;
 	
 	struct MaterialUpdateInfo
 	{

@@ -40,7 +40,14 @@ namespace WillEngine
 	public:
 		
 		// Templates
+		// Add component by object
 		template<typename T> void addComponent(T* comp);
+
+		// Add component by class
+		template<class T> inline void addComponent();
+
+		// Add component by component type
+		void addComponent(ComponentType type);
 
 		template<class T> inline T* GetComponent()
 		{

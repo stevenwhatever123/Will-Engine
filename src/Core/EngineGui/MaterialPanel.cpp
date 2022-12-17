@@ -23,9 +23,9 @@ void WillEngine::EngineGui::MaterialPanel::update(std::vector<Material*>& materi
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				vec4 emissiveTemp = materials[i]->phongMaterialUniform.emissiveColor;
-				ImGui::DragFloat3("Emissive", &materials[i]->phongMaterialUniform.emissiveColor.x, 0.01f, 0, 1);
-				vec4 emissiveDiff = glm::epsilonNotEqual(emissiveTemp, materials[i]->phongMaterialUniform.emissiveColor, 0.0001f);
+				vec4 emissiveTemp = materials[i]->brdfMaterialUniform.emissive;
+				ImGui::DragFloat3("Emissive", &materials[i]->brdfMaterialUniform.emissive.x, 0.01f, 0, 1);
+				vec4 emissiveDiff = glm::epsilonNotEqual(emissiveTemp, materials[i]->brdfMaterialUniform.emissive, 0.0001f);
 				if (emissiveDiff.x || emissiveDiff.y || emissiveDiff.z)
 				{
 					gameState->materialUpdateInfo.updateColor = true;
@@ -35,9 +35,9 @@ void WillEngine::EngineGui::MaterialPanel::update(std::vector<Material*>& materi
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				vec4 ambientTemp = materials[i]->phongMaterialUniform.ambientColor;
-				ImGui::DragFloat3("Ambient", &materials[i]->phongMaterialUniform.ambientColor.x, 0.01f, 0, 1);
-				vec4 ambientDiff = glm::epsilonNotEqual(ambientTemp, materials[i]->phongMaterialUniform.ambientColor, 0.0001f);
+				vec4 ambientTemp = materials[i]->brdfMaterialUniform.ambient;
+				ImGui::DragFloat3("Ambient", &materials[i]->brdfMaterialUniform.ambient.x, 0.01f, 0, 1);
+				vec4 ambientDiff = glm::epsilonNotEqual(ambientTemp, materials[i]->brdfMaterialUniform.ambient, 0.0001f);
 				if (ambientDiff.x || ambientDiff.y || ambientDiff.z)
 				{
 					gameState->materialUpdateInfo.updateColor = true;

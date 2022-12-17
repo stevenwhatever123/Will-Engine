@@ -5,14 +5,21 @@ namespace WillEngine
 {
 	class Component
 	{
-	public:
+	protected:
+
+		Entity* parent;
 
 	public:
 
 		Component();
+		Component(Entity* entity);
 		virtual ~Component();
 
 		virtual void update() {};
+
+		void setParent(Entity* entity) { parent = entity; };
+
+		virtual ComponentType getType() { return ComponentType::AbstractType; };
 
 		template<class T> inline T* GetComponent()
 		{

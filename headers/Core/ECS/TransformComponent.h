@@ -18,6 +18,7 @@ namespace WillEngine
 	public:
 
 		TransformComponent();
+		TransformComponent(Entity* entity);
 		virtual ~TransformComponent();
 
 		virtual void update();
@@ -25,6 +26,8 @@ namespace WillEngine
 		vec3& getPosition() { return position; };
 		vec3& getRotation() { return rotation; };
 		vec3& getScale() { return scale; };
+
+		virtual ComponentType getType() { return id; };
 
 		const mat4& getModelTransformation() const { return modelTransformation; };
 	};

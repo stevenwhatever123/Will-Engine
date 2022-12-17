@@ -26,6 +26,8 @@ public:
 
 	Camera* camera;
 
+	
+
 public:
 
 	// Triple buffering

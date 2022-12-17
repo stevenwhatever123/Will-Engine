@@ -14,7 +14,7 @@ std::tuple<std::vector<MeshComponent*>, std::vector<Material*>>
 		filename,
 		aiProcess_Triangulate |
 		aiProcess_FlipUVs |
-		aiProcess_GenSmoothNormals |
+		aiProcess_GenNormals |
 		aiProcess_JoinIdenticalVertices
 	);
 

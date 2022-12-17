@@ -3,7 +3,14 @@
 
 using namespace WillEngine;
 
-Component::Component()
+Component::Component():
+	parent(nullptr)
+{
+
+}
+
+Component::Component(Entity* entity) :
+	parent(entity)
 {
 
 }
