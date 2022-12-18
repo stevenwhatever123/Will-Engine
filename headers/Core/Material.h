@@ -35,6 +35,9 @@ public:
 
 	std::string name;
 
+	// Id for this material
+	const u32 id;
+
 	// Material for Phong shading
 	PhongMaterialUniform phongMaterialUniform;
 
@@ -53,8 +56,14 @@ public:
 	VkDescriptorSetLayout textureDescriptorSetLayout;
 	VkDescriptorSet textureDescriptorSet;
 
+private:
+
+	// Used for generating an id for a material
+	static u32 idCounter;
+
 public:
 	Material();
+	Material(const Material* material);
 	~Material();
 
 	void cleanUp(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkDescriptorPool& descriptorPool);

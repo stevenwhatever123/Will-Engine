@@ -187,11 +187,11 @@ void VulkanGui::update(VkDescriptorSet& shadedImage, VulkanFramebuffer& attachme
 	//	ImGui::ShowDemoWindow(&show_demo_window);
 
 	{
-		WillEngine::EngineGui::EntitiesPanel::update(gameState, gameState->graphicsResources.materials);
+		WillEngine::EngineGui::EntitiesPanel::update(gameState);
 	}
 
 	{
-		WillEngine::EngineGui::MaterialPanel::update(gameState->graphicsResources.materials, gameState);
+		WillEngine::EngineGui::MaterialPanel::update(gameState);
 	}
 	
 	{

@@ -7,5 +7,5 @@
 
 namespace WillEngine::EngineGui::EntitiesPanel
 {
-	void update(GameState* gameState, std::vector<Material*>& materials);
+	void update(GameState* gameState);
 }

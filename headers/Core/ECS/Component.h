@@ -19,7 +19,7 @@ namespace WillEngine
 
 		void setParent(Entity* entity) { parent = entity; };
 
-		virtual ComponentType getType() { return ComponentType::AbstractType; };
+		virtual ComponentType getType() { return ComponentType::NullType; };
 
 		template<class T> inline T* GetComponent()
 		{

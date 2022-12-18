@@ -89,10 +89,8 @@ void WillEngine::EngineGui::InspectorPanel::update(GameState* gameState)
 
 				if (ImGui::Button(componentTypeName[type].c_str(), ImVec2(ImGui::GetWindowContentRegionWidth(), 0)))
 				{
-					entity->addComponent(type);
-
 					if (type == ComponentType::MeshType)
-						gameState->meshesToUpload.meshes.push(entity->components[typeid(MeshComponent)]->GetComponent<MeshComponent>());
+						gameState->todoTasks.meshesToAdd.push(entity);
 				}
 
 				// Gray out: End

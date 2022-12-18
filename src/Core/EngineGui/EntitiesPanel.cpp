@@ -7,7 +7,7 @@
 
 using namespace WillEngine::EngineGui;
 
-void EntitiesPanel::update(GameState* gameState, std::vector<Material*>& materials)
+void EntitiesPanel::update(GameState* gameState)
 {
 	std::map<u32, Entity*>& entities = gameState->gameResources.entities;
 

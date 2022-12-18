@@ -6,5 +6,5 @@
 
 namespace WillEngine::EngineGui::MaterialPanel
 {
-	void update(std::vector<Material*>& materials, GameState* gameState);
+	void update(GameState* gameState);
 }

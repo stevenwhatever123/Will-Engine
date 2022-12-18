@@ -17,7 +17,7 @@ void WillEngine::initComponentType()
 {
 	componentTypeMap =
 	{
-		{typeid(Component),									AbstractType},
+		{typeid(Component),									NullType},
 		{typeid(TransformComponent),						TransformType},
 		{typeid(MeshComponent),								MeshType},
 		{typeid(LightComponent),							LightType}
@@ -25,7 +25,7 @@ void WillEngine::initComponentType()
 
 	componentTypeName =
 	{
-		{AbstractType,										"Abstract Component"},
+		{NullType,											"Null Component"},
 		{TransformType,										"Transform Component"},
 		{MeshType,											"Mesh Component"},
 		{LightType,											"Light Component"}

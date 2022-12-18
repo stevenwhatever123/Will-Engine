@@ -176,10 +176,13 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	vkDestroyShaderModule(logicalDevice, geometryFragShader, nullptr);
 
 	// Destroy all data from a material
-	for (auto* material : gameState->graphicsResources.materials)
+	for (auto it = gameState->graphicsResources.materials.begin(); it != gameState->graphicsResources.materials.end(); it++)
 	{
+		Material* material = it->second;
+
 		material->cleanUp(logicalDevice, vmaAllocator, descriptorPool);
 		delete material;
+		gameState->graphicsResources.materials.erase(it);
 	}
 
 	// Destroy all data from a mesh
@@ -1261,7 +1264,9 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 		vkCmdBindIndexBuffer(commandBuffer, meshComponent->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 		// Bind Texture
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndex]->textureDescriptorSet, 0, nullptr);
+		// Check if this mesh has a material first
+		if(gameState->graphicsResources.materials[meshComponent->materialIndex])
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndex]->textureDescriptorSet, 0, nullptr);
 
 		// Push constant for model matrix
 		vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
@@ -1327,7 +1332,9 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 		vkCmdBindIndexBuffer(commandBuffer, meshComponent->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 		// Bind Texture
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndex]->textureDescriptorSet, 0, nullptr);
+		// Check if the mesh has a material
+		if(gameState->graphicsResources.materials[meshComponent->materialIndex])
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndex]->textureDescriptorSet, 0, nullptr);
 
 		// Push constant for model matrix
 		vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, 
@@ -1592,7 +1599,7 @@ void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkPhysicalDevi
 {
 	vkDeviceWaitIdle(logicalDevice);
 
-	Material* currentMaterial = gameState->graphicsResources.materials[gameState->materialUpdateInfo.materialIndex];
+	Material* currentMaterial = gameState->graphicsResources.materials[gameState->materialUpdateInfo.materialId];
 	u32& textureIndex = gameState->materialUpdateInfo.textureIndex;
 	TextureDescriptorSet& currentTexture = currentMaterial->brdfTextures[textureIndex];
 

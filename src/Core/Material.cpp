@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Core/Material.h"
 
+u32 Material::idCounter = 0;
+
 TextureDescriptorSet::TextureDescriptorSet():
 	has_texture(false),
 	texture_path(""),
@@ -22,12 +24,27 @@ Material::Material() :
 	phongMaterialUniform({}),
 	brdfMaterialUniform({}),
 	name(""),
+	id(++idCounter),
 	textures(),
 	brdfTextures(),
 	textureDescriptorSetLayout(VK_NULL_HANDLE),
 	textureDescriptorSet(VK_NULL_HANDLE)
 {
 
+}
+
+Material::Material(const Material* material) :
+	phongMaterialUniform({}),
+	brdfMaterialUniform({}),
+	name(material->name.c_str()),
+	id(material->id),
+	textures(),
+	brdfTextures(),
+	textureDescriptorSetLayout(material->textureDescriptorSetLayout),
+	textureDescriptorSet(material->textureDescriptorSet)
+{
+	std::copy(std::begin(material->textures), std::end(material->textures), std::begin(textures));
+	std::copy(std::begin(material->brdfTextures), std::end(material->brdfTextures), std::begin(brdfTextures));
 }
 
 Material::~Material()

@@ -28,7 +28,7 @@ struct GameState
 
 	struct GraphicsResources
 	{
-		std::vector<Material*> materials;
+		std::map<u32, Material*> materials;
 		std::vector<LightComponent*> lights;
 	} graphicsResources;
 
@@ -42,16 +42,16 @@ struct GameState
 		u32 selectedEntityId;
 	} uiParams;
 
-	struct MeshesToUpload
+	struct TodoTasks
 	{
-		std::queue<MeshComponent*> meshes;
-	} meshesToUpload;
+		std::queue<Entity*> meshesToAdd;
+	} todoTasks;
 	
 	struct MaterialUpdateInfo
 	{
 		bool updateTexture;
 		bool updateColor;
-		u32 materialIndex;
+		u32 materialId;
 		u32 textureIndex;
 		std::string textureFilepath;
 	} materialUpdateInfo;

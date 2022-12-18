@@ -5,7 +5,7 @@
 
 using namespace WillEngine;
 
-std::tuple<std::vector<MeshComponent*>, std::vector<Material*>>
+std::tuple<std::vector<MeshComponent*>, std::map<u32, Material*>>
 	WillEngine::Utils::readModel(const char* filename)
 {
 	Assimp::Importer importer;
@@ -24,75 +24,34 @@ std::tuple<std::vector<MeshComponent*>, std::vector<Material*>>
 	}
 	else
 	{
-		return { std::vector<MeshComponent*>() , std::vector<Material*>() };
+		return { std::vector<MeshComponent*>() , std::map<u32, Material*>() };
 	}
 }
 
-std::tuple<std::vector<MeshComponent*>, std::vector<Material*>>
+std::tuple<std::vector<MeshComponent*>, std::map<u32, Material*>>
 	WillEngine::Utils::extractScene(const aiScene* scene)
 {
 	const aiVector3D zero3D(0.0f, 0.0f, 0.0f);
+	
+	// materials with no unique id labeled
+	std::vector<Material*> tempMaterials = extractMaterial(scene);
 
-	std::vector<MeshComponent*> meshes;
-	meshes.reserve(scene->mNumMeshes);
+	std::vector<MeshComponent*> meshes = extractMesh(scene, tempMaterials);
 
+	// materials with unique id that is going to return
+	std::map<u32, Material*> materials;
+	for (auto material : tempMaterials)
+	{
+		materials[material->id] = material;
+	}
+
+	return { meshes, materials };
+}
+
+std::vector<Material*> WillEngine::Utils::extractMaterial(const aiScene* scene)
+{
 	std::vector<Material*> materials;
 	materials.reserve(scene->mNumMaterials);
-
-	// Extract Mesh data
-	for (u32 i = 0; i < scene->mNumMeshes; i++)
-	{
-		const aiMesh* currentAiMesh = scene->mMeshes[i];
-
-		MeshComponent* mesh = new MeshComponent();
-
-		mesh->name = currentAiMesh->mName.C_Str();
-
-		// Reserve memory space
-		mesh->positions.reserve(currentAiMesh->mNumVertices);
-		mesh->normals.reserve(currentAiMesh->mNumVertices);
-		mesh->uvs.reserve(currentAiMesh->mNumVertices);
-		mesh->indicies.reserve(currentAiMesh->mNumVertices);
-
-		bool hasTexture = currentAiMesh->HasTextureCoords(0);
-
-		const aiVector3D* pVertex = currentAiMesh->mVertices;
-		const aiVector3D* pNormal = currentAiMesh->mNormals;
-		const aiVector3D* pUV = hasTexture ? currentAiMesh->mTextureCoords[0] : &zero3D;
-
-		for (u64 j = 0; j < currentAiMesh->mNumVertices; j++)
-		{
-			mesh->positions.emplace_back(pVertex->x, pVertex->y, pVertex->z);
-			mesh->normals.emplace_back(pNormal->x, pNormal->y, pNormal->z);
-			mesh->uvs.emplace_back(pUV->x, pUV->y);
-
-			pVertex++;
-			pNormal++;
-
-			if (hasTexture)
-				pUV++;
-		}
-
-		const aiFace* face = currentAiMesh->mFaces;
-
-		for (u64 j = 0; j < currentAiMesh->mNumFaces; j++)
-		{
-			for (u32 k = 0; k < face->mNumIndices; k++)
-			{
-				mesh->indicies.push_back(face->mIndices[k]);
-			}
-
-			face++;
-		}
-
-		mesh->indiciesSize = mesh->indicies.size();
-
-		mesh->primitive = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-
-		mesh->materialIndex = currentAiMesh->mMaterialIndex;
-
-		meshes.emplace_back(mesh);
-	}
 
 	// Extract Material Data
 	for (u32 i = 0; i < scene->mNumMaterials; i++)
@@ -219,7 +178,7 @@ std::tuple<std::vector<MeshComponent*>, std::vector<Material*>>
 			// BRDF
 			// DO LATER
 		}
-		
+
 
 		// Load texture
 		// Phong
@@ -310,7 +269,73 @@ std::tuple<std::vector<MeshComponent*>, std::vector<Material*>>
 		materials.emplace_back(material);
 	}
 
-	return { meshes, materials };
+	return materials;
+}
+
+std::vector<MeshComponent*> WillEngine::Utils::extractMesh(const aiScene* scene, const std::vector<Material*> materials)
+{
+	const aiVector3D zero3D(0.0f, 0.0f, 0.0f);
+
+	std::vector<MeshComponent*> meshes;
+	meshes.reserve(scene->mNumMeshes);
+
+	// Extract Mesh data
+	for (u32 i = 0; i < scene->mNumMeshes; i++)
+	{
+		const aiMesh* currentAiMesh = scene->mMeshes[i];
+
+		MeshComponent* mesh = new MeshComponent();
+
+		mesh->name = currentAiMesh->mName.C_Str();
+
+		// Reserve memory space
+		mesh->positions.reserve(currentAiMesh->mNumVertices);
+		mesh->normals.reserve(currentAiMesh->mNumVertices);
+		mesh->uvs.reserve(currentAiMesh->mNumVertices);
+		mesh->indicies.reserve(currentAiMesh->mNumVertices);
+
+		bool hasTexture = currentAiMesh->HasTextureCoords(0);
+
+		const aiVector3D* pVertex = currentAiMesh->mVertices;
+		const aiVector3D* pNormal = currentAiMesh->mNormals;
+		const aiVector3D* pUV = hasTexture ? currentAiMesh->mTextureCoords[0] : &zero3D;
+
+		for (u64 j = 0; j < currentAiMesh->mNumVertices; j++)
+		{
+			mesh->positions.emplace_back(pVertex->x, pVertex->y, pVertex->z);
+			mesh->normals.emplace_back(pNormal->x, pNormal->y, pNormal->z);
+			mesh->uvs.emplace_back(pUV->x, pUV->y);
+
+			pVertex++;
+			pNormal++;
+
+			if (hasTexture)
+				pUV++;
+		}
+
+		const aiFace* face = currentAiMesh->mFaces;
+
+		for (u64 j = 0; j < currentAiMesh->mNumFaces; j++)
+		{
+			for (u32 k = 0; k < face->mNumIndices; k++)
+			{
+				mesh->indicies.push_back(face->mIndices[k]);
+			}
+
+			face++;
+		}
+
+		mesh->indiciesSize = mesh->indicies.size();
+
+		mesh->primitive = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+		//mesh->materialIndex = currentAiMesh->mMaterialIndex;
+		mesh->materialIndex = materials[currentAiMesh->mMaterialIndex]->id;
+
+		meshes.emplace_back(mesh);
+	}
+
+	return meshes;
 }
 
 void WillEngine::Utils::loadTexture(u32 index, Material* material, TextureDescriptorSet* textures)

@@ -5,7 +5,7 @@ namespace WillEngine
 {
 	enum ComponentType : u32
 	{
-		AbstractType = 0,
+		NullType = 0,
 		TransformType,
 		MeshType,
 		LightType,

@@ -47,15 +47,15 @@ void Entity::setName(const char* name)
 template<typename T> 
 void Entity::addComponent(T* comp)
 {
-	if (comp->id == ComponentType::AbstractType)
-		throw std::runtime_error("Component must not be an abstract type");
+	if (comp->id == ComponentType::NullType)
+		throw std::runtime_error("Component must not be a null type");
 
 	// Don't add this component if it is not a part of our pre-defined one
 	if (componentTypeMap.find(typeid(T)) == componentTypeMap.end())
 		return;
 
 	// Don't add this component if the same type already exist
-	if (components.find(typeid(T)) != components.end())
+	if (HasComponent<T>())
 		return;
 
 	components[typeid(T)] = comp;
@@ -91,21 +91,7 @@ void Entity::addComponent(ComponentType type)
 		}
 		case MeshType:
 		{
-			std::vector<MeshComponent*> meshes;
-			std::vector<Material*> materials;
-
-			std::string defaultPreset = "C:/Users/Steven/source/repos/Will-Engine/presets/meshes/cube.fbx";
-			std::tie(meshes, materials) = WillEngine::Utils::readModel(defaultPreset.c_str());
-
-			MeshComponent* mesh = new MeshComponent(this, meshes[0]);
-			components[typeid(MeshComponent)] = mesh;
-
-			for (auto mesh : meshes)
-				delete mesh;
-
-			for (auto material : materials)
-				delete material;
-
+			throw std::runtime_error("You cannot add a Mesh Type here.....");
 			break;
 		}
 		case LightType:
