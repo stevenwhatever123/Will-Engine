@@ -121,7 +121,7 @@ void main()
 	//vec4 cDiff = mix(black, albedo * (1 - dielectricSpecular.r), metallic);
 	vec4 diffuse = (1 - f) * (cDiff / radians(180));
 
-	vec4 brdfResult = (diffuse + specular) * lightColor * intensity * max(0.001, dot(normal, lightDirection));
+	vec4 brdfResult = clamp((diffuse + specular) * lightColor * intensity * max(0.001, dot(normal, lightDirection)), 0, 1);
 	//vec4 brdfResult = cDiff;
 
 	float shadow = ShadowCalculation(position, normal);
