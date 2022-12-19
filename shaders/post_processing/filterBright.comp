@@ -14,7 +14,7 @@ void main()
 	float brightness = iColor.r + iColor.g + iColor.b;
 
 	vec4 oColor = brightness > 1.0? iColor : vec4(vec3(0), 1);
-	oColor = iColor;
+	//oColor = iColor;
 
 	imageStore(resultImage, currentPixel, oColor);
 }

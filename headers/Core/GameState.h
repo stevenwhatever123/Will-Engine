@@ -18,7 +18,8 @@ struct GameState
 	{
 		VulkanDescriptorSet renderedImage;
 
-		std::array<VulkanDescriptorSet, 6> downSampledImageDescriptorSet;
+		std::array<VulkanDescriptorSet, 6> downSampledImageDescriptorSetInput;
+		std::array<VulkanDescriptorSet, 6> downSampledImageDescriptorSetOutput;
 
 		std::array<VkDescriptorSet, 6> downSampledImage_ImGui;
 

@@ -121,8 +121,10 @@ public:
 	VkPipelineLayout depthPipelineLayout;
 	VkPipeline depthPipeline;
 	// Pipeline for bloom post-processing
-	VkPipelineLayout bloomDownscalePipelineLayout;
-	VkPipeline bloomDownscalePipeline;
+	VkPipelineLayout filterBrightPipelineLayout;
+	VkPipeline filterBrightPipeline;
+	VkPipelineLayout downscalePipelineLayout;
+	VkPipeline downscalePipeline;
 
 	// Scene Descriptor sets
 	VulkanDescriptorSet sceneDescriptorSet;
@@ -162,7 +164,8 @@ public:
 	VkShaderModule depthVertShader;
 	VkShaderModule depthFragShader;
 
-	VkShaderModule bloomDownscaleCompShader;
+	VkShaderModule filterBrightCompShader;
+	VkShaderModule downscaleCompShader;
 
 	// ======================================
 	VulkanAllocatedImage shadowCubeMap;
@@ -251,7 +254,8 @@ public:
 	void initShadowPipeline(VkDevice& logicalDevice);
 	void initShadingPipeline(VkDevice& logicalDevice);
 
-	void initBloomDownscalePipeline(VkDevice& logicalDevice);
+	void initFilterBrightPipeline(VkDevice& logicalDevice);
+	void initDownScalePipeline(VkDevice& logicalDevice);
 
 	// GUI
 	void initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue, VkSurfaceKHR& surface);

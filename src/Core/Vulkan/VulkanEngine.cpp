@@ -139,7 +139,8 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	initComputedImageDescriptors(logicalDevice, descriptorPool);
 
 	// Compute Pipeline for bloom
-	initBloomDownscalePipeline(logicalDevice);
+	initFilterBrightPipeline(logicalDevice);
+	initDownScalePipeline(logicalDevice);
 }
 
 void VulkanEngine::cleanup(VkDevice& logicalDevice)
@@ -755,10 +756,15 @@ void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& lo
 
 
 		//vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.downSampledImageDescriptorSetLayout, nullptr);
-		for (u32 i = 0; i < gameState->graphicsState.downSampledImageDescriptorSet.size(); i++)
+		for (u32 i = 0; i < gameState->graphicsState.downSampledImageDescriptorSetOutput.size(); i++)
 		{
-			vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &gameState->graphicsState.downSampledImageDescriptorSet[i].descriptorSet);
-			vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.downSampledImageDescriptorSet[i].layout, nullptr);
+			// Output bindings
+			vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &gameState->graphicsState.downSampledImageDescriptorSetOutput[i].descriptorSet);
+			vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.downSampledImageDescriptorSetOutput[i].layout, nullptr);
+			// Input bindings
+			vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &gameState->graphicsState.downSampledImageDescriptorSetInput[i].descriptorSet);
+			vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.downSampledImageDescriptorSetInput[i].layout, nullptr);
+
 			vkFreeDescriptorSets(logicalDevice, vulkanGui->getDescriptorPool(), 1, &gameState->graphicsState.downSampledImage_ImGui[i]);
 		}
 	}
@@ -1011,22 +1017,41 @@ void VulkanEngine::initRenderedDescriptors(VkDevice& logicalDevice, VkDescriptor
 
 void VulkanEngine::initComputedImageDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool)
 {
-	std::array<VulkanDescriptorSet, 6>& downSampledImageDescriptorSet = gameState->graphicsState.downSampledImageDescriptorSet;
+	std::array<VulkanDescriptorSet, 6>& downSampledImageDescriptorSetInput = gameState->graphicsState.downSampledImageDescriptorSetInput;
+	std::array<VulkanDescriptorSet, 6>& downSampledImageDescriptorSetOutput = gameState->graphicsState.downSampledImageDescriptorSetOutput;
 
-	for (u32 i = 0; i < downSampledImageDescriptorSet.size(); i++)
+	// Output binding
+	for (u32 i = 0; i < downSampledImageDescriptorSetOutput.size(); i++)
 	{
 
-		WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, downSampledImageDescriptorSet[i].layout, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, 1, 1);
+		WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, downSampledImageDescriptorSetOutput[i].layout, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, 1, 1);
 
-		WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, downSampledImageDescriptorSet[i].layout, downSampledImageDescriptorSet[i].descriptorSet);
+		WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, downSampledImageDescriptorSetOutput[i].layout, downSampledImageDescriptorSetOutput[i].descriptorSet);
 
 		//std::vector<VkImageView> imageViews = { postProcessedImage.imageView };
-		std::vector<VkImageView> imageViews = { downSampleImages[0].imageView };
+		std::vector<VkImageView> imageViews = { downSampleImages[i].imageView };
 
-		WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, downSampledImageDescriptorSet[i].descriptorSet, &defaultSampler, imageViews.data(), VK_IMAGE_LAYOUT_GENERAL,
+		WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, downSampledImageDescriptorSetOutput[i].descriptorSet, &defaultSampler, imageViews.data(), VK_IMAGE_LAYOUT_GENERAL,
 			VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, 1);
 
-		gameState->graphicsState.downSampledImage_ImGui[i] = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(defaultSampler, downSampleImages[0].imageView, VK_IMAGE_LAYOUT_GENERAL);
+		gameState->graphicsState.downSampledImage_ImGui[i] = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(defaultSampler, downSampleImages[i].imageView, VK_IMAGE_LAYOUT_GENERAL);
+	}
+
+	// Input binding
+	for (u32 i = 0; i < downSampledImageDescriptorSetInput.size(); i++)
+	{
+
+		WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, downSampledImageDescriptorSetInput[i].layout, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, 0, 1);
+
+		WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, downSampledImageDescriptorSetInput[i].layout, downSampledImageDescriptorSetInput[i].descriptorSet);
+
+		//std::vector<VkImageView> imageViews = { postProcessedImage.imageView };
+		std::vector<VkImageView> imageViews = { downSampleImages[i].imageView };
+
+		WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, downSampledImageDescriptorSetInput[i].descriptorSet, &defaultSampler, imageViews.data(), VK_IMAGE_LAYOUT_GENERAL,
+			VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 0, 1);
+
+		gameState->graphicsState.downSampledImage_ImGui[i] = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(defaultSampler, downSampleImages[i].imageView, VK_IMAGE_LAYOUT_GENERAL);
 	}
 }
 
@@ -1128,18 +1153,28 @@ void VulkanEngine::initShadingPipeline(VkDevice& logicalDevice)
 		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, sceneExtent);
 }
 
-void VulkanEngine::initBloomDownscalePipeline(VkDevice& logicalDevice)
+void VulkanEngine::initFilterBrightPipeline(VkDevice& logicalDevice)
 {
+	WillEngine::VulkanUtil::initFilterBrightShaderModule(logicalDevice, filterBrightCompShader);
 	
-	WillEngine::VulkanUtil::initBloomDownscaleShaderModule(logicalDevice, bloomDownscaleCompShader);
-	
-	VkDescriptorSetLayout layout[] = {gameState->graphicsState.renderedImage.layout, gameState->graphicsState.downSampledImageDescriptorSet[0].layout};
+	VkDescriptorSetLayout layout[] = { gameState->graphicsState.renderedImage.layout, gameState->graphicsState.downSampledImageDescriptorSetOutput[0].layout };
 	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
 
-	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, bloomDownscalePipelineLayout, layoutSize, layout, 0, nullptr);
+	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, filterBrightPipelineLayout, layoutSize, layout, 0, nullptr);
 
-	WillEngine::VulkanUtil::createBloomDownscalePipeline(logicalDevice, bloomDownscalePipeline, bloomDownscalePipelineLayout, bloomDownscaleCompShader);
+	WillEngine::VulkanUtil::createFilterBrightPipeline(logicalDevice, filterBrightPipeline, filterBrightPipelineLayout, filterBrightCompShader);
+}
 
+void VulkanEngine::initDownScalePipeline(VkDevice& logicalDevice)
+{
+	WillEngine::VulkanUtil::initDownscaleShaderModule(logicalDevice, downscaleCompShader);
+
+	VkDescriptorSetLayout layout[] = { gameState->graphicsState.downSampledImageDescriptorSetInput[1].layout, gameState->graphicsState.downSampledImageDescriptorSetOutput[0].layout };
+	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
+
+	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, downscalePipelineLayout, layoutSize, layout, 0, nullptr);
+
+	WillEngine::VulkanUtil::createDownscalePipeline(logicalDevice, downscalePipeline, downscalePipelineLayout, downscaleCompShader);
 }
 
 void VulkanEngine::initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue,
@@ -1488,29 +1523,29 @@ void VulkanEngine::recordComputeCommands(VkCommandBuffer& commandBuffer)
 		throw std::runtime_error("Failed to begin command buffer");
 
 	// Bind Pipeline
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, bloomDownscalePipeline);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, filterBrightPipeline);
 
 	// First Down scale
 
 	// Bind Descriptor sets
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, bloomDownscalePipelineLayout, 0, 1, &gameState->graphicsState.renderedImage.descriptorSet, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, filterBrightPipelineLayout, 0, 1, &gameState->graphicsState.renderedImage.descriptorSet, 0, nullptr);
 
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, bloomDownscalePipelineLayout, 1, 1,
-		&gameState->graphicsState.downSampledImageDescriptorSet[0].descriptorSet, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, filterBrightPipelineLayout, 1, 1,
+		&gameState->graphicsState.downSampledImageDescriptorSetOutput[0].descriptorSet, 0, nullptr);
 
 	// Dispatch compute job.
 	vkCmdDispatch(commandBuffer, sceneExtent.width / 16, sceneExtent.height / 16, 1);
 
-	//for (u32 i = 1; i < gameState->graphicsState.downSampledImageDescriptorSet.size(); i++)
-	//{
-	//	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, bloomDownscalePipelineLayout, 0, 1,
-	//		&gameState->graphicsState.downSampledImageDescriptorSet[i-1].descriptorSet, 0, nullptr);
+	for (u32 i = 1; i < gameState->graphicsState.downSampledImageDescriptorSetOutput.size(); i++)
+	{
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, downscalePipelineLayout, 0, 1,
+			&gameState->graphicsState.downSampledImageDescriptorSetInput[i-1].descriptorSet, 0, nullptr);
 
-	//	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, bloomDownscalePipelineLayout, 1, 1,
-	//		&gameState->graphicsState.downSampledImageDescriptorSet[i].descriptorSet, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, downscalePipelineLayout, 1, 1,
+			&gameState->graphicsState.downSampledImageDescriptorSetOutput[i].descriptorSet, 0, nullptr);
 
-	//	vkCmdDispatch(commandBuffer, sceneExtent.width / 16, sceneExtent.height / 16, 1);
-	//}
+		vkCmdDispatch(commandBuffer, sceneExtent.width / 16, sceneExtent.height / 16, 1);
+	}
 
 	vkEndCommandBuffer(commandBuffer);
 }
