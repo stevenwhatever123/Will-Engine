@@ -10,7 +10,7 @@ void main()
 
 	ivec2 targetPixel = currentPixel / 2;
 
-	//vec4 res = imageLoad(inputImage, currentPixel);
+	//vec4 res = imageLoad(inputImage, targetPixel);
 	vec4 res = imageLoad(inputImage, currentPixel);
 
 	//imageStore(resultImage, currentPixel, res);

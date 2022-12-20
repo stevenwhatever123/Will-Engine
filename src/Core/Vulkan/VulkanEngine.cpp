@@ -1169,7 +1169,7 @@ void VulkanEngine::initDownScalePipeline(VkDevice& logicalDevice)
 {
 	WillEngine::VulkanUtil::initDownscaleShaderModule(logicalDevice, downscaleCompShader);
 
-	VkDescriptorSetLayout layout[] = { gameState->graphicsState.downSampledImageDescriptorSetInput[1].layout, gameState->graphicsState.downSampledImageDescriptorSetOutput[0].layout };
+	VkDescriptorSetLayout layout[] = { gameState->graphicsState.downSampledImageDescriptorSetInput[0].layout, gameState->graphicsState.downSampledImageDescriptorSetOutput[1].layout };
 	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, downscalePipelineLayout, layoutSize, layout, 0, nullptr);
@@ -1522,10 +1522,8 @@ void VulkanEngine::recordComputeCommands(VkCommandBuffer& commandBuffer)
 	if (vkBeginCommandBuffer(commandBuffer, &commandBeginInfo) != VK_SUCCESS)
 		throw std::runtime_error("Failed to begin command buffer");
 
-	// Bind Pipeline
+	// Bind Pipeline for filtering bright color
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, filterBrightPipeline);
-
-	// First Down scale
 
 	// Bind Descriptor sets
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, filterBrightPipelineLayout, 0, 1, &gameState->graphicsState.renderedImage.descriptorSet, 0, nullptr);
@@ -1535,6 +1533,9 @@ void VulkanEngine::recordComputeCommands(VkCommandBuffer& commandBuffer)
 
 	// Dispatch compute job.
 	vkCmdDispatch(commandBuffer, sceneExtent.width / 16, sceneExtent.height / 16, 1);
+
+	// Bind Pipeline for downscaling
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, downscalePipeline);
 
 	for (u32 i = 1; i < gameState->graphicsState.downSampledImageDescriptorSetOutput.size(); i++)
 	{
