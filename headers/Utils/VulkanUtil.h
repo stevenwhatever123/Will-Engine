@@ -90,7 +90,9 @@ namespace WillEngine::VulkanUtil
 	void initDepthShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader);
 
 	void initFilterBrightShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader);
+	void initClearColorShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader);
 	void initDownscaleShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader);
+	void initUpscaleShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader);
 
 	// Descriptors related
 	void createDescriptorSetLayout(VkDevice& logicalDevice, VkDescriptorSetLayout& descriptorSetLayout,VkDescriptorType descriptorType, 
@@ -119,8 +121,7 @@ namespace WillEngine::VulkanUtil
 	void createDepthPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
 		VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D extent);
 
-	void createFilterBrightPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkShaderModule& compShader);
-	void createDownscalePipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkShaderModule& compShader);
+	void createComputePipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkShaderModule& compShader);
 
 	// Framebuffer
 	void createFramebufferAttachment(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkExtent2D extent, 

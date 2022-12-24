@@ -8,11 +8,61 @@ void main()
 {
 	ivec2 currentPixel = ivec2(gl_GlobalInvocationID.xy);
 
+	ivec2 srcImageSize = imageSize(inputImage);
+	float x = 1 / srcImageSize.x;
+	float y = 1 / srcImageSize.y;
+
+	// Taking 13 samples around the center e following the sampling method from:
+	// "Next Generation Post Processing in Call of Duty: Advanced Warfare"
+	// Pixels are sampled and named as follows:
+	//	a - b - c
+	//	- j - k -
+	//	d - e - f
+	//  - l - m -
+	//  g - h - i
+	//
+	// where e is the currentPixel
+
+	vec4 a = imageLoad(inputImage, ivec2(currentPixel.x - 2*x, 	currentPixel.y + 2*y));
+	vec4 b = imageLoad(inputImage, ivec2(currentPixel.x  	 , 	currentPixel.y + 2*y));
+	vec4 c = imageLoad(inputImage, ivec2(currentPixel.x + 2*x, 	currentPixel.y + 2*y));
+
+	vec4 d = imageLoad(inputImage, ivec2(currentPixel.x - 2*x, 	currentPixel.y));
+	vec4 e = imageLoad(inputImage, ivec2(currentPixel.x 	 , 	currentPixel.y));
+	vec4 f = imageLoad(inputImage, ivec2(currentPixel.x + 2*x, 	currentPixel.y));
+
+	vec4 g = imageLoad(inputImage, ivec2(currentPixel.x - 2*x, 	currentPixel.y - 2*y));
+	vec4 h = imageLoad(inputImage, ivec2(currentPixel.x 	 , 	currentPixel.y - 2*y));
+	vec4 i = imageLoad(inputImage, ivec2(currentPixel.x + 2*x, 	currentPixel.y - 2*y));
+
+	vec4 j = imageLoad(inputImage, ivec2(currentPixel.x - x  , currentPixel.y + y));
+	vec4 k = imageLoad(inputImage, ivec2(currentPixel.x + x  , currentPixel.y + y));
+	vec4 l = imageLoad(inputImage, ivec2(currentPixel.x - x  , currentPixel.y - y));
+	vec4 m = imageLoad(inputImage, ivec2(currentPixel.x + x  , currentPixel.y - y));
+ 
 	ivec2 targetPixel = currentPixel / 2;
 
-	//vec4 res = imageLoad(inputImage, targetPixel);
-	vec4 res = imageLoad(inputImage, currentPixel);
+	// Weight distribution is as follows according to the powerpoint:
+	// 0.5 + 0.125 + 0.125 + 0.125 + 0.125 = 1
+	//
+	// a, b, d, e has a weighting of 0.125
+	// b, c, e, f has a weighting of 0.125
+	// e, f, h, i has a weighting of 0.125
+	// d, e, g, h has a weighting of 0.125
+	// j, k, l, m has a weighting of 0.5
+	//
+	// By redistributing:
+	// e has a weighting of 0.125
+	// a, c, g, i only appear once, i.e. 0.125 / 4 = 0.03125 each
+	// b, d, f, h only appear twice, i.e. 0.125 / 4 * 2 = 0.0625 each
+	// j, k, l, m only appear once, i.e. 0.5 / 4 = 0.125 each
 
-	//imageStore(resultImage, currentPixel, res);
+	vec4 res = e * 0.125;
+	res += (a + c + g + i) * 0.03125;
+	res += (b + d + f + h) * 0.0625;
+	res += (j + k + l + m) * 0.125;
+
+	//vec4 res = imageLoad(inputImage, currentPixel);
+
 	imageStore(resultImage, targetPixel, res);
 }

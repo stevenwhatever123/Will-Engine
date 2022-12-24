@@ -714,9 +714,27 @@ void WillEngine::VulkanUtil::initFilterBrightShaderModule(VkDevice& logicalDevic
     compShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, shaderCode);
 }
 
+void WillEngine::VulkanUtil::initClearColorShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader)
+{
+    const char* shaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/post_processing/clearColor.comp.spv";
+
+    auto shaderCode = WillEngine::Utils::readSprivShader(shaderPath);
+
+    compShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, shaderCode);
+}
+
 void WillEngine::VulkanUtil::initDownscaleShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader)
 {
     const char* shaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/post_processing/bloomDownscale.comp.spv";
+
+    auto shaderCode = WillEngine::Utils::readSprivShader(shaderPath);
+
+    compShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, shaderCode);
+}
+
+void WillEngine::VulkanUtil::initUpscaleShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader)
+{
+    const char* shaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/post_processing/bloomUpscale.comp.spv";
 
     auto shaderCode = WillEngine::Utils::readSprivShader(shaderPath);
 
@@ -1514,24 +1532,7 @@ void WillEngine::VulkanUtil::createDepthPipeline(VkDevice& logicalDevice, VkPipe
         throw std::runtime_error("Failed to create graphics pipeline");
 }
 
-void WillEngine::VulkanUtil::createFilterBrightPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkShaderModule& compShader)
-{
-    VkPipelineShaderStageCreateInfo shaderStageInfo{};
-    shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    shaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-    shaderStageInfo.module = compShader;
-    shaderStageInfo.pName = "main";
-    
-    VkComputePipelineCreateInfo pipelineInfo{};
-    pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    pipelineInfo.stage = shaderStageInfo;
-    pipelineInfo.layout = pipelineLayout;
-
-    if (vkCreateComputePipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS)
-        throw std::runtime_error("Failed to create compute pipeline");
-}
-
-void WillEngine::VulkanUtil::createDownscalePipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkShaderModule& compShader)
+void WillEngine::VulkanUtil::createComputePipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkShaderModule& compShader)
 {
     VkPipelineShaderStageCreateInfo shaderStageInfo{};
     shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;

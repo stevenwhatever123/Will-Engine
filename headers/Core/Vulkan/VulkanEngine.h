@@ -90,7 +90,8 @@ public:
 	// Command pool and buffer
 	VkCommandPool commandPool;
 	std::vector<VkCommandBuffer> commandBuffers;
-	std::vector<VkCommandBuffer> computeCommandBuffers;
+	std::vector<VkCommandBuffer> downscaleComputeCommandBuffers;
+	std::vector<VkCommandBuffer> upscaleComputeCommandBuffers;
 	std::vector<VkCommandBuffer> presentCommandBuffers;
 
 	// Semaphore for waiting and signaling
@@ -98,7 +99,8 @@ public:
 	VkSemaphore imageAvailable;
 	VkSemaphore renderFinished;
 
-	VkSemaphore computeFinished;
+	VkSemaphore downscaleFinished;
+	VkSemaphore upscaleFinished;
 
 	VkSemaphore readyToPresent;
 
@@ -123,8 +125,12 @@ public:
 	// Pipeline for bloom post-processing
 	VkPipelineLayout filterBrightPipelineLayout;
 	VkPipeline filterBrightPipeline;
+	VkPipelineLayout clearColorPipelineLayout;
+	VkPipeline clearColorPipeline;
 	VkPipelineLayout downscalePipelineLayout;
 	VkPipeline downscalePipeline;
+	VkPipelineLayout upscalePipelineLayout;
+	VkPipeline upscalePipeline;
 
 	// Scene Descriptor sets
 	VulkanDescriptorSet sceneDescriptorSet;
@@ -165,7 +171,9 @@ public:
 	VkShaderModule depthFragShader;
 
 	VkShaderModule filterBrightCompShader;
+	VkShaderModule clearColorCompShader;
 	VkShaderModule downscaleCompShader;
+	VkShaderModule upscaleCompShader;
 
 	// ======================================
 	VulkanAllocatedImage shadowCubeMap;
@@ -224,11 +232,11 @@ public:
 
 	void createCommandPool(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, VkCommandPool& commandPool);
 
-	void createCommandBuffer(VkDevice& logicalDevice, std::vector<VkCommandBuffer>& commandBuffers, std::vector<VkCommandBuffer>& computeCommandBuffers,
-		std::vector<VkCommandBuffer>& presentCommandBuffers);
+	void createCommandBuffer(VkDevice& logicalDevice, std::vector<VkCommandBuffer>& commandBuffers, std::vector<VkCommandBuffer>& downscaleComputeCommandBuffers, 
+		std::vector<VkCommandBuffer>& upscaleComputeCommandBuffers, std::vector<VkCommandBuffer>& presentCommandBuffers);
 
 	void createSemaphore(VkDevice& logicalDevice, VkSemaphore& waitImageAvailable, VkSemaphore& signalRenderFinish, VkSemaphore& signalReadyToPresent,
-		VkSemaphore& signalComputeFinished);
+		VkSemaphore& signalDownscaleFinished, VkSemaphore& signalUpscaleFinished);
 
 	void createFence(VkDevice& logicalDevice, std::vector<VkFence>& fences, VkFenceCreateFlagBits flag);
 
@@ -255,7 +263,9 @@ public:
 	void initShadingPipeline(VkDevice& logicalDevice);
 
 	void initFilterBrightPipeline(VkDevice& logicalDevice);
-	void initDownScalePipeline(VkDevice& logicalDevice);
+	void initClearColorPipeline(VkDevice& logicalDevice);
+	void initDownscalePipeline(VkDevice& logicalDevice);
+	void initUpscalePipeline(VkDevice& logicalDevice);
 
 	// GUI
 	void initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue, VkSurfaceKHR& surface);
@@ -272,7 +282,8 @@ public:
 	void shadingPasses(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D extent);
 	void UIPasses(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D extent);
 
-	void recordComputeCommands(VkCommandBuffer& commandBuffer);
+	void recordDownscaleComputeCommands(VkCommandBuffer& commandBuffer);
+	void recordUpscaleComputeCommands(VkCommandBuffer& commandBuffer);
 
 	void recordUICommands(VkCommandBuffer& commandBuffer, VkFramebuffer& framebuffer, VkExtent2D& extent);
 

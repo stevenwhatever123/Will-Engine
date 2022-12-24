@@ -1,0 +1,50 @@
+#version 450
+
+layout (local_size_x = 16, local_size_y = 16) in;
+layout (set = 0, binding = 0, rgba16) uniform image2D resultImage;
+layout (set = 1, binding = 1, rgba16) uniform readonly image2D inputImage;
+
+void main()
+{
+	ivec2 currentPixel = ivec2(gl_GlobalInvocationID.xy);
+	ivec2 targetPixel = currentPixel / 2;
+
+	float sampleRadius = 2;
+
+	float x = sampleRadius;
+	float y = sampleRadius;
+
+	// A 3x3 kernal filter for upsampling as mentioned in :
+	// "Next Generation Post Processing in Call of Duty: Advanced Warfare"
+	// Pixels are sampled and named as follows:
+	// a - b - c
+	// d - e - f
+	// g - h - i
+	//
+	// where e is the targetPixel
+
+	vec4 a = imageLoad(inputImage, ivec2(targetPixel.x - x, targetPixel.y + y));
+	vec4 b = imageLoad(inputImage, ivec2(targetPixel.x    , targetPixel.y + y));
+	vec4 c = imageLoad(inputImage, ivec2(targetPixel.x + x, targetPixel.y + y));
+
+	vec4 d = imageLoad(inputImage, ivec2(targetPixel.x - x, targetPixel.y));
+	vec4 e = imageLoad(inputImage, ivec2(targetPixel.x    , targetPixel.y));
+	vec4 f = imageLoad(inputImage, ivec2(targetPixel.x + x, targetPixel.y));
+
+	vec4 g = imageLoad(inputImage, ivec2(targetPixel.x - x, targetPixel.y - y));
+	vec4 h = imageLoad(inputImage, ivec2(targetPixel.x    , targetPixel.y - y));
+	vec4 i = imageLoad(inputImage, ivec2(targetPixel.x + x, targetPixel.y - y));
+
+
+	// The 3x3 tent filter for upsampling
+	//	1    	|1 2 1|
+	// ---  x	|2 4 2|
+	//  16 		|1 2 1|
+
+	vec4 res = e * 4.0;
+	res += (b + d + f + h) * 2.0;
+	res += (a + c + g + i);
+	res *= 1.0 / 16.0;
+
+	imageStore(resultImage, currentPixel, res);
+}
