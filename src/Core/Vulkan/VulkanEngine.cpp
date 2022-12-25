@@ -96,6 +96,15 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 		sceneExtentTemp.height /= 2;
 	}
 
+	sceneExtentTemp = sceneExtent;
+	for (u32 i = 0; i < upSampleImages.size(); i++)
+	{
+		WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPool, graphicsQueue, swapchainImageFormat, sceneExtentTemp, upSampleImages[i]);
+
+		sceneExtentTemp.width /= 2;
+		sceneExtentTemp.height /= 2;
+	}
+
 	// Create and allocate framebuffer for presenting
 	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, geometryRenderPass, shadingRenderPass, depthImage.imageView, swapchainExtent);
 
@@ -140,7 +149,6 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 
 	// Compute Pipeline for bloom
 	initFilterBrightPipeline(logicalDevice);
-	initClearColorPipeline(logicalDevice);
 	initDownscalePipeline(logicalDevice);
 	initUpscalePipeline(logicalDevice);
 }
@@ -278,7 +286,6 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	vkResetCommandBuffer(presentCommandBuffers[imageIndex], 0);
 
 	// Rendering command
-
 	recordCommands(commandBuffers[imageIndex], framebuffers[imageIndex], swapchainExtent);
 	submitCommands(commandBuffers[imageIndex], imageAvailable, renderFinished, graphicsQueue, nullptr);
 
@@ -752,6 +759,11 @@ void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& lo
 			vkDestroyImageView(logicalDevice, downSampleImages[i].imageView, nullptr);
 			vmaDestroyImage(vmaAllocator, downSampleImages[i].image, downSampleImages[i].allocation);
 		}
+		for (u32 i = 0; i < upSampleImages.size(); i++)
+		{
+			vkDestroyImageView(logicalDevice, upSampleImages[i].imageView, nullptr);
+			vmaDestroyImage(vmaAllocator, upSampleImages[i].image, upSampleImages[i].allocation);
+		}
 
 		//vkDestroyImageView(logicalDevice, postProcessedImage.imageView, nullptr);
 		//vmaDestroyImage(vmaAllocator, postProcessedImage.image, nullptr);
@@ -763,6 +775,7 @@ void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& lo
 		//vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.downSampledImageDescriptorSetLayout, nullptr);
 		for (u32 i = 0; i < gameState->graphicsState.downSampledImageDescriptorSetOutput.size(); i++)
 		{
+			// Downscale
 			// Output bindings
 			vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &gameState->graphicsState.downSampledImageDescriptorSetOutput[i].descriptorSet);
 			vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.downSampledImageDescriptorSetOutput[i].layout, nullptr);
@@ -770,7 +783,16 @@ void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& lo
 			vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &gameState->graphicsState.downSampledImageDescriptorSetInput[i].descriptorSet);
 			vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.downSampledImageDescriptorSetInput[i].layout, nullptr);
 
+			// Upscale
+			// Output bindings
+			vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &gameState->graphicsState.upSampledImageDescriptorSetOutput[i].descriptorSet);
+			vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.upSampledImageDescriptorSetOutput[i].layout, nullptr);
+			// Input bindings
+			vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &gameState->graphicsState.upSampledImageDescriptorSetInput[i].descriptorSet);
+			vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.upSampledImageDescriptorSetInput[i].layout, nullptr);
+
 			vkFreeDescriptorSets(logicalDevice, vulkanGui->getDescriptorPool(), 1, &gameState->graphicsState.downSampledImage_ImGui[i]);
+			vkFreeDescriptorSets(logicalDevice, vulkanGui->getDescriptorPool(), 1, &gameState->graphicsState.upSampledImage_ImGui[i]);
 		}
 	}
 
@@ -803,6 +825,15 @@ void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& lo
 	for (u32 i = 0; i < downSampleImages.size(); i++)
 	{
 		WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPool, graphicsQueue, swapchainImageFormat, sceneExtentTemp, downSampleImages[i]);
+
+		sceneExtentTemp.width /= 2;
+		sceneExtentTemp.height /= 2;
+	}
+
+	sceneExtentTemp = sceneExtent;
+	for (u32 i = 0; i < upSampleImages.size(); i++)
+	{
+		WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPool, graphicsQueue, swapchainImageFormat, sceneExtentTemp, upSampleImages[i]);
 
 		sceneExtentTemp.width /= 2;
 		sceneExtentTemp.height /= 2;
@@ -1030,8 +1061,8 @@ void VulkanEngine::initComputedImageDescriptors(VkDevice& logicalDevice, VkDescr
 	std::array<VulkanDescriptorSet, 6>& downSampledImageDescriptorSetInput = gameState->graphicsState.downSampledImageDescriptorSetInput;
 	std::array<VulkanDescriptorSet, 6>& downSampledImageDescriptorSetOutput = gameState->graphicsState.downSampledImageDescriptorSetOutput;
 
-	std::array<VulkanDescriptorSet, 6>& upSampledImageDescriptorSetInput = gameState->graphicsState.upSampledImageDescriptorSetInput;
-	std::array<VulkanDescriptorSet, 6>& upSampledImageDescriptorSetOutput = gameState->graphicsState.upSampledImageDescriptorSetOutput;
+	std::array<VulkanDescriptorSet, 7>& upSampledImageDescriptorSetInput = gameState->graphicsState.upSampledImageDescriptorSetInput;
+	std::array<VulkanDescriptorSet, 7>& upSampledImageDescriptorSetOutput = gameState->graphicsState.upSampledImageDescriptorSetOutput;
 
 	// Downscale
 	// Output binding
@@ -1052,7 +1083,6 @@ void VulkanEngine::initComputedImageDescriptors(VkDevice& logicalDevice, VkDescr
 	// Input binding
 	for (u32 i = 0; i < downSampledImageDescriptorSetInput.size(); i++)
 	{
-
 		WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, downSampledImageDescriptorSetInput[i].layout, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, 0, 1);
 
 		WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, downSampledImageDescriptorSetInput[i].layout, downSampledImageDescriptorSetInput[i].descriptorSet);
@@ -1067,29 +1097,28 @@ void VulkanEngine::initComputedImageDescriptors(VkDevice& logicalDevice, VkDescr
 	// Output binding
 	for (u32 i = 0; i < upSampledImageDescriptorSetOutput.size(); i++)
 	{
-		WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, upSampledImageDescriptorSetOutput[i].layout, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, 0, 1);
+		WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, upSampledImageDescriptorSetOutput[i].layout, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, 1, 1);
 	
 		WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, upSampledImageDescriptorSetOutput[i].layout, upSampledImageDescriptorSetOutput[i].descriptorSet);
 	
-		std::vector<VkImageView> imageViews = { downSampleImages[i].imageView };
+		std::vector<VkImageView> imageViews = { upSampleImages[i].imageView };
 
 		WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, upSampledImageDescriptorSetOutput[i].descriptorSet, &defaultSampler, imageViews.data(), VK_IMAGE_LAYOUT_GENERAL,
-			VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 0, 1);
+			VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, 1);
 
-		gameState->graphicsState.upSampledImage_ImGui[i] = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(defaultSampler, downSampleImages[i].imageView, VK_IMAGE_LAYOUT_GENERAL);
+		gameState->graphicsState.upSampledImage_ImGui[i] = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(defaultSampler, upSampleImages[i].imageView, VK_IMAGE_LAYOUT_GENERAL);
 	}
 	// Input binding
 	for (u32 i = 0; i < upSampledImageDescriptorSetInput.size(); i++)
 	{
-
-		WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, upSampledImageDescriptorSetInput[i].layout, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, 1, 1);
+		WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, upSampledImageDescriptorSetInput[i].layout, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT, 0, 1);
 
 		WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, upSampledImageDescriptorSetInput[i].layout, upSampledImageDescriptorSetInput[i].descriptorSet);
 
-		std::vector<VkImageView> imageViews = { downSampleImages[i].imageView };
+		std::vector<VkImageView> imageViews = { upSampleImages[i].imageView };
 
 		WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, upSampledImageDescriptorSetInput[i].descriptorSet, &defaultSampler, imageViews.data(), VK_IMAGE_LAYOUT_GENERAL,
-			VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, 1);
+			VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 0, 1);
 	}
 }
 
@@ -1203,18 +1232,6 @@ void VulkanEngine::initFilterBrightPipeline(VkDevice& logicalDevice)
 	WillEngine::VulkanUtil::createComputePipeline(logicalDevice, filterBrightPipeline, filterBrightPipelineLayout, filterBrightCompShader);
 }
 
-void VulkanEngine::initClearColorPipeline(VkDevice& logicalDevice)
-{
-	WillEngine::VulkanUtil::initClearColorShaderModule(logicalDevice, clearColorCompShader);
-
-	VkDescriptorSetLayout layout[] = { gameState->graphicsState.downSampledImageDescriptorSetInput[0].layout };
-	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
-
-	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, clearColorPipelineLayout, layoutSize, layout, 0, nullptr);
-	
-	WillEngine::VulkanUtil::createComputePipeline(logicalDevice, clearColorPipeline, clearColorPipelineLayout, clearColorCompShader);
-}
-
 void VulkanEngine::initDownscalePipeline(VkDevice& logicalDevice)
 {
 	WillEngine::VulkanUtil::initDownscaleShaderModule(logicalDevice, downscaleCompShader);
@@ -1231,7 +1248,7 @@ void VulkanEngine::initUpscalePipeline(VkDevice& logicalDevice)
 {
 	WillEngine::VulkanUtil::initUpscaleShaderModule(logicalDevice, upscaleCompShader);
 
-	VkDescriptorSetLayout layout[]{ gameState->graphicsState.upSampledImageDescriptorSetOutput[0].layout, gameState->graphicsState.upSampledImageDescriptorSetInput[0].layout };
+	VkDescriptorSetLayout layout[]{ gameState->graphicsState.upSampledImageDescriptorSetInput[0].layout, gameState->graphicsState.upSampledImageDescriptorSetOutput[0].layout };
 	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, upscalePipelineLayout, layoutSize, layout, 0, nullptr);
@@ -1610,6 +1627,15 @@ void VulkanEngine::recordDownscaleComputeCommands(VkCommandBuffer& commandBuffer
 		vkCmdDispatch(commandBuffer, sceneExtent.width / 16, sceneExtent.height / 16, 1);
 	}
 
+	// We downscale the last image to the last mip level of upSampled instead of downSampled
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, downscalePipelineLayout, 0, 1,
+		&gameState->graphicsState.downSampledImageDescriptorSetInput[gameState->graphicsState.downSampledImageDescriptorSetOutput.size() - 1].descriptorSet, 0, nullptr);
+
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, downscalePipelineLayout, 1, 1,
+		&gameState->graphicsState.upSampledImageDescriptorSetOutput[gameState->graphicsState.upSampledImageDescriptorSetOutput.size() - 1].descriptorSet, 0, nullptr);
+
+	vkCmdDispatch(commandBuffer, sceneExtent.width / 16, sceneExtent.height / 16, 1);
+
 	vkEndCommandBuffer(commandBuffer);
 }
 
@@ -1626,16 +1652,16 @@ void VulkanEngine::recordUpscaleComputeCommands(VkCommandBuffer& commandBuffer)
 	// Upscaling the image
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, upscalePipeline);
 
-	// Upscaling from mip 5 to mip 0
+	// Upscaling from mip 6 to mip 0
 	for (u32 i = gameState->graphicsState.upSampledImageDescriptorSetInput.size() - 1; i > 0; i--)
 	{
 		// Result Image
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, upscalePipelineLayout, 0, 1,
-			&gameState->graphicsState.downSampledImageDescriptorSetInput[i-1].descriptorSet, 0, nullptr);
+			&gameState->graphicsState.upSampledImageDescriptorSetInput[i-1].descriptorSet, 0, nullptr);
 
 		// Input Image
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, upscalePipelineLayout, 1, 1,
-			&gameState->graphicsState.downSampledImageDescriptorSetOutput[i].descriptorSet, 0, nullptr);
+			&gameState->graphicsState.upSampledImageDescriptorSetOutput[i].descriptorSet, 0, nullptr);
 
 		vkCmdDispatch(commandBuffer, sceneExtent.width / 16, sceneExtent.height / 16, 1);
 	}

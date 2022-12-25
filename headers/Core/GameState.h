@@ -21,11 +21,11 @@ struct GameState
 		std::array<VulkanDescriptorSet, 6> downSampledImageDescriptorSetInput;
 		std::array<VulkanDescriptorSet, 6> downSampledImageDescriptorSetOutput;
 
-		std::array<VulkanDescriptorSet, 6> upSampledImageDescriptorSetInput;
-		std::array<VulkanDescriptorSet, 6> upSampledImageDescriptorSetOutput;
+		std::array<VulkanDescriptorSet, 7> upSampledImageDescriptorSetInput;
+		std::array<VulkanDescriptorSet, 7> upSampledImageDescriptorSetOutput;
 
 		std::array<VkDescriptorSet, 6> downSampledImage_ImGui;
-		std::array<VkDescriptorSet, 6> upSampledImage_ImGui;
+		std::array<VkDescriptorSet, 7> upSampledImage_ImGui;
 
 		VulkanFramebuffer GBuffers;
 	} graphicsState;

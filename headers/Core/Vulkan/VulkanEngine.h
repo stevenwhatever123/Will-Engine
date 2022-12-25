@@ -77,6 +77,7 @@ public:
 	//VulkanAllocatedImage postProcessedImage;
 
 	std::array<VulkanAllocatedImage, 6> downSampleImages;
+	std::array<VulkanAllocatedImage, 7> upSampleImages;
 
 	// Framebuffer
 	std::vector<VkFramebuffer> framebuffers;
@@ -125,8 +126,6 @@ public:
 	// Pipeline for bloom post-processing
 	VkPipelineLayout filterBrightPipelineLayout;
 	VkPipeline filterBrightPipeline;
-	VkPipelineLayout clearColorPipelineLayout;
-	VkPipeline clearColorPipeline;
 	VkPipelineLayout downscalePipelineLayout;
 	VkPipeline downscalePipeline;
 	VkPipelineLayout upscalePipelineLayout;
@@ -171,7 +170,6 @@ public:
 	VkShaderModule depthFragShader;
 
 	VkShaderModule filterBrightCompShader;
-	VkShaderModule clearColorCompShader;
 	VkShaderModule downscaleCompShader;
 	VkShaderModule upscaleCompShader;
 
@@ -263,7 +261,6 @@ public:
 	void initShadingPipeline(VkDevice& logicalDevice);
 
 	void initFilterBrightPipeline(VkDevice& logicalDevice);
-	void initClearColorPipeline(VkDevice& logicalDevice);
 	void initDownscalePipeline(VkDevice& logicalDevice);
 	void initUpscalePipeline(VkDevice& logicalDevice);
 
