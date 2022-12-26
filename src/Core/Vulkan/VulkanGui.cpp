@@ -199,7 +199,7 @@ void VulkanGui::update(VkDescriptorSet& shadedImage, VulkanFramebuffer& attachme
 	}
 
 	{
-		WillEngine::EngineGui::DebuggingPanel::update(attachments);
+		WillEngine::EngineGui::DebuggingPanel::update(gameState, attachments);
 	}
 
 	{

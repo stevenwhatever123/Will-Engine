@@ -741,6 +741,15 @@ void WillEngine::VulkanUtil::initUpscaleShaderModule(VkDevice& logicalDevice, Vk
     compShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, shaderCode);
 }
 
+void WillEngine::VulkanUtil::initBlendColorShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader)
+{
+    const char* shaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/post_processing/blendColor.comp.spv";
+
+    auto shaderCode = WillEngine::Utils::readSprivShader(shaderPath);
+
+    compShader = WillEngine::VulkanUtil::createShaderModule(logicalDevice, shaderCode);
+}
+
 void WillEngine::VulkanUtil::createDescriptorSetLayout(VkDevice& logicalDevice, VkDescriptorSetLayout& descriptorSetLayout,
     VkDescriptorType descriptorType, VkShaderStageFlags shaderStage, u32 binding, u32 descriptorCount)
 {

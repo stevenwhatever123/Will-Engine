@@ -58,7 +58,7 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	createVmaAllocator(instance, physicalDevice, logicalDevice);
 	createCommandPool(logicalDevice, physicalDevice, surface, commandPool);
 	createCommandBuffer(logicalDevice, commandBuffers, downscaleComputeCommandBuffers, upscaleComputeCommandBuffers, presentCommandBuffers);
-	createSemaphore(logicalDevice, imageAvailable, renderFinished, readyToPresent, downscaleFinished, upscaleFinished);
+	createSemaphore(logicalDevice);
 	createFence(logicalDevice, fences, VK_FENCE_CREATE_SIGNALED_BIT);
 	createDescriptionPool(logicalDevice);
 
@@ -151,6 +151,7 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	initFilterBrightPipeline(logicalDevice);
 	initDownscalePipeline(logicalDevice);
 	initUpscalePipeline(logicalDevice);
+	initBlendColorPipeline(logicalDevice);
 }
 
 void VulkanEngine::cleanup(VkDevice& logicalDevice)
@@ -283,20 +284,34 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	// Make sure command buffer finishes executing
 	vkResetCommandBuffer(commandBuffers[imageIndex], 0);
 	vkResetCommandBuffer(downscaleComputeCommandBuffers[imageIndex], 0);
+	vkResetCommandBuffer(upscaleComputeCommandBuffers[imageIndex], 0);
+	vkResetCommandBuffer(blendColorCommandBuffers[imageIndex], 0);
 	vkResetCommandBuffer(presentCommandBuffers[imageIndex], 0);
 
 	// Rendering command
 	recordCommands(commandBuffers[imageIndex], framebuffers[imageIndex], swapchainExtent);
 	submitCommands(commandBuffers[imageIndex], imageAvailable, renderFinished, graphicsQueue, nullptr);
 
-	recordDownscaleComputeCommands(downscaleComputeCommandBuffers[imageIndex]);
-	submitCommands(downscaleComputeCommandBuffers[imageIndex], renderFinished, downscaleFinished, graphicsQueue, nullptr);
+	if (gameState->gameSettings.enableBloom)
+	{
+		// Record bloom commands if enabled
+		recordDownscaleComputeCommands(downscaleComputeCommandBuffers[imageIndex]);
+		submitCommands(downscaleComputeCommandBuffers[imageIndex], renderFinished, downscaleFinished, graphicsQueue, nullptr);
 
-	recordUpscaleComputeCommands(upscaleComputeCommandBuffers[imageIndex]);
-	submitCommands(upscaleComputeCommandBuffers[imageIndex], downscaleFinished, upscaleFinished, graphicsQueue, nullptr);
+		recordUpscaleComputeCommands(upscaleComputeCommandBuffers[imageIndex]);
+		submitCommands(upscaleComputeCommandBuffers[imageIndex], downscaleFinished, upscaleFinished, graphicsQueue, nullptr);
 
-	recordUICommands(presentCommandBuffers[imageIndex], framebuffers[imageIndex], swapchainExtent);
-	submitCommands(presentCommandBuffers[imageIndex], upscaleFinished, readyToPresent, graphicsQueue, &fences[imageIndex]);
+		recordBlendColorComputeCommands(blendColorCommandBuffers[imageIndex]);
+		submitCommands(blendColorCommandBuffers[imageIndex], upscaleFinished, colorBlendFinished, graphicsQueue, nullptr);
+
+		recordUICommands(presentCommandBuffers[imageIndex], framebuffers[imageIndex], swapchainExtent);
+		submitCommands(presentCommandBuffers[imageIndex], colorBlendFinished, readyToPresent, graphicsQueue, &fences[imageIndex]);
+	}
+	else
+	{
+		recordUICommands(presentCommandBuffers[imageIndex], framebuffers[imageIndex], swapchainExtent);
+		submitCommands(presentCommandBuffers[imageIndex], renderFinished, readyToPresent, graphicsQueue, &fences[imageIndex]);
+	}
 
 	presentImage(graphicsQueue, readyToPresent, swapchain, imageIndex);
 
@@ -306,11 +321,6 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 		changeMaterialTexture(logicalDevice, physicalDevice, graphicsQueue, gameState);
 		gameState->materialUpdateInfo.textureFilepath = "";
 	}
-
-	//recordCommands(commandBuffers[imageIndex], framebuffers[imageIndex], swapchainExtent);
-	//submitCommands(commandBuffers[imageIndex], imageAvailable, renderFinished, graphicsQueue, fences[imageIndex]);
-
-	//presentImage(graphicsQueue, renderFinished, swapchain, imageIndex);
 }
 
 void VulkanEngine::createVmaAllocator(VkInstance& instance, VkPhysicalDevice& physicalDevice, VkDevice& logicalDevice)
@@ -770,6 +780,7 @@ void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& lo
 
 		vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &gameState->graphicsState.renderedImage.descriptorSet);
 		vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.renderedImage.layout, nullptr);
+		vkFreeDescriptorSets(logicalDevice, vulkanGui->getDescriptorPool(), 1, &gameState->graphicsState.renderedImage_ImGui);
 
 
 		//vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.downSampledImageDescriptorSetLayout, nullptr);
@@ -918,6 +929,7 @@ void VulkanEngine::createCommandBuffer(VkDevice& logicalDevice, std::vector<VkCo
 	commandBuffers.resize(numSwapchainImage);
 	downscaleComputeCommandBuffers.resize(numSwapchainImage);
 	upscaleComputeCommandBuffers.resize(numSwapchainImage);
+	blendColorCommandBuffers.resize(numSwapchainImage);
 	presentCommandBuffers.resize(numSwapchainImage);
 
 	for (u32 i = 0; i < commandBuffers.size(); i++)
@@ -925,29 +937,33 @@ void VulkanEngine::createCommandBuffer(VkDevice& logicalDevice, std::vector<VkCo
 		commandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPool);
 		downscaleComputeCommandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPool);
 		upscaleComputeCommandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPool);
+		blendColorCommandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPool);
 		presentCommandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPool);
 	}
 }
 
-void VulkanEngine::createSemaphore(VkDevice& logicalDevice, VkSemaphore& waitImageAvailable, VkSemaphore& signalRenderFinish, VkSemaphore& signalReadyToPresent,
-	VkSemaphore& signalDownscaleFinished, VkSemaphore& signalUpscaleFinished)
+void VulkanEngine::createSemaphore(VkDevice& logicalDevice)
 {
 	VkSemaphoreCreateInfo semaphoreInfo{};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &waitImageAvailable) != VK_SUCCESS)
+	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &imageAvailable) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create wait image availabe semaphore");
 
-	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &signalRenderFinish) != VK_SUCCESS)
+	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &renderFinished) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create signal render finish semaphore");
 
-	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &signalReadyToPresent) != VK_SUCCESS)
+	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &downscaleFinished) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create signal ready to present semaphore");
 
-	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &signalDownscaleFinished) != VK_SUCCESS)
+	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &upscaleFinished) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create signal ready to present semaphore");
 
-	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &signalUpscaleFinished) != VK_SUCCESS)
+	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &colorBlendFinished) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create signal ready to present semaphore");
+
+
+	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &readyToPresent) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create signal ready to present semaphore");
 }
 
@@ -1045,6 +1061,9 @@ void VulkanEngine::initAttachmentDescriptors(VkDevice& logicalDevice, VkDescript
 
 void VulkanEngine::initRenderedDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool)
 {
+	// Descriptor sets for ImGui
+	gameState->graphicsState.renderedImage_ImGui = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, shadingImage.imageView, VK_IMAGE_LAYOUT_GENERAL);
+
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, gameState->graphicsState.renderedImage.layout, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
 		VK_SHADER_STAGE_COMPUTE_BIT, 0, 1);
 
@@ -1253,6 +1272,17 @@ void VulkanEngine::initUpscalePipeline(VkDevice& logicalDevice)
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, upscalePipelineLayout, layoutSize, layout, 0, nullptr);
 	WillEngine::VulkanUtil::createComputePipeline(logicalDevice, upscalePipeline, upscalePipelineLayout, upscaleCompShader);
+}
+
+void VulkanEngine::initBlendColorPipeline(VkDevice& logicalDevice)
+{
+	WillEngine::VulkanUtil::initBlendColorShaderModule(logicalDevice, blendColorCompShader);
+
+	VkDescriptorSetLayout layout[]{ gameState->graphicsState.renderedImage.layout, gameState->graphicsState.upSampledImageDescriptorSetOutput[0].layout };
+	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
+
+	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, blendColorPipelineLayout, layoutSize, layout, 0, nullptr);
+	WillEngine::VulkanUtil::createComputePipeline(logicalDevice, blendColorPipeline, blendColorPipelineLayout, blendColorCompShader);
 }
 
 void VulkanEngine::initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue,
@@ -1665,6 +1695,29 @@ void VulkanEngine::recordUpscaleComputeCommands(VkCommandBuffer& commandBuffer)
 
 		vkCmdDispatch(commandBuffer, sceneExtent.width / 16, sceneExtent.height / 16, 1);
 	}
+
+	vkEndCommandBuffer(commandBuffer);
+}
+
+void VulkanEngine::recordBlendColorComputeCommands(VkCommandBuffer& commandBuffer)
+{
+	// Begin command buffer
+	VkCommandBufferBeginInfo commandBeginInfo{};
+	commandBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	commandBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	if (vkBeginCommandBuffer(commandBuffer, &commandBeginInfo) != VK_SUCCESS)
+		throw std::runtime_error("Failed to begin command buffer");
+
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, blendColorPipeline);
+
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, blendColorPipelineLayout, 0, 1,
+		&gameState->graphicsState.renderedImage.descriptorSet, 0, nullptr);
+
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, blendColorPipelineLayout, 1, 1,
+		&gameState->graphicsState.upSampledImageDescriptorSetOutput[0].descriptorSet, 0, nullptr);
+
+	vkCmdDispatch(commandBuffer, sceneExtent.width / 16, sceneExtent.height / 16, 1);
 
 	vkEndCommandBuffer(commandBuffer);
 }

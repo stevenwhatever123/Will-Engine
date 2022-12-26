@@ -17,6 +17,7 @@ struct GameState
 	struct GraphicsState
 	{
 		VulkanDescriptorSet renderedImage;
+		VkDescriptorSet renderedImage_ImGui;
 
 		std::array<VulkanDescriptorSet, 6> downSampledImageDescriptorSetInput;
 		std::array<VulkanDescriptorSet, 6> downSampledImageDescriptorSetOutput;
@@ -30,7 +31,6 @@ struct GameState
 		VulkanFramebuffer GBuffers;
 	} graphicsState;
 	
-
 	struct GraphicsResources
 	{
 		std::map<u32, Material*> materials;
@@ -60,4 +60,9 @@ struct GameState
 		u32 textureIndex;
 		std::string textureFilepath;
 	} materialUpdateInfo;
+
+	struct GameSettings
+	{
+		bool enableBloom;
+	} gameSettings;
 };

@@ -93,6 +93,7 @@ public:
 	std::vector<VkCommandBuffer> commandBuffers;
 	std::vector<VkCommandBuffer> downscaleComputeCommandBuffers;
 	std::vector<VkCommandBuffer> upscaleComputeCommandBuffers;
+	std::vector<VkCommandBuffer> blendColorCommandBuffers;
 	std::vector<VkCommandBuffer> presentCommandBuffers;
 
 	// Semaphore for waiting and signaling
@@ -102,6 +103,8 @@ public:
 
 	VkSemaphore downscaleFinished;
 	VkSemaphore upscaleFinished;
+
+	VkSemaphore colorBlendFinished;
 
 	VkSemaphore readyToPresent;
 
@@ -130,6 +133,8 @@ public:
 	VkPipeline downscalePipeline;
 	VkPipelineLayout upscalePipelineLayout;
 	VkPipeline upscalePipeline;
+	VkPipelineLayout blendColorPipelineLayout;
+	VkPipeline blendColorPipeline;
 
 	// Scene Descriptor sets
 	VulkanDescriptorSet sceneDescriptorSet;
@@ -172,6 +177,7 @@ public:
 	VkShaderModule filterBrightCompShader;
 	VkShaderModule downscaleCompShader;
 	VkShaderModule upscaleCompShader;
+	VkShaderModule blendColorCompShader;
 
 	// ======================================
 	VulkanAllocatedImage shadowCubeMap;
@@ -233,8 +239,7 @@ public:
 	void createCommandBuffer(VkDevice& logicalDevice, std::vector<VkCommandBuffer>& commandBuffers, std::vector<VkCommandBuffer>& downscaleComputeCommandBuffers, 
 		std::vector<VkCommandBuffer>& upscaleComputeCommandBuffers, std::vector<VkCommandBuffer>& presentCommandBuffers);
 
-	void createSemaphore(VkDevice& logicalDevice, VkSemaphore& waitImageAvailable, VkSemaphore& signalRenderFinish, VkSemaphore& signalReadyToPresent,
-		VkSemaphore& signalDownscaleFinished, VkSemaphore& signalUpscaleFinished);
+	void createSemaphore(VkDevice& logicalDevice);
 
 	void createFence(VkDevice& logicalDevice, std::vector<VkFence>& fences, VkFenceCreateFlagBits flag);
 
@@ -263,6 +268,7 @@ public:
 	void initFilterBrightPipeline(VkDevice& logicalDevice);
 	void initDownscalePipeline(VkDevice& logicalDevice);
 	void initUpscalePipeline(VkDevice& logicalDevice);
+	void initBlendColorPipeline(VkDevice& logicalDevice);
 
 	// GUI
 	void initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue, VkSurfaceKHR& surface);
@@ -279,8 +285,10 @@ public:
 	void shadingPasses(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D extent);
 	void UIPasses(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D extent);
 
+	// Post-processing
 	void recordDownscaleComputeCommands(VkCommandBuffer& commandBuffer);
 	void recordUpscaleComputeCommands(VkCommandBuffer& commandBuffer);
+	void recordBlendColorComputeCommands(VkCommandBuffer& commandBuffer);
 
 	void recordUICommands(VkCommandBuffer& commandBuffer, VkFramebuffer& framebuffer, VkExtent2D& extent);
 

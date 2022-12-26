@@ -9,7 +9,7 @@ void main()
 	ivec2 currentPixel = ivec2(gl_GlobalInvocationID.xy);
 	ivec2 targetPixel = currentPixel / 2;
 
-	float sampleRadius = 2;
+	float sampleRadius = 5;
 
 	float x = sampleRadius;
 	float y = sampleRadius;

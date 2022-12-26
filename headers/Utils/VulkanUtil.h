@@ -93,6 +93,7 @@ namespace WillEngine::VulkanUtil
 	void initClearColorShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader);
 	void initDownscaleShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader);
 	void initUpscaleShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader);
+	void initBlendColorShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader);
 
 	// Descriptors related
 	void createDescriptorSetLayout(VkDevice& logicalDevice, VkDescriptorSetLayout& descriptorSetLayout,VkDescriptorType descriptorType, 

@@ -1,0 +1,14 @@
+#version 450
+
+layout (local_size_x = 16, local_size_y = 16) in;
+layout (set = 0, binding = 0, rgba16) uniform image2D originalImage;
+layout (set = 1, binding = 1, rgba16) uniform readonly image2D bloomImage;
+
+void main()
+{
+	ivec2 currentPixel = ivec2(gl_GlobalInvocationID.xy);
+
+	vec4 res = imageLoad(originalImage, currentPixel) + imageLoad(bloomImage, currentPixel);
+
+	imageStore(originalImage, currentPixel, res);
+}
