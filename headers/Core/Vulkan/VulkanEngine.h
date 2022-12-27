@@ -90,7 +90,10 @@ public:
 
 	// Command pool and buffer
 	VkCommandPool commandPool;
-	std::vector<VkCommandBuffer> commandBuffers;
+	std::vector<VkCommandBuffer> preDepthBuffers;
+	std::vector<VkCommandBuffer> shadowBuffers;
+	std::vector<VkCommandBuffer> geometryBuffers;
+	std::vector<VkCommandBuffer> shadingBuffers;
 	std::vector<VkCommandBuffer> downscaleComputeCommandBuffers;
 	std::vector<VkCommandBuffer> upscaleComputeCommandBuffers;
 	std::vector<VkCommandBuffer> blendColorCommandBuffers;
@@ -100,6 +103,10 @@ public:
 	// Used for GPU - GPU sync
 	VkSemaphore imageAvailable;
 	VkSemaphore renderFinished;
+
+	VkSemaphore preDepthFinished;
+	VkSemaphore shadowFinished;
+	VkSemaphore geometryFinished;
 
 	VkSemaphore downscaleFinished;
 	VkSemaphore upscaleFinished;
@@ -236,8 +243,7 @@ public:
 
 	void createCommandPool(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, VkCommandPool& commandPool);
 
-	void createCommandBuffer(VkDevice& logicalDevice, std::vector<VkCommandBuffer>& commandBuffers, std::vector<VkCommandBuffer>& downscaleComputeCommandBuffers, 
-		std::vector<VkCommandBuffer>& upscaleComputeCommandBuffers, std::vector<VkCommandBuffer>& presentCommandBuffers);
+	void createCommandBuffers(VkDevice& logicalDevice);
 
 	void createSemaphore(VkDevice& logicalDevice);
 
@@ -278,6 +284,11 @@ public:
 
 	void recordCommands(VkCommandBuffer& commandBuffer, VkFramebuffer& framebuffer, VkExtent2D& extent);
 
+	void recordDepthPrePass(VkCommandBuffer& commandBuffer);
+	void recordShadowPass(VkCommandBuffer& commandBuffer);
+	void recordGeometryPass(VkCommandBuffer& commandBuffer);
+	void recordShadingPass(VkCommandBuffer& commandBuffer);
+
 	// Render passes
 	void depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 	void geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
@@ -292,8 +303,8 @@ public:
 
 	void recordUICommands(VkCommandBuffer& commandBuffer, VkFramebuffer& framebuffer, VkExtent2D& extent);
 
-	void submitCommands(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, 
-		VkQueue& graphicsQueue, VkFence* fence);
+	void submitCommands(u32 commandBufferCount, VkCommandBuffer* commandBuffer, u32 waitSemaphoreCount, VkSemaphore* waitSemaphore, u32 signalSemaphoreCount,
+		VkSemaphore* signalSemaphore, VkQueue& graphicsQueue, VkFence* fence);
 
 	void presentImage(VkQueue& graphicsQueue, VkSemaphore& waitSemaphore, VkSwapchainKHR& swapchain, u32& swapchainIndex);
 
