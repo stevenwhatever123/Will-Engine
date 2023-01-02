@@ -158,9 +158,7 @@ void main()
 
 	vec4 brdf = (kd * diffuse + specular) * brightness * max(NdotL, 0.0);
 
-    //vec4 result = emissive + ambient + (1.0 - shadow) * brdfResult;
-    vec4 result = emissive + ambient + brdf;
-    result = emissive + ambient + (1.0 - shadow) * brdf;
+    vec4 result = emissive + ambient + (1.0 - shadow) * brdf;
 
 	oColor = result;
 }
