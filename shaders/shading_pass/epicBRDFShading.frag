@@ -111,6 +111,14 @@ vec4 FresenlSchlick(vec4 dielectricSpecular, vec3 viewDirection, vec3 halfVector
 	return f0 + (1 - f0) * pow(2, power);
 }
 
+vec4 brdfCookTorrance(float D, float G, vec4 F, float NdotL, float NdotV)
+{
+	if(NdotL < 0 || NdotV < 0)
+		return vec4(0, 0, 0, 1);
+
+	return (D * F * G) / (4 * max(0.001, NdotL * NdotV));
+}
+
 void main()
 {
 	const vec3 position = vec3(vec4(texture(texColor[0], texCoord).rgb, 1));
@@ -132,11 +140,8 @@ void main()
 	vec4 diffuse = albedo / radians(180);
 
 	// BRDF Specular
-
 	float NdotL = dot(normal, lightDirection);
 	float NdotV = dot(normal, viewDirection);
-	float NdotH = dot(normal, halfVector);
-	float VdotH = dot(viewDirection, halfVector);
 
 	float D = GGXTrowbridgeReitz(normal, halfVector, roughness);
 	float G = SchlickBeckmannModel(normal, viewDirection, lightDirection, roughness);
@@ -145,18 +150,17 @@ void main()
 	vec4 ks = F;
 	vec4 kd = 1 - ks;
 
-	vec4 specular = (D * F * G) / (4 * max(0.001, NdotL * NdotV));
-
-	if(NdotL < 0 || NdotV < 0)
-		specular = vec4(0, 0, 0, 1);
-
 	float lightDistance = abs(distance(vec3(lightPosition), position));
 	float attenuation = lightRange / (lightDistance * lightDistance);
 	vec4 brightness = lightColor * intensity * attenuation;
 
-	float shadow = ShadowCalculation(position, normal);
+	vec4 specular = brdfCookTorrance(D, G, F, NdotL, NdotV);
 
+	// Final brdf result: Diffuse + Specular
 	vec4 brdf = (kd * diffuse + specular) * brightness * max(NdotL, 0.0);
+
+	// Shadow value
+	float shadow = ShadowCalculation(position, normal);
 
     vec4 result = emissive + ambient + (1.0 - shadow) * brdf;
 
