@@ -9,7 +9,7 @@ LightComponent::LightComponent() :
     currentPosition(0),
     renderShadow(true),
     matrices(),
-	lightUniform({vec4(0, 0, 0, 1), vec4(1), vec4(0.02f, 0.02f, 0.02f, 1), 1})
+	lightUniform({vec4(0, 0, 0, 1), vec4(1), 1, 1})
 {
 
 }
@@ -20,7 +20,7 @@ LightComponent::LightComponent(Entity* entity) :
     currentPosition(0),
     renderShadow(true),
     matrices(),
-    lightUniform({ vec4(0, 0, 0, 1), vec4(1), vec4(0.02f, 0.02f, 0.02f, 1), 1 })
+    lightUniform({ vec4(0, 0, 0, 1), vec4(1), 1, 1 })
 {
 
 }
@@ -31,7 +31,7 @@ LightComponent::LightComponent(Entity* entity, vec3 position):
     currentPosition(position),
     renderShadow(true),
     matrices(),
-	lightUniform({ vec4(0, 0, 0, 1), vec4(1), vec4(0.02f, 0.02f, 0.02f, 1), 1 })
+	lightUniform({ vec4(0, 0, 0, 1), vec4(1), 1, 1 })
 {
 
 }
@@ -42,7 +42,7 @@ LightComponent::LightComponent(Entity* entity, vec3 position, vec4 color):
     currentPosition(position),
     renderShadow(true),
     matrices(),
-	lightUniform({ vec4(0, 0, 0, 1), color, vec4(0.02f, 0.02f, 0.02f, 1), 1 })
+	lightUniform({ vec4(0, 0, 0, 1), color, 1, 1 })
 {
 
 }

@@ -59,6 +59,8 @@ void WillEngine::EngineGui::InspectorPanel::update(GameState* gameState)
 			{
 				ImGui::DragFloat3("Color", &light->lightUniform.color.x, 0.001f, 0, 1);
 
+				ImGui::DragFloat("Range", &light->lightUniform.range, 1.0f, 0, 1000000);
+
 				ImGui::DragFloat("Intensity", &light->lightUniform.intensity, 0.1f, 0, 100);
 
 				ImGui::TreePop();

@@ -14,6 +14,7 @@ namespace WillEngine
 		vec3 currentPosition;
 
 		bool renderShadow;
+		f32 range;
 
 		// For Point Light Shadow mapping
 		mat4 matrices[6];

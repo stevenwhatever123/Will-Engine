@@ -10,7 +10,7 @@ struct LightUniform
 {
 	vec4 transformedPosition;
 	vec4 color;
-	vec4 ambient;
+	f32 range;
 	f32 intensity;
 };
 

@@ -668,7 +668,8 @@ void WillEngine::VulkanUtil::initGeometryShaderModule(VkDevice& logicalDevice, V
 void WillEngine::VulkanUtil::initShadingShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader)
 {
     const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/shading_pass/brdfShading.vert.spv";
-    const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/shading_pass/brdfShading.frag.spv";
+    //const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/shading_pass/brdfShading.frag.spv";
+    const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/shading_pass/epicBRDFShading.frag.spv";
 
     auto vertShaderCode = WillEngine::Utils::readSprivShader(vertShaderPath);
     auto fragShaderCode = WillEngine::Utils::readSprivShader(fragShaderPath);
