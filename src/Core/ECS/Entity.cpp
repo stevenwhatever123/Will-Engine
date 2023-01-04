@@ -96,7 +96,7 @@ void Entity::addComponent(ComponentType type)
 		}
 		case LightType:
 		{
-			LightComponent* light = new LightComponent(this);
+			LightComponent* light = new LightComponent();
 			components[typeid(LightComponent)] = light;
 			break;
 		}

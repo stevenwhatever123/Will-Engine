@@ -1,8 +1,9 @@
 #pragma once
 #include <queue>
 
-#include "Core/MeshComponent.h"
+#include "Core/Mesh.h"
 #include "Core/Material.h"
+#include "Core/Light.h"
 #include "Core/LightComponent.h"
 
 #include "Core/ECS/Entity.h"
@@ -34,7 +35,8 @@ struct GameState
 	struct GraphicsResources
 	{
 		std::map<u32, Material*> materials;
-		std::vector<LightComponent*> lights;
+		std::map<u32, Mesh*> meshes;
+		std::map<u32, Light*> lights;
 	} graphicsResources;
 
 	struct GameResources

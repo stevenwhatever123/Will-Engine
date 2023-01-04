@@ -60,7 +60,7 @@ void SystemManager::initLight()
 
     TransformComponent* transform = new TransformComponent(entity);
 
-    LightComponent* light = new LightComponent(entity, transform->getPosition());
+    Light* light = new Light(transform->getPosition());
 
     // View projection matrices for 6 different side of the cube map
     // Order: +x, -x, +y, -y, +z, -z
@@ -73,12 +73,13 @@ void SystemManager::initLight()
     light->matrices[4] = lightProjectionMatrix * glm::lookAt(transform->getPosition(), transform->getPosition() + vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 1.0f, 0.0f));
     light->matrices[5] = lightProjectionMatrix * glm::lookAt(transform->getPosition(), transform->getPosition() + vec3(0.0f, 0.0f, -1.0f), vec3(0.0f, 1.0f, 0.0f));
 
-    gameState.graphicsResources.lights.push_back(light);
+    LightComponent* lightComp = new LightComponent(light);
 
     entity->setName("Light");
     entity->addComponent(transform);
-    entity->addComponent(light);
+    entity->addComponent(lightComp);
 
+    gameState.graphicsResources.lights[light->id] = light;
     gameState.gameResources.entities[entity->id] = entity;
 }
 
@@ -114,29 +115,25 @@ void SystemManager::update()
 
         std::string defaultPreset = "C:/Users/Steven/source/repos/Will-Engine/presets/meshes/cube.fbx";
 
-        std::vector<MeshComponent*> loadedMeshes;
+        std::vector<Mesh*> loadedMeshes;
         std::map<u32, Material*> loadedMaterials;
         std::tie(loadedMeshes, loadedMaterials) = WillEngine::Utils::readModel(defaultPreset.c_str());
 
-        MeshComponent* mesh = loadedMeshes[0];
+        Mesh* mesh = loadedMeshes[0];
         mesh->uploadDataToPhysicalDevice(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator, vulkanWindow->surface, vulkanWindow->graphicsQueue);
+        // Add this mesh to the graphics resources
+        gameState.graphicsResources.meshes[mesh->id] = mesh;
 
-        // Add a mesh component to the entity
-        entity->addComponent(mesh);
+        // Add a this mesh as a mesh component to the entity
+        MeshComponent* meshComp = new MeshComponent(mesh);
+        entity->addComponent(meshComp);
 
         // Add this material to the graphics resources
         Material* material = loadedMaterials.begin()->second;
         gameState.graphicsResources.materials[material->id] = material;
-        if (renderWithBRDF)
-        {
-            material->initBrdfDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
-                vulkanWindow->vulkanEngine->commandPool, vulkanWindow->vulkanEngine->descriptorPool, vulkanWindow->graphicsQueue);
-        }
-        else
-        {
-            material->initDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
-                vulkanWindow->vulkanEngine->commandPool, vulkanWindow->vulkanEngine->descriptorPool, vulkanWindow->graphicsQueue);
-        }
+
+        material->initBrdfDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
+            vulkanWindow->vulkanEngine->commandPool, vulkanWindow->vulkanEngine->descriptorPool, vulkanWindow->graphicsQueue);
 
         gameState.todoTasks.meshesToAdd.pop();
     }
@@ -186,7 +183,7 @@ void SystemManager::updateInputs()
             return;
         }
             
-        std::vector<MeshComponent*> loadedMeshes;
+        std::vector<Mesh*> loadedMeshes;
         std::map<u32, Material*> loadedMaterials;
         std::tie(loadedMeshes, loadedMaterials) = WillEngine::Utils::readModel(filename.c_str());
 
@@ -194,22 +191,20 @@ void SystemManager::updateInputs()
         {
             Material* material = it->second;
 
-            if (renderWithBRDF)
-            {
-                material->initBrdfDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
-                    vulkanWindow->vulkanEngine->commandPool, vulkanWindow->vulkanEngine->descriptorPool, vulkanWindow->graphicsQueue);
-            }
-            else
-            {
-                material->initDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
-                    vulkanWindow->vulkanEngine->commandPool, vulkanWindow->vulkanEngine->descriptorPool, vulkanWindow->graphicsQueue);
-            }
+            material->initBrdfDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
+                vulkanWindow->vulkanEngine->commandPool, vulkanWindow->vulkanEngine->descriptorPool, vulkanWindow->graphicsQueue);
+
+            // Add this material to the game state graphics resources
+            gameState.graphicsResources.materials[material->id] = material;
         }
 
-        for (MeshComponent* mesh : loadedMeshes)
+        for (Mesh* mesh : loadedMeshes)
         {
             mesh->uploadDataToPhysicalDevice(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator, vulkanWindow->surface,
                 vulkanWindow->graphicsQueue);
+
+            // Add this mesh to the game state graphics resources
+            gameState.graphicsResources.meshes[mesh->id] = mesh;
         }
 
         // Create entity that is bind to the mesh
@@ -220,17 +215,15 @@ void SystemManager::updateInputs()
             entities[i] = new Entity();
 
             TransformComponent* transform = new TransformComponent(entities[i]);
+            MeshComponent* meshComp = new MeshComponent(loadedMeshes[i]);
 
-            loadedMeshes[i]->setParent(entities[i]);
             entities[i]->setName(loadedMeshes[i]->name.c_str());
 
             entities[i]->addComponent(transform);
-            entities[i]->addComponent(loadedMeshes[i]);
+            entities[i]->addComponent(meshComp);
 
             gameState.gameResources.entities[entities[i]->id] = entities[i];
         }
-
-        gameState.graphicsResources.materials.insert(loadedMaterials.begin(), loadedMaterials.end());
     }
 }
 
@@ -280,10 +273,10 @@ void SystemManager::updateECS()
         if (entity->HasComponent<LightComponent>())
         {
             TransformComponent* transform = entity->GetComponent<TransformComponent>();
-            LightComponent* light = entity->GetComponent<LightComponent>();
+            LightComponent* lightComp = entity->GetComponent<LightComponent>();
 
-            light->updateLightPosition(transform->getPosition());
-            light->update();
+            gameState.graphicsResources.lights[lightComp->lightIndex]->updateLightPosition(transform->getPosition());
+            gameState.graphicsResources.lights[lightComp->lightIndex]->update();
         }
     }
 }

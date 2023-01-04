@@ -12,7 +12,6 @@
 #include "Core/EngineGui/EntitiesPanel.h"
 #include "Core/EngineGui/MaterialPanel.h"
 #include "Core/EngineGui/DebuggingPanel.h"
-#include "Core/EngineGui/LightPanel.h"
 #include "Core/EngineGui/InspectorPanel.h"
 
 class VulkanGui

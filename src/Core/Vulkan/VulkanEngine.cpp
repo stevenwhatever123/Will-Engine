@@ -203,8 +203,8 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 		Entity* entity = it->second;
 		if (entity->HasComponent<MeshComponent>())
 		{
-			MeshComponent* mesh = entity->GetComponent<MeshComponent>();
-			mesh->cleanup(logicalDevice, vmaAllocator);
+			MeshComponent* meshComp = entity->GetComponent<MeshComponent>();
+			gameState->graphicsResources.meshes[meshComp->meshIndex]->cleanup(logicalDevice, vmaAllocator);
 			//	delete mesh;
 		}
 	}
@@ -295,11 +295,12 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	recordDepthPrePass(preDepthBuffers[imageIndex]);
 	submitCommands(1, &preDepthBuffers[imageIndex], 1, &imageAvailable, 1, &preDepthFinished, graphicsQueue, nullptr);
 
-	if (gameState->graphicsResources.lights[0]->shouldRenderShadow())
+	//if (gameState->graphicsResources.lights[1]->shouldRenderShadow())
+	if (true)
 	{
 		recordShadowPass(shadowBuffers[imageIndex]);
 		submitCommands(1, &shadowBuffers[imageIndex], 1, &preDepthFinished, 1, &shadowFinished, graphicsQueue, nullptr);
-		gameState->graphicsResources.lights[0]->shadowRendered();
+		gameState->graphicsResources.lights[1]->shadowRendered();
 
 		recordGeometryPass(geometryBuffers[imageIndex]);
 		submitCommands(1, &geometryBuffers[imageIndex], 1, &shadowFinished, 1, &geometryFinished, graphicsQueue, nullptr);
@@ -1352,7 +1353,7 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkFramebuffer&
 	vkCmdUpdateBuffer(commandBuffer, sceneUniformBuffer.buffer, 0, sizeof(sceneMatrix), &sceneMatrix);
 
 	// Update light uniform buffers
-	vkCmdUpdateBuffer(commandBuffer, lightUniformBuffer.buffer, 0, sizeof(gameState->graphicsResources.lights[0]->lightUniform), &gameState->graphicsResources.lights[0]->lightUniform);
+	vkCmdUpdateBuffer(commandBuffer, lightUniformBuffer.buffer, 0, sizeof(gameState->graphicsResources.lights[1]->lightUniform), &gameState->graphicsResources.lights[1]->lightUniform);
 
 	vec4 cameraPosition = vec4(camera->position, 1);
 
@@ -1380,7 +1381,7 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkFramebuffer&
 	if (true)
 	{
 		shadowPasses(commandBuffer);
-		gameState->graphicsResources.lights[0]->shadowRendered();
+		gameState->graphicsResources.lights[1]->shadowRendered();
 	}
 
 	// Shading
@@ -1406,7 +1407,7 @@ void VulkanEngine::recordDepthPrePass(VkCommandBuffer& commandBuffer)
 	vkCmdUpdateBuffer(commandBuffer, sceneUniformBuffer.buffer, 0, sizeof(sceneMatrix), &sceneMatrix);
 
 	// Update light uniform buffers
-	vkCmdUpdateBuffer(commandBuffer, lightUniformBuffer.buffer, 0, sizeof(gameState->graphicsResources.lights[0]->lightUniform), &gameState->graphicsResources.lights[0]->lightUniform);
+	vkCmdUpdateBuffer(commandBuffer, lightUniformBuffer.buffer, 0, sizeof(gameState->graphicsResources.lights[1]->lightUniform), &gameState->graphicsResources.lights[1]->lightUniform);
 
 	vec4 cameraPosition = vec4(camera->position, 1);
 
@@ -1441,7 +1442,7 @@ void VulkanEngine::recordShadowPass(VkCommandBuffer& commandBuffer)
 	vkCmdUpdateBuffer(commandBuffer, sceneUniformBuffer.buffer, 0, sizeof(sceneMatrix), &sceneMatrix);
 
 	// Update light uniform buffers
-	vkCmdUpdateBuffer(commandBuffer, lightUniformBuffer.buffer, 0, sizeof(gameState->graphicsResources.lights[0]->lightUniform), &gameState->graphicsResources.lights[0]->lightUniform);
+	vkCmdUpdateBuffer(commandBuffer, lightUniformBuffer.buffer, 0, sizeof(gameState->graphicsResources.lights[1]->lightUniform), &gameState->graphicsResources.lights[1]->lightUniform);
 
 	vec4 cameraPosition = vec4(camera->position, 1);
 
@@ -1457,7 +1458,7 @@ void VulkanEngine::recordShadowPass(VkCommandBuffer& commandBuffer)
 	}
 
 	shadowPasses(commandBuffer);
-	gameState->graphicsResources.lights[0]->shadowRendered();
+	gameState->graphicsResources.lights[1]->shadowRendered();
 
 	// End command buffer
 	vkEndCommandBuffer(commandBuffer);
@@ -1477,7 +1478,7 @@ void VulkanEngine::recordGeometryPass(VkCommandBuffer& commandBuffer)
 	vkCmdUpdateBuffer(commandBuffer, sceneUniformBuffer.buffer, 0, sizeof(sceneMatrix), &sceneMatrix);
 
 	// Update light uniform buffers
-	vkCmdUpdateBuffer(commandBuffer, lightUniformBuffer.buffer, 0, sizeof(gameState->graphicsResources.lights[0]->lightUniform), &gameState->graphicsResources.lights[0]->lightUniform);
+	vkCmdUpdateBuffer(commandBuffer, lightUniformBuffer.buffer, 0, sizeof(gameState->graphicsResources.lights[1]->lightUniform), &gameState->graphicsResources.lights[1]->lightUniform);
 
 	vec4 cameraPosition = vec4(camera->position, 1);
 
@@ -1513,7 +1514,7 @@ void VulkanEngine::recordShadingPass(VkCommandBuffer& commandBuffer)
 	vkCmdUpdateBuffer(commandBuffer, sceneUniformBuffer.buffer, 0, sizeof(sceneMatrix), &sceneMatrix);
 
 	// Update light uniform buffers
-	vkCmdUpdateBuffer(commandBuffer, lightUniformBuffer.buffer, 0, sizeof(gameState->graphicsResources.lights[0]->lightUniform), &gameState->graphicsResources.lights[0]->lightUniform);
+	vkCmdUpdateBuffer(commandBuffer, lightUniformBuffer.buffer, 0, sizeof(gameState->graphicsResources.lights[1]->lightUniform), &gameState->graphicsResources.lights[1]->lightUniform);
 
 	vec4 cameraPosition = vec4(camera->position, 1);
 
@@ -1562,22 +1563,26 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 
 		MeshComponent* meshComponent = entity->GetComponent<MeshComponent>();
 
+		if (!entity->isEnable)
+			continue;
+
 		if (!meshComponent)
 			continue;
-		
-		if (!meshComponent->isReadyToDraw())
+
+		if (!gameState->graphicsResources.meshes[meshComponent->meshIndex]->isReadyToDraw())
 			continue;
 
 		TransformComponent* transformComponent = entity->GetComponent<TransformComponent>();
+		Mesh* mesh = gameState->graphicsResources.meshes[meshComponent->meshIndex];
 
-		VkBuffer buffers[3] = { meshComponent->positionBuffer.buffer, meshComponent->normalBuffer.buffer, meshComponent->uvBuffer.buffer };
+		VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
 
 		VkDeviceSize offsets[3]{};
 
 		// Bind buffers
 		vkCmdBindVertexBuffers(commandBuffer, 0, 3, buffers, offsets);
 
-		vkCmdBindIndexBuffer(commandBuffer, meshComponent->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 		// Bind Texture
 		// Check if this mesh has a material first
@@ -1588,7 +1593,7 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 		vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
 			sizeof(transformComponent->getModelTransformation()), &transformComponent->getModelTransformation());
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(meshComponent->indiciesSize), 3, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 	}
 
 	vkCmdEndRenderPass(commandBuffer);
@@ -1630,22 +1635,26 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 
 		MeshComponent* meshComponent = entity->GetComponent<MeshComponent>();
 
+		if (!entity->isEnable)
+			continue;
+
 		if (!meshComponent)
 			continue;
 
-		if (!meshComponent->isReadyToDraw())
+		if (!gameState->graphicsResources.meshes[meshComponent->meshIndex]->isReadyToDraw())
 			continue;
 
 		TransformComponent* transformComponent = entity->components[typeid(TransformComponent)]->GetComponent<TransformComponent>();
+		Mesh* mesh = gameState->graphicsResources.meshes[meshComponent->meshIndex];
 
-		VkBuffer buffers[3] = { meshComponent->positionBuffer.buffer, meshComponent->normalBuffer.buffer, meshComponent->uvBuffer.buffer };
+		VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
 
 		VkDeviceSize offsets[3]{};
 
 		// Bind buffers
 		vkCmdBindVertexBuffers(commandBuffer, 0, 3, buffers, offsets);
 
-		vkCmdBindIndexBuffer(commandBuffer, meshComponent->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 		// Bind Texture
 		// Check if the mesh has a material
@@ -1656,7 +1665,7 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 		vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, 
 			sizeof(transformComponent->getModelTransformation()), &transformComponent->getModelTransformation());
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(meshComponent->indiciesSize), 3, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 	}
 
 	// End Render Pass
@@ -1666,7 +1675,7 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 {
 	// Update light matrices buffer
-	vkCmdUpdateBuffer(commandBuffer, lightMatrixUniformBuffer.buffer, 0, sizeof(mat4) * 6, &gameState->graphicsResources.lights[0]->matrices);
+	vkCmdUpdateBuffer(commandBuffer, lightMatrixUniformBuffer.buffer, 0, sizeof(mat4) * 6, &gameState->graphicsResources.lights[1]->matrices);
 
 	VkClearValue clearValue[1];
 	// Clear Depth
@@ -1699,30 +1708,35 @@ void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 
 		MeshComponent* meshComponent = entity->GetComponent<MeshComponent>();
 
+		if (!entity->isEnable)
+			continue;
+
 		if (!meshComponent)
 			continue;
 
-		if (!meshComponent->isReadyToDraw())
+		if (!gameState->graphicsResources.meshes[meshComponent->meshIndex]->isReadyToDraw())
 			continue;
 
 		// Ignore this entity if it is a light
 		if (entity->HasComponent<LightComponent>())
 			continue;
 
-		VkBuffer buffers[3] = { meshComponent->positionBuffer.buffer, meshComponent->normalBuffer.buffer, meshComponent->uvBuffer.buffer };
+		Mesh* mesh = gameState->graphicsResources.meshes[meshComponent->meshIndex];
+
+		VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
 
 		VkDeviceSize offsets[3]{};
 
 		// Bind buffers
 		vkCmdBindVertexBuffers(commandBuffer, 0, 3, buffers, offsets);
 
-		vkCmdBindIndexBuffer(commandBuffer, meshComponent->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 		// Push constant for model matrix
 		TransformComponent* transform = entity->GetComponent<TransformComponent>();
 		vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(transform->getModelTransformation()), &transform->getModelTransformation());
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(meshComponent->indiciesSize), 3, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 	}
 
 	vkCmdEndRenderPass(commandBuffer);

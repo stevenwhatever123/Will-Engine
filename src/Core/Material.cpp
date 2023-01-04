@@ -21,11 +21,9 @@ TextureDescriptorSet::TextureDescriptorSet():
 }
 
 Material::Material() :
-	phongMaterialUniform({}),
 	brdfMaterialUniform({}),
 	name(""),
 	id(++idCounter),
-	textures(),
 	brdfTextures(),
 	textureDescriptorSetLayout(VK_NULL_HANDLE),
 	textureDescriptorSet(VK_NULL_HANDLE)
@@ -34,16 +32,13 @@ Material::Material() :
 }
 
 Material::Material(const Material* material) :
-	phongMaterialUniform({}),
 	brdfMaterialUniform({}),
 	name(material->name.c_str()),
 	id(material->id),
-	textures(),
 	brdfTextures(),
 	textureDescriptorSetLayout(material->textureDescriptorSetLayout),
 	textureDescriptorSet(material->textureDescriptorSet)
 {
-	std::copy(std::begin(material->textures), std::end(material->textures), std::begin(textures));
 	std::copy(std::begin(material->brdfTextures), std::end(material->brdfTextures), std::begin(brdfTextures));
 }
 
@@ -54,7 +49,7 @@ Material::~Material()
 
 void Material::cleanUp(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkDescriptorPool& descriptorPool)
 {
-	for (auto& texture : textures)
+	for (auto& texture : brdfTextures)
 	{
 		vmaDestroyImage(vmaAllocator, texture.vulkanImage.image, texture.vulkanImage.allocation);
 
@@ -108,38 +103,6 @@ void Material::initTexture(VkDevice& logicalDevice, VkPhysicalDevice& physicalDe
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
-void Material::initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
-	VkDescriptorPool& descriptorPool, VkQueue& graphicsQueue)
-{
-	u32 textureSize = sizeof(textures) / sizeof(textures[0]);
-
-	// Initiase Texture
-	for (u32 i = 0; i < textureSize; i++)
-	{
-		initTexture(logicalDevice, physicalDevice, vmaAllocator, commandPool, graphicsQueue, textures, i);
-	}
-
-	// Initialise Descriptor set layout first
-	// Binding set to 1 with 4 descriptor sets
-	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 
-		VK_SHADER_STAGE_FRAGMENT_BIT, 1, 4);
-	
-	// Allocate memory for descriptor set
-	WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, textureDescriptorSetLayout, textureDescriptorSet);
-
-	// Write Descriptor Set
-	std::vector<VkSampler> textureSamplers(textureSize);
-	std::vector<VkImageView> imageViews(textureSize);
-	for (u32 i = 0; i < textureSize; i++)
-	{
-		textureSamplers[i] = textures[i].textureSampler;
-		imageViews[i] = textures[i].imageView;
-	}
-
-	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers.data(), imageViews.data(),
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 4);
-}
-
 void Material::initBrdfDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
 	VkDescriptorPool& descriptorPool, VkQueue& graphicsQueue)
 {
@@ -170,33 +133,6 @@ void Material::initBrdfDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& 
 
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers.data(), imageViews.data(),
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, textureSize);
-}
-
-void Material::updateDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
-	VkDescriptorPool& descriptorPool, VkQueue& graphicsQueue, u32 index)
-{
-	// Free previous memory
-	vmaDestroyImage(vmaAllocator, textures[index].vulkanImage.image, textures[index].vulkanImage.allocation);
-
-	vkDestroyImageView(logicalDevice, textures[index].imageView, nullptr);
-
-	vkDestroySampler(logicalDevice, textures[index].textureSampler, nullptr);
-
-	// Update the image and imageview associated to it
-	initTexture(logicalDevice, physicalDevice, vmaAllocator, commandPool, graphicsQueue, textures, index);
-
-	// Write Descriptor Set
-	u32 textureSize = sizeof(textures) / sizeof(textures[0]);
-	std::vector<VkSampler> textureSamplers(textureSize);
-	std::vector<VkImageView> imageViews(textureSize);
-	for (u32 i = 0; i < textureSize; i++)
-	{
-		textureSamplers[i] = textures[i].textureSampler;
-		imageViews[i] = textures[i].imageView;
-	}
-
-	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers.data(), imageViews.data(),
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 4);
 }
 
 void Material::updateBrdfDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
@@ -233,7 +169,7 @@ const bool Material::hasTexture(u32 index, TextureDescriptorSet* textures)
 
 const char* Material::getTexturePath(u32 index)
 {
-	return textures[index].texture_path.c_str();
+	return brdfTextures[index].texture_path.c_str();
 }
 
 PhongMaterialUniform Material::getMaterialUniform()

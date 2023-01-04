@@ -1,7 +1,10 @@
 #include "pch.h"
+#include "Core/Light.h"
+
 #include "Core/EngineGui/InspectorPanel.h"
 
 #include "Core/ECS/TransformComponent.h"
+#include "Core/MeshComponent.h"
 
 void WillEngine::EngineGui::InspectorPanel::update(GameState* gameState)
 {
@@ -53,7 +56,8 @@ void WillEngine::EngineGui::InspectorPanel::update(GameState* gameState)
 
 		if (entity->HasComponent<LightComponent>())
 		{
-			LightComponent* light = entity->GetComponent<LightComponent>();
+			LightComponent* lightComp = entity->GetComponent<LightComponent>();
+			Light* light = gameState->graphicsResources.lights[lightComp->lightIndex];
 
 			if (ImGui::TreeNode("Light"))
 			{

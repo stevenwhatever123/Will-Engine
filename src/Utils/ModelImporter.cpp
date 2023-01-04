@@ -5,7 +5,7 @@
 
 using namespace WillEngine;
 
-std::tuple<std::vector<MeshComponent*>, std::map<u32, Material*>>
+std::tuple<std::vector<Mesh*>, std::map<u32, Material*>>
 	WillEngine::Utils::readModel(const char* filename)
 {
 	Assimp::Importer importer;
@@ -24,11 +24,11 @@ std::tuple<std::vector<MeshComponent*>, std::map<u32, Material*>>
 	}
 	else
 	{
-		return { std::vector<MeshComponent*>() , std::map<u32, Material*>() };
+		return { std::vector<Mesh*>() , std::map<u32, Material*>() };
 	}
 }
 
-std::tuple<std::vector<MeshComponent*>, std::map<u32, Material*>>
+std::tuple<std::vector<Mesh*>, std::map<u32, Material*>>
 	WillEngine::Utils::extractScene(const aiScene* scene)
 {
 	const aiVector3D zero3D(0.0f, 0.0f, 0.0f);
@@ -36,7 +36,7 @@ std::tuple<std::vector<MeshComponent*>, std::map<u32, Material*>>
 	// materials with no unique id labeled
 	std::vector<Material*> tempMaterials = extractMaterial(scene);
 
-	std::vector<MeshComponent*> meshes = extractMesh(scene, tempMaterials);
+	std::vector<Mesh*> meshes = extractMesh(scene, tempMaterials);
 
 	// materials with unique id that is going to return
 	std::map<u32, Material*> materials;
@@ -67,34 +67,6 @@ std::vector<Material*> WillEngine::Utils::extractMaterial(const aiScene* scene)
 		if (ret != AI_SUCCESS) continue;
 
 		material->name = materialName.C_Str();
-
-		// Texture path
-		// Phong
-		aiTextureType phongTextureType[] = { aiTextureType_EMISSIVE, aiTextureType_AMBIENT, aiTextureType_DIFFUSE, aiTextureType_SPECULAR };
-		u32 phongTextureTypeSize = sizeof(phongTextureType) / sizeof(phongTextureType[0]);
-
-		for (u32 j = 0; j < phongTextureTypeSize; j++)
-		{
-			i32 numTextures = currentAiMaterial->GetTextureCount(phongTextureType[j]);
-			aiString texturePath;
-			if (numTextures)
-			{
-				ret = currentAiMaterial->Get(AI_MATKEY_TEXTURE(phongTextureType[j], 0), texturePath);
-
-				if (ret == AI_SUCCESS)
-				{
-					material->textures[j].has_texture = true;
-					material->textures[j].useTexture = true;
-					material->textures[j].texture_path = texturePath.C_Str();
-				}
-			}
-			else
-			{
-				material->textures[j].has_texture = false;
-				material->textures[j].useTexture = false;
-				material->textures[j].texture_path = "";
-			}
-		}
 
 		// BRDF Metallic
 		//aiTextureType brdfMetallicTextureType[] = { aiTextureType_EMISSIVE, aiTextureType_AMBIENT, aiTextureType_BASE_COLOR, aiTextureType_METALNESS ,
@@ -128,13 +100,9 @@ std::vector<Material*> WillEngine::Utils::extractMaterial(const aiScene* scene)
 
 		// Color
 		// Emissive
-		// Phong
 		{
 			aiColor3D color(1, 1, 1);
 			ret = currentAiMaterial->Get(AI_MATKEY_COLOR_EMISSIVE, color);
-			material->phongMaterialUniform.emissiveColor.x = color.r;
-			material->phongMaterialUniform.emissiveColor.y = color.g;
-			material->phongMaterialUniform.emissiveColor.z = color.b;
 
 			material->brdfMaterialUniform.emissive.x = color.r;
 			material->brdfMaterialUniform.emissive.y = color.g;
@@ -145,9 +113,6 @@ std::vector<Material*> WillEngine::Utils::extractMaterial(const aiScene* scene)
 		{
 			aiColor3D color(1, 1, 1);
 			ret = currentAiMaterial->Get(AI_MATKEY_COLOR_AMBIENT, color);
-			material->phongMaterialUniform.ambientColor.x = color.r;
-			material->phongMaterialUniform.ambientColor.y = color.g;
-			material->phongMaterialUniform.ambientColor.z = color.b;
 
 			material->brdfMaterialUniform.ambient.x = color.r;
 			material->brdfMaterialUniform.ambient.y = color.g;
@@ -156,70 +121,12 @@ std::vector<Material*> WillEngine::Utils::extractMaterial(const aiScene* scene)
 
 		// Diffuse
 		{
-			// Phong
 			aiColor3D color(1, 1, 1);
 			ret = currentAiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, color);
-			material->phongMaterialUniform.diffuseColor.x = color.r;
-			material->phongMaterialUniform.diffuseColor.y = color.g;
-			material->phongMaterialUniform.diffuseColor.z = color.b;
 			// BRDF
 			material->brdfMaterialUniform.albedo.x = color.r;
 			material->brdfMaterialUniform.albedo.y = color.g;
 			material->brdfMaterialUniform.albedo.z = color.b;
-		}
-
-		// Specular
-		{
-			aiColor3D color(1, 1, 1);
-			ret = currentAiMaterial->Get(AI_MATKEY_COLOR_SPECULAR, color);
-			material->phongMaterialUniform.specularColor.x = color.r;
-			material->phongMaterialUniform.specularColor.y = color.g;
-			material->phongMaterialUniform.specularColor.z = color.b;
-			// BRDF
-			// DO LATER
-		}
-
-
-		// Load texture
-		// Phong
-		u32 phongTextureSize = sizeof(material->textures) / sizeof(material->textures[0]);
-		for (u32 j = 0; j < phongTextureSize; j++)
-		{
-			material->textures[j].width = 1;
-			material->textures[j].height = 1;
-
-			switch (j)
-			{
-			case 0:
-				material->textures[j].textureImage->setImageColor(material->phongMaterialUniform.emissiveColor);
-				break;
-			case 1:
-				material->textures[j].textureImage->setImageColor(material->phongMaterialUniform.ambientColor);
-				break;
-			case 2:
-				material->textures[j].textureImage->setImageColor(material->phongMaterialUniform.diffuseColor);
-				break;
-			case 3:
-				material->textures[j].textureImage->setImageColor(material->phongMaterialUniform.specularColor);
-				break;
-			}
-
-			if (material->hasTexture(j, material->textures))
-			{
-				if (checkTexturePathExist(j, material->textures))
-				{
-					loadTexture(j, material, material->textures);
-				}
-				else
-				{
-					material->textures[j].has_texture = false;
-					material->textures[j].useTexture = false;
-					material->textures[j].texture_path = "";
-
-					material->textures[j].width = 1;
-					material->textures[j].height = 1;
-				}
-			}
 		}
 
 		u32 brdfMetallicTextureSize = sizeof(material->brdfTextures) / sizeof(material->brdfTextures[0]);
@@ -231,10 +138,10 @@ std::vector<Material*> WillEngine::Utils::extractMaterial(const aiScene* scene)
 			switch (j)
 			{
 			case 0:
-				material->brdfTextures[j].textureImage->setImageColor(material->phongMaterialUniform.emissiveColor);
+				material->brdfTextures[j].textureImage->setImageColor(material->brdfMaterialUniform.emissive);
 				break;
 			case 1:
-				material->brdfTextures[j].textureImage->setImageColor(material->phongMaterialUniform.ambientColor);
+				material->brdfTextures[j].textureImage->setImageColor(material->brdfMaterialUniform.ambient);
 				break;
 			case 2:
 				material->brdfTextures[j].textureImage->setImageColor(material->brdfMaterialUniform.albedo);
@@ -272,11 +179,11 @@ std::vector<Material*> WillEngine::Utils::extractMaterial(const aiScene* scene)
 	return materials;
 }
 
-std::vector<MeshComponent*> WillEngine::Utils::extractMesh(const aiScene* scene, const std::vector<Material*> materials)
+std::vector<Mesh*> WillEngine::Utils::extractMesh(const aiScene* scene, const std::vector<Material*> materials)
 {
 	const aiVector3D zero3D(0.0f, 0.0f, 0.0f);
 
-	std::vector<MeshComponent*> meshes;
+	std::vector<Mesh*> meshes;
 	meshes.reserve(scene->mNumMeshes);
 
 	// Extract Mesh data
@@ -284,7 +191,7 @@ std::vector<MeshComponent*> WillEngine::Utils::extractMesh(const aiScene* scene,
 	{
 		const aiMesh* currentAiMesh = scene->mMeshes[i];
 
-		MeshComponent* mesh = new MeshComponent();
+		Mesh* mesh = new Mesh();
 
 		mesh->name = currentAiMesh->mName.C_Str();
 

@@ -38,15 +38,8 @@ public:
 	// Id for this material
 	const u32 id;
 
-	// Material for Phong shading
-	PhongMaterialUniform phongMaterialUniform;
-
 	// Material for BRDF
 	BRDFMetallic brdfMaterialUniform;
-
-	// The default texture would always be in the order of:
-	// Phong: 1. Emissive, 2. Ambient, 3. Diffuse, 4. Specular
-	TextureDescriptorSet textures[4];
 
 	// The metallic brdf texture
 	// BRDF: 1. Emissive, 2. Ambient, 3. Albedo (Diffuse), 4. Metallic, 5. Roughness
@@ -77,14 +70,10 @@ public:
 	void initTexture(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool, VkQueue& graphicsQueue, 
 		TextureDescriptorSet* textures, u32 index);
 
-	void initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
-		VkDescriptorPool& descriptorPool, VkQueue& graphicsQueue);
 	void initBrdfDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
 		VkDescriptorPool& descriptorPool, VkQueue& graphicsQueue);
 
 	// Update
-	void updateDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
-		VkDescriptorPool& descriptorPool, VkQueue& graphicsQueue, u32 index);
 	void updateBrdfDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
 		VkDescriptorPool& descriptorPool, VkQueue& graphicsQueue, u32 index);
 
