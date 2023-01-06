@@ -185,7 +185,8 @@ void SystemManager::updateInputs()
             
         std::vector<Mesh*> loadedMeshes;
         std::map<u32, Material*> loadedMaterials;
-        std::tie(loadedMeshes, loadedMaterials) = WillEngine::Utils::readModel(filename.c_str());
+        std::vector<Entity*> entities;
+        std::tie(loadedMeshes, loadedMaterials) = WillEngine::Utils::readModel(filename.c_str(), &entities);
 
         for (auto it = loadedMaterials.begin(); it != loadedMaterials.end(); it++)
         {
@@ -207,20 +208,16 @@ void SystemManager::updateInputs()
             gameState.graphicsResources.meshes[mesh->id] = mesh;
         }
 
-        // Create entity that is bind to the mesh
-        std::vector<Entity*> entities(loadedMeshes.size());
+        // Root Entity is usually and always the first element
+        gameState.gameResources.rootEntities[entities[0]->id] = entities[0];
 
         for (u32 i = 0; i < entities.size(); i++)
         {
-            entities[i] = new Entity();
-
             TransformComponent* transform = new TransformComponent(entities[i]);
-            MeshComponent* meshComp = new MeshComponent(loadedMeshes[i]);
-
-            entities[i]->setName(loadedMeshes[i]->name.c_str());
+            //MeshComponent* meshComp = new MeshComponent(loadedMeshes[i]);
 
             entities[i]->addComponent(transform);
-            entities[i]->addComponent(meshComp);
+            //entities[i]->addComponent(meshComp);
 
             gameState.gameResources.entities[entities[i]->id] = entities[i];
         }

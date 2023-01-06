@@ -34,6 +34,17 @@ Entity::Entity(const char* name) :
 
 }
 
+Entity::Entity(Entity* parent, const char* name):
+	isEnable(true),
+	id(++idCounter),
+	name(name),
+	components(),
+	parent(parent),
+	children()
+{
+
+}
+
 Entity::~Entity()
 {
 
@@ -42,6 +53,11 @@ Entity::~Entity()
 void Entity::setName(const char* name)
 {
 	this->name = name;
+}
+
+void Entity::addChild(Entity* child)
+{
+	this->children.push_back(child);
 }
 
 template<typename T> 

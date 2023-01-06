@@ -8,4 +8,6 @@
 namespace WillEngine::EngineGui::EntitiesPanel
 {
 	void update(GameState* gameState);
+
+	void traverseEntityHierarchy(Entity* entity, GameState* gameState);
 }

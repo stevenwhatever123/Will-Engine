@@ -4,6 +4,7 @@
 #include "Core/ECS/Component.h"
 #include "Core/ECS/TransformComponent.h"
 #include "Core/MeshComponent.h"
+#include "Core/ECS/SkinnedMeshComponent.h"
 #include "Core/LightComponent.h"
 
 namespace WillEngine
@@ -20,6 +21,7 @@ void WillEngine::initComponentType()
 		{typeid(Component),									NullType},
 		{typeid(TransformComponent),						TransformType},
 		{typeid(MeshComponent),								MeshType},
+		{typeid(SkinnedMeshComponent),						SkinnedMeshType},
 		{typeid(LightComponent),							LightType}
 	};
 
@@ -28,6 +30,7 @@ void WillEngine::initComponentType()
 		{NullType,											"Null Component"},
 		{TransformType,										"Transform Component"},
 		{MeshType,											"Mesh Component"},
+		{SkinnedMeshType,									"Skinned Mesh Component"},
 		{LightType,											"Light Component"}
 	};
 }

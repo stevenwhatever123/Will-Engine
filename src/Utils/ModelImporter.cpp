@@ -6,21 +6,27 @@
 using namespace WillEngine;
 
 std::tuple<std::vector<Mesh*>, std::map<u32, Material*>>
-	WillEngine::Utils::readModel(const char* filename)
+	WillEngine::Utils::readModel(const char* filepath, std::vector<Entity*>* entities)
 {
 	Assimp::Importer importer;
 
 	const aiScene* scene = importer.ReadFile(
-		filename,
+		filepath,
 		aiProcess_Triangulate |
 		aiProcess_FlipUVs |
 		aiProcess_GenNormals |
 		aiProcess_JoinIdenticalVertices
 	);
 
+	// Get filename from path
+	std::string filepath_s(filepath);
+	std::string filenameWithExtention = filepath_s.substr(filepath_s.find_last_of("/\\") + 1);
+	std::string::size_type const p(filenameWithExtention.find_last_of('.'));
+	std::string filename = filenameWithExtention.substr(0, p);
+
 	if (scene)
 	{
-		return WillEngine::Utils::extractScene(scene);
+		return WillEngine::Utils::extractScene(filename.c_str(), scene, entities);
 	}
 	else
 	{
@@ -29,7 +35,7 @@ std::tuple<std::vector<Mesh*>, std::map<u32, Material*>>
 }
 
 std::tuple<std::vector<Mesh*>, std::map<u32, Material*>>
-	WillEngine::Utils::extractScene(const aiScene* scene)
+	WillEngine::Utils::extractScene(const char* filename, const aiScene* scene, std::vector<Entity*>* entities)
 {
 	const aiVector3D zero3D(0.0f, 0.0f, 0.0f);
 	
@@ -37,6 +43,12 @@ std::tuple<std::vector<Mesh*>, std::map<u32, Material*>>
 	std::vector<Material*> tempMaterials = extractMaterial(scene);
 
 	std::vector<Mesh*> meshes = extractMesh(scene, tempMaterials);
+
+	if (entities)
+	{
+		extractNodes(filename, scene, entities);
+		//extractBones(scene);
+	}
 
 	// materials with unique id that is going to return
 	std::map<u32, Material*> materials;
@@ -243,6 +255,54 @@ std::vector<Mesh*> WillEngine::Utils::extractMesh(const aiScene* scene, const st
 	}
 
 	return meshes;
+}
+
+void WillEngine::Utils::extractNodes(const char* filename, const aiScene* scene, std::vector<Entity*>* entities)
+{
+	aiNode* rootNode = scene->mRootNode;
+
+	Entity* rootEntity = new Entity(filename);
+
+	entities->push_back(rootEntity);
+
+	printf("%s\n", rootNode->mName.C_Str());
+
+	traverseNodeTree(rootNode, rootEntity, 1, entities);
+}
+
+void WillEngine::Utils::traverseNodeTree(const aiNode* node, Entity* parent, u8 level, std::vector<Entity*>* entities)
+{
+	for (u32 i = 0; i < node->mNumChildren; i++)
+	{
+		const aiNode* child = node->mChildren[i];
+
+		Entity* childEntity = new Entity(parent, child->mName.C_Str());
+		parent->addChild(childEntity);
+
+		entities->push_back(childEntity);
+
+		if(child->mNumMeshes)
+			printf("%*s %s, Mesh Num: %u\n", level, "    ", child->mName.C_Str(), child->mNumMeshes);
+		else
+			printf("%*s %s, Mesh Num: %s\n", level, "    ", child->mName.C_Str(), "None");
+
+		traverseNodeTree(child, childEntity, level + 1, entities);
+	}
+}
+
+void WillEngine::Utils::extractBones(const aiScene* scene)
+{
+	for (u32 i = 0; i < scene->mNumMeshes; i++)
+	{
+		const aiMesh* mesh = scene->mMeshes[i];
+
+		for (u32 j = 0; j < mesh->mNumBones; j++)
+		{
+			aiBone* bone = mesh->mBones[j];
+
+			printf("Bone: %s, Vertex Count: %u\n", bone->mName.C_Str(), bone->mNumWeights);
+		}
+	}
 }
 
 void WillEngine::Utils::loadTexture(u32 index, Material* material, TextureDescriptorSet* textures)

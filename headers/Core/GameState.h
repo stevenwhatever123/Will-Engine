@@ -41,7 +41,12 @@ struct GameState
 
 	struct GameResources
 	{
+		// This includes ALL entities in the scene (Including Root and child entities)
 		std::map<u32, Entity*> entities;
+
+		// This inclues ROOT entities in the scene (Excluding child entities)
+		// This is used for simplify the tree hierarchy
+		std::map<u32, Entity*> rootEntities;
 	} gameResources;
 
 	struct UIParams

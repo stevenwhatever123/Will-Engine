@@ -8,6 +8,7 @@ namespace WillEngine
 		NullType = 0,
 		TransformType,
 		MeshType,
+		SkinnedMeshType,
 		LightType,
 		ComponentTypeCount
 	};

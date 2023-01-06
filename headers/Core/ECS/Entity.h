@@ -28,9 +28,15 @@ namespace WillEngine
 
 		Entity();
 		Entity(const char* name);
+		Entity(Entity* parent, const char* name);
 		~Entity();
 
 		void setName(const char* name);
+
+		void addChild(Entity* child);
+
+		bool hasChildren() const { return children.size() > 0; };
+		u32 getChildrenSize() const { return children.size(); };
 
 	private:
 
