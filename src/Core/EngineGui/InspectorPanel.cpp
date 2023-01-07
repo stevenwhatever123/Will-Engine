@@ -120,6 +120,15 @@ void WillEngine::EngineGui::InspectorPanel::update(GameState* gameState)
 				{
 					if (type == ComponentType::MeshType)
 						gameState->todoTasks.meshesToAdd.push(entity);
+
+					if (type == ComponentType::SkinnedMeshType)
+					{
+						SkinnedMeshComponent* skinnedMeshComp = new SkinnedMeshComponent();
+						skinnedMeshComp->meshIndicies.push_back(5);
+						skinnedMeshComp->materialIndicies.push_back(5);
+
+						entity->addComponent(skinnedMeshComp);
+					}
 				}
 
 				// Gray out: End
