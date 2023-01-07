@@ -81,6 +81,7 @@ void SystemManager::initLight()
 
     gameState.graphicsResources.lights[light->id] = light;
     gameState.gameResources.entities[entity->id] = entity;
+    gameState.gameResources.rootEntities[entity->id] = entity;
 }
 
 void SystemManager::initPresets()
@@ -214,10 +215,8 @@ void SystemManager::updateInputs()
         for (u32 i = 0; i < entities.size(); i++)
         {
             TransformComponent* transform = new TransformComponent(entities[i]);
-            //MeshComponent* meshComp = new MeshComponent(loadedMeshes[i]);
 
             entities[i]->addComponent(transform);
-            //entities[i]->addComponent(meshComp);
 
             gameState.gameResources.entities[entities[i]->id] = entities[i];
         }

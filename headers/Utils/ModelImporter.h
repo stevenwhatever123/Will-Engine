@@ -15,8 +15,8 @@ namespace WillEngine::Utils
 	std::vector<Material*> extractMaterial(const aiScene* scene);
 	std::vector<Mesh*> extractMesh(const aiScene* scene, const std::vector<Material*> materials);
 	// For Skeletal Animation
-	void extractNodes(const char* filename, const aiScene* scene, std::vector<Entity*>* entities);
-	void traverseNodeTree(const aiNode* node, Entity* parent, u8 level, std::vector<Entity*>* entities);
+	void extractNodes(const char* filename, const aiScene* scene, std::vector<Mesh*> extractedMesh, std::map<u32, Material*> extractedMaterial, std::vector<Entity*>* entities);
+	void traverseNodeTree(const aiNode* node, Entity* parent, u8 level, std::vector<Mesh*> extractedMesh, std::map<u32, Material*> extractedMaterial, std::vector<Entity*>* entities);
 
 	void extractBones(const aiScene* scene);
 

@@ -4,6 +4,7 @@
 // Components
 #include "Core/ECS/TransformComponent.h"
 #include "Core/MeshComponent.h"
+#include "Core/ECS/SkinnedMeshComponent.h"
 #include "Core/LightComponent.h"
 
 #include "Utils/ModelImporter.h"
@@ -80,6 +81,7 @@ void Entity::addComponent(T* comp)
 // Explicit initialization for addComponent(T* comp)
 template void Entity::addComponent(TransformComponent* comp);
 template void Entity::addComponent(MeshComponent* comp);
+template void Entity::addComponent(SkinnedMeshComponent* comp);
 template void Entity::addComponent(LightComponent* comp);
 
 template<class T>
@@ -93,6 +95,7 @@ void Entity::addComponent()
 // Explicit initialization for addComponent<T>()
 template void Entity::addComponent<TransformComponent>();
 template void Entity::addComponent<MeshComponent>();
+template void Entity::addComponent<SkinnedMeshComponent>();
 template void Entity::addComponent<LightComponent>();
 
 void Entity::addComponent(ComponentType type)
@@ -106,6 +109,11 @@ void Entity::addComponent(ComponentType type)
 			break;
 		}
 		case MeshType:
+		{
+			throw std::runtime_error("You cannot add a Mesh Type here.....");
+			break;
+		}
+		case SkinnedMeshType:
 		{
 			throw std::runtime_error("You cannot add a Mesh Type here.....");
 			break;

@@ -1,4 +1,7 @@
 #include "pch.h"
+#include "Core/MeshComponent.h"
+#include "Core/ECS/SkinnedMeshComponent.h"
+
 #include "Utils/ModelImporter.h"
 
 #include "Utils/Image.h"
@@ -44,17 +47,17 @@ std::tuple<std::vector<Mesh*>, std::map<u32, Material*>>
 
 	std::vector<Mesh*> meshes = extractMesh(scene, tempMaterials);
 
-	if (entities)
-	{
-		extractNodes(filename, scene, entities);
-		//extractBones(scene);
-	}
-
 	// materials with unique id that is going to return
 	std::map<u32, Material*> materials;
 	for (auto material : tempMaterials)
 	{
 		materials[material->id] = material;
+	}
+
+	if (entities)
+	{
+		extractNodes(filename, scene, meshes, materials, entities);
+		//extractBones(scene);
 	}
 
 	return { meshes, materials };
@@ -257,7 +260,8 @@ std::vector<Mesh*> WillEngine::Utils::extractMesh(const aiScene* scene, const st
 	return meshes;
 }
 
-void WillEngine::Utils::extractNodes(const char* filename, const aiScene* scene, std::vector<Entity*>* entities)
+void WillEngine::Utils::extractNodes(const char* filename, const aiScene* scene, std::vector<Mesh*> extractedMesh, std::map<u32, Material*> extractedMaterial,
+	std::vector<Entity*>* entities)
 {
 	aiNode* rootNode = scene->mRootNode;
 
@@ -265,12 +269,13 @@ void WillEngine::Utils::extractNodes(const char* filename, const aiScene* scene,
 
 	entities->push_back(rootEntity);
 
-	printf("%s\n", rootNode->mName.C_Str());
+	//printf("%s\n", rootNode->mName.C_Str());
 
-	traverseNodeTree(rootNode, rootEntity, 1, entities);
+	traverseNodeTree(rootNode, rootEntity, 1, extractedMesh, extractedMaterial,entities);
 }
 
-void WillEngine::Utils::traverseNodeTree(const aiNode* node, Entity* parent, u8 level, std::vector<Entity*>* entities)
+void WillEngine::Utils::traverseNodeTree(const aiNode* node, Entity* parent, u8 level, std::vector<Mesh*> extractedMesh, std::map<u32, Material*> extractedMaterial,
+	std::vector<Entity*>* entities)
 {
 	for (u32 i = 0; i < node->mNumChildren; i++)
 	{
@@ -281,12 +286,33 @@ void WillEngine::Utils::traverseNodeTree(const aiNode* node, Entity* parent, u8 
 
 		entities->push_back(childEntity);
 
-		if(child->mNumMeshes)
-			printf("%*s %s, Mesh Num: %u\n", level, "    ", child->mName.C_Str(), child->mNumMeshes);
-		else
-			printf("%*s %s, Mesh Num: %s\n", level, "    ", child->mName.C_Str(), "None");
+		//if(child->mNumMeshes)
+		//	printf("%*s %s, Mesh Num: %u\n", level, "    ", child->mName.C_Str(), child->mNumMeshes);
+		//else
+		//	printf("%*s %s, Mesh Num: %s\n", level, "    ", child->mName.C_Str(), "None");
 
-		traverseNodeTree(child, childEntity, level + 1, entities);
+		if (child->mNumMeshes == 1)
+		{
+			MeshComponent* meshComp = new MeshComponent();
+			meshComp->setMesh(extractedMesh[child->mMeshes[0]]);
+
+			childEntity->addComponent(meshComp);
+		}
+		else if (child->mNumMeshes > 1)
+		{
+			SkinnedMeshComponent* skinnedMeshComp = new SkinnedMeshComponent();
+			for (u32 j = 0; j < child->mNumMeshes; j++)
+			{
+				u32 meshIndex = child->mMeshes[j];
+				u32 materialIndex = extractedMesh[meshIndex]->materialIndex;
+
+				skinnedMeshComp->addMesh(extractedMesh[meshIndex], extractedMaterial[materialIndex]);
+			}
+			
+			childEntity->addComponent(skinnedMeshComp);
+		}
+
+		traverseNodeTree(child, childEntity, level + 1, extractedMesh, extractedMaterial, entities);
 	}
 }
 

@@ -14,21 +14,6 @@ void EntitiesPanel::update(GameState* gameState)
 
 	ImGui::Begin("Entities");
 
-	//for (auto it = entities.begin(); it != entities.end(); it++)
-	//{
-	//	u32 entityId = it->first;
-	//	Entity* entity = it->second;
-
-	//	ImGui::PushID(entityId);
-
-	//	if (ImGui::Selectable(entity->name.c_str(), gameState->uiParams.selectedEntityId == entityId))
-	//	{
-	//		gameState->uiParams.selectedEntityId = entityId;
-	//	}
-
-	//	ImGui::PopID();
-	//}
-
 	for (auto it = rootEntities.begin(); it != rootEntities.end(); it++)
 	{
 		u32 entityId = it->first;
@@ -36,28 +21,7 @@ void EntitiesPanel::update(GameState* gameState)
 
 		ImGui::PushID(entityId);
 
-		// Use text if there are no children
-		if (!entity->hasChildren())
-		{
-			if (ImGui::Selectable(entity->name.c_str(), gameState->uiParams.selectedEntityId == entityId))
-			{
-				gameState->uiParams.selectedEntityId = entityId;
-			}
-
-			ImGui::PopID();
-
-			continue;
-		}
-
-		// Otherwise use a tree
-		if (ImGui::TreeNode(entity->name.c_str()))
-		{
-			for (auto child : entity->children)
-			{
-				traverseEntityHierarchy(child, gameState);
-			}
-			ImGui::TreePop();
-		}
+		traverseEntityHierarchy(entity, gameState);
 
 		ImGui::PopID();
 	}
@@ -87,7 +51,13 @@ void EntitiesPanel::traverseEntityHierarchy(Entity* entity, GameState* gameState
 	}
 
 	// Otherwise use a tree
-	if (ImGui::TreeNode(entity->name.c_str()))
+	ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow;
+	bool expand = ImGui::TreeNodeEx((void*)(uintptr_t)entityId, node_flags, entity->name.c_str());
+
+	if (ImGui::IsItemClicked())
+		gameState->uiParams.selectedEntityId = entityId;
+
+	if (expand)
 	{
 		for (auto child : entity->children)
 		{

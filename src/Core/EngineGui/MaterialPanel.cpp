@@ -16,7 +16,8 @@ void WillEngine::EngineGui::MaterialPanel::update(GameState* gameState)
 		Material* material = it->second;
 
 		// Check if the material really exist
-
+		if (materialId < 1)
+			continue;
 
 		if (ImGui::TreeNode(material->name.c_str()))
 		{

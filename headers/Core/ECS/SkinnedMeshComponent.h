@@ -25,6 +25,7 @@ namespace WillEngine
 		virtual ~SkinnedMeshComponent();
 
 		void addMesh(Mesh* mesh, Material* material);
+		u32 getNumMesh() const { return meshIndicies.size(); };
 
 		virtual void update() {};
 

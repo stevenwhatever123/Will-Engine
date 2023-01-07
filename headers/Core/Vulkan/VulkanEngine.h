@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Camera.h"
 #include "Core/MeshComponent.h"
+#include "Core/ECS/SkinnedMeshComponent.h"
 #include "Core/Material.h"
 #include "Core/LightComponent.h"
 #include "Core/Camera.h"

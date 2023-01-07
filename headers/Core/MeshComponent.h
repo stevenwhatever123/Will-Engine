@@ -29,7 +29,7 @@ namespace WillEngine
 		MeshComponent(const Mesh* mesh);
 		virtual ~MeshComponent();
 
-		void setMesh(Mesh* mesh) { meshIndex = mesh->id; };
+		void setMesh(Mesh* mesh);
 
 		virtual void update() {};
 

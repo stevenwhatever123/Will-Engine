@@ -1634,38 +1634,77 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 		Entity* entity = it->second;
 
 		MeshComponent* meshComponent = entity->GetComponent<MeshComponent>();
+		SkinnedMeshComponent* skinnedMeshComponent = entity->GetComponent<SkinnedMeshComponent>();
+
+		bool hasRenderable = meshComponent != nullptr || skinnedMeshComponent != nullptr;
 
 		if (!entity->isEnable)
 			continue;
 
-		if (!meshComponent)
-			continue;
-
-		if (!gameState->graphicsResources.meshes[meshComponent->meshIndex]->isReadyToDraw())
+		if (!hasRenderable)
 			continue;
 
 		TransformComponent* transformComponent = entity->components[typeid(TransformComponent)]->GetComponent<TransformComponent>();
-		Mesh* mesh = gameState->graphicsResources.meshes[meshComponent->meshIndex];
 
-		VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
+		if (meshComponent)
+		{
+			if (!gameState->graphicsResources.meshes[meshComponent->meshIndex]->isReadyToDraw())
+				continue;
 
-		VkDeviceSize offsets[3]{};
+			Mesh* mesh = gameState->graphicsResources.meshes[meshComponent->meshIndex];
 
-		// Bind buffers
-		vkCmdBindVertexBuffers(commandBuffer, 0, 3, buffers, offsets);
+			VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
 
-		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+			VkDeviceSize offsets[3]{};
 
-		// Bind Texture
-		// Check if the mesh has a material
-		if(gameState->graphicsResources.materials[meshComponent->materialIndex])
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndex]->textureDescriptorSet, 0, nullptr);
+			// Bind buffers
+			vkCmdBindVertexBuffers(commandBuffer, 0, 3, buffers, offsets);
 
-		// Push constant for model matrix
-		vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, 
-			sizeof(transformComponent->getModelTransformation()), &transformComponent->getModelTransformation());
+			vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
+			// Bind Texture
+			// Check if the mesh has a material
+			if (gameState->graphicsResources.materials[meshComponent->materialIndex])
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndex]->textureDescriptorSet, 0, nullptr);
+
+			// Push constant for model matrix
+			vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+				sizeof(transformComponent->getModelTransformation()), &transformComponent->getModelTransformation());
+
+			vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
+		}
+
+		if (skinnedMeshComponent)
+		{
+			for (u32 i = 0; i < skinnedMeshComponent->getNumMesh(); i++)
+			{
+				if (!gameState->graphicsResources.meshes[skinnedMeshComponent->meshIndicies[i]]->isReadyToDraw())
+					continue;
+
+				Mesh* mesh = gameState->graphicsResources.meshes[skinnedMeshComponent->meshIndicies[i]];
+
+				VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
+
+				VkDeviceSize offsets[3]{};
+
+				// Bind buffers
+				vkCmdBindVertexBuffers(commandBuffer, 0, 3, buffers, offsets);
+
+				vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+				// Bind Texture
+				// Check if the mesh has a material
+				if (gameState->graphicsResources.materials[skinnedMeshComponent->materialIndicies[i]])
+					vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1,
+						&gameState->graphicsResources.materials[skinnedMeshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
+
+				// Push constant for model matrix
+				vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+					sizeof(transformComponent->getModelTransformation()), &transformComponent->getModelTransformation());
+
+				vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
+			}
+		}
 	}
 
 	// End Render Pass

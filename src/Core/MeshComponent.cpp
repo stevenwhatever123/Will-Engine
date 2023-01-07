@@ -24,3 +24,9 @@ MeshComponent::~MeshComponent()
 {
 
 }
+
+void MeshComponent::setMesh(Mesh* mesh)
+{
+	this->meshIndex = mesh->id;
+	this->materialIndex = mesh->materialIndex;
+}
