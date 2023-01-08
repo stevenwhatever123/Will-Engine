@@ -26,16 +26,32 @@ TransformComponent::~TransformComponent()
 
 }
 
-void TransformComponent::update()
+mat4 TransformComponent::getLocalTransformation() const
 {
-	mat4 initialMatrix(1);
-
 	// Translate
-	modelTransformation = glm::translate(initialMatrix, position);
+	mat4 translation = glm::translate(mat4(1), position);
 
 	// Rotation
-	//modelTransformation = glm::rotate(modelTransformation, rotation);
+	//mat4 rotation = glm::rotate(mat4(1), rotation);
 
 	// Scale
-	modelTransformation = glm::scale(modelTransformation, scale);
+	mat4 scaling = glm::scale(mat4(1), scale);
+
+	return scaling * translation;
+}
+
+mat4 TransformComponent::getGlobalTransformation() const
+{
+	mat4 resultMatrix = getLocalTransformation();
+
+	Entity* parentEntity = parent->parent;
+	while (parentEntity)
+	{
+		TransformComponent* transformComp = parentEntity->GetComponent<TransformComponent>();
+		resultMatrix = transformComp->getLocalTransformation() * resultMatrix;
+
+		parentEntity = parentEntity->parent;
+	}
+
+	return resultMatrix;
 }

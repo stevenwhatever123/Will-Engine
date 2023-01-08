@@ -1596,8 +1596,10 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndex]->textureDescriptorSet, 0, nullptr);
 
 			// Push constant for model matrix
+			mat4 transformation = transformComponent->getGlobalTransformation();
+
 			vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-				sizeof(transformComponent->getModelTransformation()), &transformComponent->getModelTransformation());
+				sizeof(transformation), &transformation);
 
 			vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 		}
@@ -1627,8 +1629,9 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 						&gameState->graphicsResources.materials[skinnedMeshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
 
 				// Push constant for model matrix
+				mat4 transformation = transformComponent->getGlobalTransformation();
 				vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-					sizeof(transformComponent->getModelTransformation()), &transformComponent->getModelTransformation());
+					sizeof(transformation), &transformation);
 
 				vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 			}
@@ -1707,8 +1710,9 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndex]->textureDescriptorSet, 0, nullptr);
 
 			// Push constant for model matrix
+			mat4 transformation = transformComponent->getGlobalTransformation();
 			vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-				sizeof(transformComponent->getModelTransformation()), &transformComponent->getModelTransformation());
+				sizeof(transformation), &transformation);
 
 			vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 		}
@@ -1738,8 +1742,9 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 						&gameState->graphicsResources.materials[skinnedMeshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
 
 				// Push constant for model matrix
+				mat4 transformation = transformComponent->getGlobalTransformation();
 				vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-					sizeof(transformComponent->getModelTransformation()), &transformComponent->getModelTransformation());
+					sizeof(transformation), &transformation);
 
 				vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 			}
@@ -1812,7 +1817,8 @@ void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 
 		// Push constant for model matrix
 		TransformComponent* transform = entity->GetComponent<TransformComponent>();
-		vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(transform->getModelTransformation()), &transform->getModelTransformation());
+		mat4 transformation = transform->getGlobalTransformation();
+		vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(transformation), &transformation);
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 	}

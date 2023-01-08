@@ -76,6 +76,7 @@ void Entity::addComponent(T* comp)
 		return;
 
 	components[typeid(T)] = comp;
+	components[typeid(T)]->setParent(this);
 }
 
 // Explicit initialization for addComponent(T* comp)
