@@ -55,7 +55,7 @@ public:
 
 	void generateBoneUniform();
 	void updateBoneUniform(Entity* rootEntity);
-	void calculateBoneTransform(Entity* entity, mat4 parentTransform);
+	void calculateBoneTransform(Entity* entity);
 
 	bool hasBones() const { return boneInfos.size(); };
 	bool hasBone(std::string name) const { return boneInfos.find(name) != boneInfos.end(); };

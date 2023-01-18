@@ -26,11 +26,12 @@ void WillEngine::EngineGui::InspectorPanel::update(GameState* gameState)
 
 			if (ImGui::TreeNode("Transform"))
 			{
-				ImGui::DragFloat3("Position", &transform->getPosition().x, 0.1f);
 
-				ImGui::DragFloat3("Rotation", &transform->getRotation().x, 0.1f);
+				ImGui::DragFloat3("Position", &transform->getPosition().x, 0.1f, 0, 0, "%.7f");
 
-				ImGui::DragFloat3("Scale", &transform->getScale().x, 0.1f, 1.0f);
+				ImGui::DragFloat3("Rotation", &transform->getRotation().x, 0.1f, 0, 0, "%.7f");
+
+				ImGui::DragFloat3("Scale", &transform->getScale().x, 0.1f, 0, 0, "%.7f");
 
 				ImGui::TreePop();
 			}

@@ -29,6 +29,7 @@ mat4 WillEngine::Utils::AssimpMat4ToGlmMat4(const aiMatrix4x4 aiMatrix)
 	//glmMatrix[2][3] = aiMatrix[3][2];
 	//glmMatrix[3][3] = aiMatrix[3][3];
 
+	//=================================
 
 	glmMatrix[0][0] = aiMatrix.a1;
 	glmMatrix[1][0] = aiMatrix.a2;
@@ -64,9 +65,7 @@ void WillEngine::Utils::DecomposeMatrix(mat4 in, vec3& position, vec3& rotation,
 
 	glm::decompose(in, scaling, quatRotation, translation, skew, perspective);
 
-	// The returning quaternion returns a conjugate
-	quatRotation = glm::conjugate(quatRotation);
-
+	// Convert rotation from quaternion into euler angles
 	glm::extractEulerAngleXYZ(glm::toMat4(quatRotation), rotation.x, rotation.y, rotation.z);
 
 	position = translation;

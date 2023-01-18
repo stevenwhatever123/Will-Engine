@@ -2,6 +2,7 @@
 #include "Core/Skeleton.h"
 
 #include "Core/ECS/TransformComponent.h"
+#include "Utils/MathUtil.h"
 
 i32 BoneInfo::idCounter = -1;
 
@@ -51,31 +52,23 @@ void Skeleton::generateBoneUniform()
 
 void Skeleton::updateBoneUniform(Entity* rootEntity)
 {
-	TransformComponent* transComp = rootEntity->GetComponent<TransformComponent>();
-	mat4 rootTransformation = transComp->getLocalTransformation();
-
-	for (u32 i = 0; i < rootEntity->children.size(); i++)
-	{
-		Entity* childEntity = rootEntity->children[i]; 
-		calculateBoneTransform(childEntity, rootTransformation);
-	}
+	calculateBoneTransform(rootEntity);
 }
 
-void Skeleton::calculateBoneTransform(Entity* entity, mat4 parentTransform)
+void Skeleton::calculateBoneTransform(Entity* entity)
 {
 	TransformComponent* transComp = entity->GetComponent<TransformComponent>();
 	mat4 transformation = transComp->getGlobalTransformation();
 
-	if (boneInfos.count(entity->name.c_str()))
+	if (boneInfos.find(entity->name.c_str()) != boneInfos.end())
 	{
 		BoneInfo& boneInfo = boneInfos[entity->name.c_str()];
-		//boneUniform.boneMatrices[boneInfo.id] = transformation * boneInfo.offsetMatrix;
 		boneUniform.boneMatrices[boneInfo.id] = transformation * boneInfo.offsetMatrix;
 	}
 
 	for (u32 i = 0; i < entity->children.size(); i++)
 	{
 		Entity* childEntity = entity->children[i];
-		calculateBoneTransform(childEntity, transformation);
+		calculateBoneTransform(childEntity);
 	}
 }

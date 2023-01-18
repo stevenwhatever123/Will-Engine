@@ -19,21 +19,26 @@ void main()
 	vec4 tNormal = normalize(normal);
 
 	float lod = textureQueryLod(texColor[0], texCoord).x;
-	vec4 tEmissive = texture(texColor[0], texCoord, lod);
+	//vec4 tEmissive = texture(texColor[0], texCoord, lod);
+	vec4 tEmissive = texture(texColor[0], texCoord);
 
 	lod = textureQueryLod(texColor[1], texCoord).x;
-	vec4 tAmbient = texture(texColor[1], texCoord, lod);
+	//vec4 tAmbient = texture(texColor[1], texCoord, lod);
+	vec4 tAmbient = texture(texColor[1], texCoord);
 
 	lod = textureQueryLod(texColor[2], texCoord).x;
-	vec4 tAlbedo = texture(texColor[2], texCoord, lod);
+	//vec4 tAlbedo = texture(texColor[2], texCoord, lod);
+	vec4 tAlbedo = texture(texColor[2], texCoord);
 
 	// As the texture of metallic and roughness map is using the same value for all pixels. Sample the texture using min lod to save performance
 	// 30 should be enough to select the lowest lod for all textures in different resolution
 	lod = 30;
-	float tMetallic = texture(texColor[3], texCoord, lod).r;
+	//float tMetallic = texture(texColor[3], texCoord, lod).r;
+	float tMetallic = texture(texColor[3], texCoord).r;
 
 	lod = 30;
-	float tRoughness = texture(texColor[4], texCoord, lod).r;
+	//float tRoughness = texture(texColor[4], texCoord, lod).r;
+	float tRoughness = texture(texColor[4], texCoord).r;
 
 	GBuffer0 = vec4(vec3(tPosition), tMetallic);
 	GBuffer1 = vec4(vec3(tNormal), tRoughness);
