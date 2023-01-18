@@ -5,6 +5,7 @@
 #include "Core/ECS/TransformComponent.h"
 #include "Core/MeshComponent.h"
 #include "Core/ECS/SkinnedMeshComponent.h"
+#include "Core/ECS/SkeletalComponent.h"
 #include "Core/LightComponent.h"
 
 #include "Utils/ModelImporter.h"
@@ -61,6 +62,21 @@ void Entity::addChild(Entity* child)
 	this->children.push_back(child);
 }
 
+Entity* Entity::getRoot()
+{
+	Entity* parentEntity = this;
+
+	while (parentEntity)
+	{
+		if (parentEntity->parent == nullptr)
+			return parentEntity;
+
+		parentEntity = parentEntity->parent;
+	}
+
+	return parentEntity;
+}
+
 template<typename T> 
 void Entity::addComponent(T* comp)
 {
@@ -83,6 +99,7 @@ void Entity::addComponent(T* comp)
 template void Entity::addComponent(TransformComponent* comp);
 template void Entity::addComponent(MeshComponent* comp);
 template void Entity::addComponent(SkinnedMeshComponent* comp);
+template void Entity::addComponent(SkeletalComponent* comp);
 template void Entity::addComponent(LightComponent* comp);
 
 template<class T>
@@ -97,6 +114,7 @@ void Entity::addComponent()
 template void Entity::addComponent<TransformComponent>();
 template void Entity::addComponent<MeshComponent>();
 template void Entity::addComponent<SkinnedMeshComponent>();
+template void Entity::addComponent<SkeletalComponent>();
 template void Entity::addComponent<LightComponent>();
 
 void Entity::addComponent(ComponentType type)
@@ -117,6 +135,12 @@ void Entity::addComponent(ComponentType type)
 		case SkinnedMeshType:
 		{
 			throw std::runtime_error("You cannot add a Mesh Type here.....");
+			break;
+		}
+		case SkeletalType:
+		{
+			SkeletalComponent* skeletal = new SkeletalComponent();
+			components[typeid(SkeletalComponent)] = skeletal;
 			break;
 		}
 		case LightType:

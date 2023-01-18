@@ -1,9 +1,15 @@
 #pragma once
+#define MAX_BONES 256
 
 struct CameraMatrix
 {
 	mat4 viewMatrix;
 	mat4 projectionMatrix;
+};
+
+struct BoneUniform
+{
+	mat4 boneMatrices[MAX_BONES];
 };
 
 struct LightUniform

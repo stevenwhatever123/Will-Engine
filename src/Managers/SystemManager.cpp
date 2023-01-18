@@ -118,7 +118,8 @@ void SystemManager::update()
 
         std::vector<Mesh*> loadedMeshes;
         std::map<u32, Material*> loadedMaterials;
-        std::tie(loadedMeshes, loadedMaterials) = WillEngine::Utils::readModel(defaultPreset.c_str());
+        Skeleton* loadedSkeleton = nullptr;
+        std::tie(loadedMeshes, loadedMaterials, loadedSkeleton) = WillEngine::Utils::readModel(defaultPreset.c_str());
 
         Mesh* mesh = loadedMeshes[0];
         mesh->uploadDataToPhysicalDevice(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator, vulkanWindow->surface, vulkanWindow->graphicsQueue);
@@ -173,53 +174,7 @@ void SystemManager::updateInputs()
 
     if (keys['L'])
     {
-        bool readSuccess;
-        std::string filename;
-
-        std::tie(readSuccess, filename) = WillEngine::Utils::selectFile();
-
-        if (!readSuccess)
-        {
-            printf("Failed to read %s\n", filename.c_str());
-            return;
-        }
-            
-        std::vector<Mesh*> loadedMeshes;
-        std::map<u32, Material*> loadedMaterials;
-        std::vector<Entity*> entities;
-        std::tie(loadedMeshes, loadedMaterials) = WillEngine::Utils::readModel(filename.c_str(), &entities);
-
-        for (auto it = loadedMaterials.begin(); it != loadedMaterials.end(); it++)
-        {
-            Material* material = it->second;
-
-            material->initBrdfDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
-                vulkanWindow->vulkanEngine->commandPool, vulkanWindow->vulkanEngine->descriptorPool, vulkanWindow->graphicsQueue);
-
-            // Add this material to the game state graphics resources
-            gameState.graphicsResources.materials[material->id] = material;
-        }
-
-        for (Mesh* mesh : loadedMeshes)
-        {
-            mesh->uploadDataToPhysicalDevice(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator, vulkanWindow->surface,
-                vulkanWindow->graphicsQueue);
-
-            // Add this mesh to the game state graphics resources
-            gameState.graphicsResources.meshes[mesh->id] = mesh;
-        }
-
-        // Root Entity is usually and always the first element
-        gameState.gameResources.rootEntities[entities[0]->id] = entities[0];
-
-        for (u32 i = 0; i < entities.size(); i++)
-        {
-            TransformComponent* transform = new TransformComponent(entities[i]);
-
-            entities[i]->addComponent(transform);
-
-            gameState.gameResources.entities[entities[i]->id] = entities[i];
-        }
+        loadModel();
     }
 }
 
@@ -274,10 +229,74 @@ void SystemManager::updateECS()
             gameState.graphicsResources.lights[lightComp->lightIndex]->updateLightPosition(transform->getPosition());
             gameState.graphicsResources.lights[lightComp->lightIndex]->update();
         }
+
+        // Update Skeleton
+        if (entity->HasComponent<SkeletalComponent>())
+        {
+            SkeletalComponent* skeleComp = entity->GetComponent<SkeletalComponent>();
+            u32 skeletonId = skeleComp->skeletalId;
+
+            Skeleton* skeleton = gameState.gameResources.skeletons[skeletonId];
+            skeleton->updateBoneUniform(entity);
+        }
     }
 }
 
 void SystemManager::readFile()
 {
     WillEngine::Utils::selectFile();
+}
+
+void SystemManager::loadModel()
+{
+    bool readSuccess;
+    std::string filename;
+
+    std::tie(readSuccess, filename) = WillEngine::Utils::selectFile();
+
+    if (!readSuccess)
+    {
+        printf("Failed to read %s\n", filename.c_str());
+        return;
+    }
+
+    std::vector<Mesh*> loadedMeshes;
+    std::map<u32, Material*> loadedMaterials;
+    Skeleton* loadedSkeleton;
+    std::vector<Entity*> entities;
+    std::tie(loadedMeshes, loadedMaterials, loadedSkeleton) = WillEngine::Utils::readModel(filename.c_str(), &entities);
+
+    for (auto it = loadedMaterials.begin(); it != loadedMaterials.end(); it++)
+    {
+        Material* material = it->second;
+
+        material->initBrdfDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
+            vulkanWindow->vulkanEngine->commandPool, vulkanWindow->vulkanEngine->descriptorPool, vulkanWindow->graphicsQueue);
+
+        // Add this material to the game state graphics resources
+        gameState.graphicsResources.materials[material->id] = material;
+    }
+
+    for (Mesh* mesh : loadedMeshes)
+    {
+        mesh->uploadDataToPhysicalDevice(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator, vulkanWindow->surface,
+            vulkanWindow->graphicsQueue);
+
+        // Add this mesh to the game state graphics resources
+        gameState.graphicsResources.meshes[mesh->id] = mesh;
+    }
+
+    if (loadedSkeleton)
+    {
+        gameState.gameResources.skeletons[loadedSkeleton->id] = loadedSkeleton;
+        vulkanWindow->vulkanEngine->skeletonToInitialise.push(loadedSkeleton);
+    }
+
+    // Root Entity is usually and always the first element
+    gameState.gameResources.rootEntities[entities[0]->id] = entities[0];
+
+    for (u32 i = 0; i < entities.size(); i++)
+    {
+        gameState.gameResources.entities[entities[i]->id] = entities[i];
+    }
 }

@@ -16,7 +16,9 @@ namespace WillEngine
 	public:
 
 		TransformComponent();
+		TransformComponent(const vec3 position, const vec3 rotation, const vec3 scale);
 		TransformComponent(Entity* entity);
+		TransformComponent(Entity* entity, const vec3 position, const vec3 rotation, const vec3 scale);
 		virtual ~TransformComponent();
 
 		virtual void update() {};

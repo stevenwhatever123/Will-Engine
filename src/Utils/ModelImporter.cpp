@@ -1,14 +1,19 @@
 #include "pch.h"
-#include "Core/MeshComponent.h"
-#include "Core/ECS/SkinnedMeshComponent.h"
-
 #include "Utils/ModelImporter.h"
 
+#include "Core/ECS/TransformComponent.h"
+#include "Core/MeshComponent.h"
+#include "Core/ECS/SkinnedMeshComponent.h"
+#include "Core/ECS/SkeletalComponent.h"
+
 #include "Utils/Image.h"
+#include "Utils/MathUtil.h"
+
+#define MAX_BONE_INFLUENCE 4
 
 using namespace WillEngine;
 
-std::tuple<std::vector<Mesh*>, std::map<u32, Material*>>
+std::tuple<std::vector<Mesh*>, std::map<u32, Material*>, Skeleton*>
 	WillEngine::Utils::readModel(const char* filepath, std::vector<Entity*>* entities)
 {
 	Assimp::Importer importer;
@@ -33,19 +38,24 @@ std::tuple<std::vector<Mesh*>, std::map<u32, Material*>>
 	}
 	else
 	{
-		return { std::vector<Mesh*>() , std::map<u32, Material*>() };
+		return { std::vector<Mesh*>() , std::map<u32, Material*>(), nullptr };
 	}
 }
 
-std::tuple<std::vector<Mesh*>, std::map<u32, Material*>>
+std::tuple<std::vector<Mesh*>, std::map<u32, Material*>, Skeleton*>
 	WillEngine::Utils::extractScene(const char* filename, const aiScene* scene, std::vector<Entity*>* entities)
 {
-	const aiVector3D zero3D(0.0f, 0.0f, 0.0f);
-	
 	// materials with no unique id labeled
 	std::vector<Material*> tempMaterials = extractMaterial(scene);
 
-	std::vector<Mesh*> meshes = extractMesh(scene, tempMaterials);
+	std::vector<Mesh*> meshes = extractMesh(scene);
+
+	// Reassign material id to our own generated unique id
+	for (u32 i = 0; i < meshes.size(); i++)
+	{
+		u32 materialIndex = meshes[i]->materialIndex;
+		meshes[i]->materialIndex = tempMaterials[materialIndex]->id;
+	}
 
 	// materials with unique id that is going to return
 	std::map<u32, Material*> materials;
@@ -54,13 +64,23 @@ std::tuple<std::vector<Mesh*>, std::map<u32, Material*>>
 		materials[material->id] = material;
 	}
 
+	Skeleton* skeleton = nullptr;
+
 	if (entities)
 	{
 		extractNodes(filename, scene, meshes, materials, entities);
-		//extractBones(scene);
+
+		if (checkHasBones(scene))
+		{
+			skeleton = extractBones(scene);
+			SkeletalComponent* skeletalComp = new SkeletalComponent(skeleton);
+
+			Entity* rootEntity = getRootEntity(*entities);
+			rootEntity->addComponent(skeletalComp);
+		}
 	}
 
-	return { meshes, materials };
+	return { meshes, materials, skeleton };
 }
 
 std::vector<Material*> WillEngine::Utils::extractMaterial(const aiScene* scene)
@@ -194,70 +214,144 @@ std::vector<Material*> WillEngine::Utils::extractMaterial(const aiScene* scene)
 	return materials;
 }
 
-std::vector<Mesh*> WillEngine::Utils::extractMesh(const aiScene* scene, const std::vector<Material*> materials)
+std::vector<Mesh*> WillEngine::Utils::extractMesh(const aiScene* scene)
 {
 	const aiVector3D zero3D(0.0f, 0.0f, 0.0f);
 
 	std::vector<Mesh*> meshes;
 	meshes.reserve(scene->mNumMeshes);
 
-	// Extract Mesh data
 	for (u32 i = 0; i < scene->mNumMeshes; i++)
 	{
 		const aiMesh* currentAiMesh = scene->mMeshes[i];
 
-		Mesh* mesh = new Mesh();
-
-		mesh->name = currentAiMesh->mName.C_Str();
-
-		// Reserve memory space
-		mesh->positions.reserve(currentAiMesh->mNumVertices);
-		mesh->normals.reserve(currentAiMesh->mNumVertices);
-		mesh->uvs.reserve(currentAiMesh->mNumVertices);
-		mesh->indicies.reserve(currentAiMesh->mNumVertices);
-
-		bool hasTexture = currentAiMesh->HasTextureCoords(0);
-
-		const aiVector3D* pVertex = currentAiMesh->mVertices;
-		const aiVector3D* pNormal = currentAiMesh->mNormals;
-		const aiVector3D* pUV = hasTexture ? currentAiMesh->mTextureCoords[0] : &zero3D;
-
-		for (u64 j = 0; j < currentAiMesh->mNumVertices; j++)
+		if (currentAiMesh->HasBones())
 		{
-			mesh->positions.emplace_back(pVertex->x, pVertex->y, pVertex->z);
-			mesh->normals.emplace_back(pNormal->x, pNormal->y, pNormal->z);
-			mesh->uvs.emplace_back(pUV->x, pUV->y);
-
-			pVertex++;
-			pNormal++;
-
-			if (hasTexture)
-				pUV++;
+			meshes.emplace_back(extractMeshWithBones(currentAiMesh));
 		}
-
-		const aiFace* face = currentAiMesh->mFaces;
-
-		for (u64 j = 0; j < currentAiMesh->mNumFaces; j++)
+		else
 		{
-			for (u32 k = 0; k < face->mNumIndices; k++)
-			{
-				mesh->indicies.push_back(face->mIndices[k]);
-			}
-
-			face++;
+			meshes.emplace_back(extractMeshWithoutBones(currentAiMesh));
 		}
-
-		mesh->indiciesSize = mesh->indicies.size();
-
-		mesh->primitive = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-
-		//mesh->materialIndex = currentAiMesh->mMaterialIndex;
-		mesh->materialIndex = materials[currentAiMesh->mMaterialIndex]->id;
-
-		meshes.emplace_back(mesh);
 	}
 
 	return meshes;
+}
+
+Mesh* WillEngine::Utils::extractMeshWithoutBones(const aiMesh* currentAiMesh)
+{
+	Mesh* mesh = new Mesh();
+
+	mesh->name = currentAiMesh->mName.C_Str();
+
+	// Reserve memory space
+	mesh->positions.reserve(currentAiMesh->mNumVertices);
+	mesh->normals.reserve(currentAiMesh->mNumVertices);
+	mesh->uvs.reserve(currentAiMesh->mNumVertices);
+	mesh->indicies.reserve(currentAiMesh->mNumVertices);
+
+	const aiVector3D zero3D(0.0f, 0.0f, 0.0f);
+
+	bool hasTexture = currentAiMesh->HasTextureCoords(0);
+
+	const aiVector3D* pVertex = currentAiMesh->mVertices;
+	const aiVector3D* pNormal = currentAiMesh->mNormals;
+	const aiVector3D* pUV = hasTexture ? currentAiMesh->mTextureCoords[0] : &zero3D;
+
+	for (u64 j = 0; j < currentAiMesh->mNumVertices; j++)
+	{
+		mesh->positions.emplace_back(pVertex->x, pVertex->y, pVertex->z);
+		mesh->normals.emplace_back(pNormal->x, pNormal->y, pNormal->z);
+		mesh->uvs.emplace_back(pUV->x, pUV->y);
+
+		pVertex++;
+		pNormal++;
+
+		if (hasTexture)
+			pUV++;
+	}
+
+	const aiFace* face = currentAiMesh->mFaces;
+
+	for (u64 j = 0; j < currentAiMesh->mNumFaces; j++)
+	{
+		for (u32 k = 0; k < face->mNumIndices; k++)
+		{
+			mesh->indicies.push_back(face->mIndices[k]);
+		}
+
+		face++;
+	}
+
+	mesh->indiciesSize = mesh->indicies.size();
+
+	mesh->primitive = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+	mesh->materialIndex = currentAiMesh->mMaterialIndex;
+
+	return mesh;
+}
+
+Mesh* WillEngine::Utils::extractMeshWithBones(const aiMesh* currentAiMesh)
+{
+	SkinnedMesh* mesh = new SkinnedMesh();
+	Skeleton* skeleton = new Skeleton();
+
+	mesh->name = currentAiMesh->mName.C_Str();
+
+	// Reserve memory space
+	mesh->positions.reserve(currentAiMesh->mNumVertices);
+	mesh->normals.reserve(currentAiMesh->mNumVertices);
+	mesh->uvs.reserve(currentAiMesh->mNumVertices);
+	mesh->boneWeights.resize(currentAiMesh->mNumVertices);
+	mesh->indicies.reserve(currentAiMesh->mNumVertices);
+
+	const aiVector3D zero3D(0.0f, 0.0f, 0.0f);
+
+	bool hasTexture = currentAiMesh->HasTextureCoords(0);
+
+	const aiVector3D* pVertex = currentAiMesh->mVertices;
+	const aiVector3D* pNormal = currentAiMesh->mNormals;
+	const aiVector3D* pUV = hasTexture ? currentAiMesh->mTextureCoords[0] : &zero3D;
+
+	for (u64 j = 0; j < currentAiMesh->mNumVertices; j++)
+	{
+		mesh->positions.emplace_back(pVertex->x, pVertex->y, pVertex->z);
+		mesh->normals.emplace_back(pNormal->x, pNormal->y, pNormal->z);
+		mesh->uvs.emplace_back(pUV->x, pUV->y);
+
+		pVertex++;
+		pNormal++;
+
+		if (hasTexture)
+			pUV++;
+	}
+
+	const aiFace* face = currentAiMesh->mFaces;
+
+	for (u64 j = 0; j < currentAiMesh->mNumFaces; j++)
+	{
+		for (u32 k = 0; k < face->mNumIndices; k++)
+		{
+			mesh->indicies.push_back(face->mIndices[k]);
+		}
+
+		face++;
+	}
+
+	mesh->indiciesSize = mesh->indicies.size();
+
+	mesh->primitive = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+	mesh->materialIndex = currentAiMesh->mMaterialIndex;
+
+	// =====================================================
+
+	extractVerticesBoneWeight(mesh, currentAiMesh);
+
+	// =====================================================
+
+	return (Mesh*) mesh;
 }
 
 void WillEngine::Utils::extractNodes(const char* filename, const aiScene* scene, std::vector<Mesh*> extractedMesh, std::map<u32, Material*> extractedMaterial,
@@ -266,6 +360,15 @@ void WillEngine::Utils::extractNodes(const char* filename, const aiScene* scene,
 	aiNode* rootNode = scene->mRootNode;
 
 	Entity* rootEntity = new Entity(filename);
+
+	mat4 transformation = AssimpMat4ToGlmMat4(rootNode->mTransformation);
+	vec3 position;
+	vec3 rotation;
+	vec3 scale;
+	DecomposeMatrix(transformation, position, rotation, scale);
+
+	TransformComponent* transformComp = new TransformComponent(rootEntity, position, rotation, scale);
+	rootEntity->addComponent(transformComp);
 
 	entities->push_back(rootEntity);
 
@@ -283,6 +386,15 @@ void WillEngine::Utils::traverseNodeTree(const aiNode* node, Entity* parent, u8 
 
 		Entity* childEntity = new Entity(parent, child->mName.C_Str());
 		parent->addChild(childEntity);
+
+		mat4 transformation = AssimpMat4ToGlmMat4(child->mTransformation);
+		vec3 position;
+		vec3 rotation;
+		vec3 scale;
+		DecomposeMatrix(transformation, position, rotation, scale);
+
+		TransformComponent* transformComp = new TransformComponent(childEntity, position, rotation, scale);
+		childEntity->addComponent(transformComp);
 
 		entities->push_back(childEntity);
 
@@ -316,17 +428,82 @@ void WillEngine::Utils::traverseNodeTree(const aiNode* node, Entity* parent, u8 
 	}
 }
 
-void WillEngine::Utils::extractBones(const aiScene* scene)
+bool WillEngine::Utils::checkHasBones(const aiScene* scene)
 {
 	for (u32 i = 0; i < scene->mNumMeshes; i++)
 	{
-		const aiMesh* mesh = scene->mMeshes[i];
+		if (scene->mMeshes[i]->HasBones())
+			return true;
+	}
 
-		for (u32 j = 0; j < mesh->mNumBones; j++)
+	return false;
+}
+
+Skeleton* WillEngine::Utils::extractBones(const aiScene* scene)
+{
+	Skeleton* skeleton = new Skeleton();
+
+	// Begin bone creation process
+	BoneInfo::beginCreation();
+
+	for (u32 i = 0; i < scene->mNumMeshes; i++)
+	{
+		aiMesh* currentAiMesh = scene->mMeshes[i];
+
+		if(!currentAiMesh->HasBones())
+			continue;
+
+		for (i32 boneIndex = 0; boneIndex < currentAiMesh->mNumBones; boneIndex++)
 		{
-			aiBone* bone = mesh->mBones[j];
+			std::string boneName = currentAiMesh->mBones[boneIndex]->mName.C_Str();
+			if (!skeleton->hasBone(boneName))
+			{
+				mat4 offsetMatrix = AssimpMat4ToGlmMat4(currentAiMesh->mBones[boneIndex]->mOffsetMatrix);
 
-			printf("Bone: %s, Vertex Count: %u\n", bone->mName.C_Str(), bone->mNumWeights);
+				BoneInfo boneInfo{};
+				boneInfo.setName(boneName);
+				boneInfo.setOffsetMatrix(offsetMatrix);
+
+				skeleton->addBone(boneInfo);
+			}
+		}
+	}
+
+	// End bone creation process
+	BoneInfo::endCreation();
+
+	// Generate bone uniform
+	skeleton->generateBoneUniform();
+
+	return skeleton;
+}
+
+void WillEngine::Utils::extractVerticesBoneWeight(SkinnedMesh* mesh, const aiMesh* currentAiMesh)
+{
+	for (i32 boneIndex = 0; boneIndex < currentAiMesh->mNumBones; boneIndex++)
+	{
+		auto weights = currentAiMesh->mBones[boneIndex]->mWeights;
+		u32 numWeights = currentAiMesh->mBones[boneIndex]->mNumWeights;
+		for (u32 weightIndex = 0; weightIndex < numWeights; weightIndex++)
+		{
+			u32 vertexIndex = weights[weightIndex].mVertexId;
+			float vertexWeight = weights[weightIndex].mWeight;
+
+			assert(vertexIndex <= mesh->positions.size());
+			setVertexBoneData(mesh, vertexIndex, boneIndex, vertexWeight);
+		}
+	}
+}
+
+void WillEngine::Utils::setVertexBoneData(SkinnedMesh* mesh, u32 index, u32 boneId, float weight)
+{
+	for (u32 i = 0; i < MAX_BONE_INFLUENCE; i++)
+	{
+		if (mesh->boneWeights[index].boneIds[i] < 0)
+		{
+			mesh->boneWeights[index].boneIds[i] = boneId;
+			mesh->boneWeights[index].weights[i] = weight;
+			break;
 		}
 	}
 }
@@ -345,4 +522,9 @@ void WillEngine::Utils::loadTexture(u32 index, Material* material, TextureDescri
 bool WillEngine::Utils::checkTexturePathExist(u32 index, const TextureDescriptorSet* textures)
 {
 	return std::filesystem::exists(textures[index].texture_path.c_str());
+}
+
+Entity* WillEngine::Utils::getRootEntity(std::vector<Entity*>& entities)
+{
+	return entities[0];
 }

@@ -84,10 +84,12 @@ namespace WillEngine::VulkanUtil
 
 	// ShaderModule
 	VkShaderModule createShaderModule(VkDevice& logicalDevice, std::vector<char>& shaderCode);
+	void initSkeletalShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader);
 	void initGeometryShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader);
 	void initShadingShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader);
 	void initShadowShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& geomShader, VkShaderModule& fragShader);
 	void initDepthShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader);
+	void initDepthSkeletonShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader);
 
 	void initFilterBrightShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader);
 	void initClearColorShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader);
@@ -113,6 +115,8 @@ namespace WillEngine::VulkanUtil
 
 	void createPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass, 
 		VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D extent);
+	void createSkeletalPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
+		VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D extent);
 	void createGeometryPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
 		VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D extent);
 	void createShadingPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
@@ -120,6 +124,8 @@ namespace WillEngine::VulkanUtil
 	void createShadowPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
 		VkShaderModule& vertShader, VkShaderModule& geomShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, u32 width, u32 height);
 	void createDepthPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
+		VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D extent);
+	void createDepthSkeletalPipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkRenderPass& renderpass,
 		VkShaderModule& vertShader, VkShaderModule& fragShader, VkPrimitiveTopology primitive, VkExtent2D extent);
 
 	void createComputePipeline(VkDevice& logicalDevice, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout, VkShaderModule& compShader);

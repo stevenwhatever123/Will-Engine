@@ -38,6 +38,8 @@ namespace WillEngine
 		bool hasChildren() const { return children.size() > 0; };
 		u32 getChildrenSize() const { return children.size(); };
 
+		Entity* getRoot();
+
 	private:
 
 		// Used for generating an id for an entity

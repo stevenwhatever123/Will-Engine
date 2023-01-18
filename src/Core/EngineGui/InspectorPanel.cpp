@@ -6,6 +6,7 @@
 #include "Core/ECS/TransformComponent.h"
 #include "Core/MeshComponent.h"
 #include "Core/ECS/SkinnedMeshComponent.h"
+#include "Core/ECS/SkeletalComponent.h"
 
 void WillEngine::EngineGui::InspectorPanel::update(GameState* gameState)
 {
@@ -72,6 +73,18 @@ void WillEngine::EngineGui::InspectorPanel::update(GameState* gameState)
 
 					ImGui::NewLine();
 				}
+
+				ImGui::TreePop();
+			}
+		}
+
+		if (entity->HasComponent<SkeletalComponent>())
+		{
+			SkeletalComponent* skeletalComp = entity->GetComponent<SkeletalComponent>();
+
+			if (ImGui::TreeNode("Skeletal Component"))
+			{
+				ImGui::Text("Hello I have Skeleton");
 
 				ImGui::TreePop();
 			}

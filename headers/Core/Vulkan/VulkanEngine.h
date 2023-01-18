@@ -2,7 +2,9 @@
 #include "Core/Camera.h"
 #include "Core/MeshComponent.h"
 #include "Core/ECS/SkinnedMeshComponent.h"
+#include "Core/ECS/SkeletalComponent.h"
 #include "Core/Material.h"
+#include "Core/SkinnedMesh.h"
 #include "Core/LightComponent.h"
 #include "Core/Camera.h"
 #include "Core/UniformClass.h"
@@ -37,6 +39,10 @@ public:
 	const VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
 
 	const VkFormat shadowDepthFormat = VK_FORMAT_D32_SFLOAT;
+
+public:
+
+	std::queue<Skeleton*> skeletonToInitialise;
 
 public:
 
@@ -123,6 +129,10 @@ public:
 	VkDescriptorPool descriptorPool;
 
 	// Pipeline and pipeline layout (Blinn Phong Shader)
+	// Pipeline for Skeletal
+	VkPipelineLayout skeletalPipelineLayout;
+	VkPipeline skeletalPipeline;
+	// Pipeline for Geometry
 	VkPipelineLayout geometryPipelineLayout;
 	VkPipeline geometryPipeline;
 	// Pipeline for Shading
@@ -134,6 +144,8 @@ public:
 	// Pipeline for depth pre pass
 	VkPipelineLayout depthPipelineLayout;
 	VkPipeline depthPipeline;
+	VkPipelineLayout depthSkeletalPipelineLayout;
+	VkPipeline depthSkeletalPipeline;
 	// Pipeline for bloom post-processing
 	VkPipelineLayout filterBrightPipelineLayout;
 	VkPipeline filterBrightPipeline;
@@ -143,6 +155,9 @@ public:
 	VkPipeline upscalePipeline;
 	VkPipelineLayout blendColorPipelineLayout;
 	VkPipeline blendColorPipeline;
+
+	// Bone Descriptor sets
+	VkDescriptorSetLayout skeletalDescriptorSetLayout;
 
 	// Scene Descriptor sets
 	VulkanDescriptorSet sceneDescriptorSet;
@@ -169,6 +184,12 @@ public:
 	VulkanDescriptorSet shadowMapDescriptorSet;
 
 	// Shader modules
+	VkShaderModule depthSkeletalVertShader;
+	VkShaderModule depthSkeletalFragShader;
+
+	VkShaderModule skeletalVertShader;
+	VkShaderModule skeletalFragShader;
+
 	VkShaderModule geometryVertShader;
 	VkShaderModule geometryFragShader;
 
@@ -256,6 +277,9 @@ public:
 		VkDescriptorSetLayout& descriptorSetLayout, u32 binding, u32 bufferSize, VkShaderStageFlagBits shaderStage);
 	void createUniformBuffer(VkDevice& logicalDevice, VulkanAllocatedMemory& uniformBuffer, u32 bufferSize);
 
+	// Initialise descriptor set layout for skeletal rendering
+	void initSkeletalDescriptorSetLayout(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
+
 	// Initialise descriptor sets for shadow mapping
 	void initShadowMapDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
 
@@ -267,6 +291,8 @@ public:
 	void initComputedImageDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
 
 	// Pipeline init
+	void initDepthSkeletalPipeline(VkDevice& logicalDevice);
+	void initSkeletalPipeline(VkDevice& logicalDevice);
 	void initGeometryPipeline(VkDevice& logicalDevice);
 	void initDepthPipeline(VkDevice& logicalDevice);
 	void initShadowPipeline(VkDevice& logicalDevice);
@@ -282,6 +308,9 @@ public:
 
 	// Update
 	void updateSceneUniform(Camera* camera);
+	void updateSkeletonUniform(VkCommandBuffer& commandBuffer);
+
+	void processTodoSkeleton(VkDevice& logicalDevice);
 
 	void recordCommands(VkCommandBuffer& commandBuffer, VkFramebuffer& framebuffer, VkExtent2D& extent);
 

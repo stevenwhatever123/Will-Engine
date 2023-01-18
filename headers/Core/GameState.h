@@ -4,6 +4,7 @@
 #include "Core/Mesh.h"
 #include "Core/Material.h"
 #include "Core/Light.h"
+#include "Core/Skeleton.h"
 #include "Core/LightComponent.h"
 
 #include "Core/ECS/Entity.h"
@@ -47,6 +48,8 @@ struct GameState
 		// This inclues ROOT entities in the scene (Excluding child entities)
 		// This is used for simplify the tree hierarchy
 		std::map<u32, Entity*> rootEntities;
+
+		std::map<u32, Skeleton*> skeletons;
 	} gameResources;
 
 	struct UIParams

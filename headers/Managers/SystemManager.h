@@ -83,4 +83,5 @@ public:
 	bool shouldCloseWindow() { return vulkanWindow->closeWindow; }
 
 	// Command calls
+	void loadModel();
 };

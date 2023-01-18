@@ -136,9 +136,13 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 		VK_SHADER_STAGE_FRAGMENT_BIT, 1, descriptorSize);
 
+	initSkeletalDescriptorSetLayout(logicalDevice, descriptorPool);
+
 	// Graphics Pipeline
 	initDepthPipeline(logicalDevice);
+	initDepthSkeletalPipeline(logicalDevice);
 	initShadowPipeline(logicalDevice);
+	initSkeletalPipeline(logicalDevice);
 	initGeometryPipeline(logicalDevice);
 	initShadingPipeline(logicalDevice);
 
@@ -290,6 +294,9 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	vkResetCommandBuffer(upscaleComputeCommandBuffers[imageIndex], 0);
 	vkResetCommandBuffer(blendColorCommandBuffers[imageIndex], 0);
 	vkResetCommandBuffer(presentCommandBuffers[imageIndex], 0);
+
+	// Initialise skeleton uniform buffer if needed
+	processTodoSkeleton(logicalDevice);
 
 	// Rendering command
 	recordDepthPrePass(preDepthBuffers[imageIndex]);
@@ -1051,6 +1058,12 @@ void VulkanEngine::createUniformBuffer(VkDevice& logicalDevice, VulkanAllocatedM
 		WillEngine::VulkanUtil::createBuffer(vmaAllocator, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 }
 
+void VulkanEngine::initSkeletalDescriptorSetLayout(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool)
+{
+	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, skeletalDescriptorSetLayout, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+		VK_SHADER_STAGE_VERTEX_BIT, 2, 1);
+}
+
 void VulkanEngine::initShadowMapDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool)
 {
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, shadowMapDescriptorSet.layout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -1174,6 +1187,53 @@ void VulkanEngine::initComputedImageDescriptors(VkDevice& logicalDevice, VkDescr
 	}
 }
 
+void VulkanEngine::initDepthSkeletalPipeline(VkDevice& logicalDevice)
+{
+	WillEngine::VulkanUtil::initDepthSkeletonShaderModule(logicalDevice, depthSkeletalVertShader, depthSkeletalFragShader);
+
+	VkDescriptorSetLayout depthLayouts[] = { sceneDescriptorSet.layout, skeletalDescriptorSetLayout };
+	u32 depthSkeletalDescriptorSetLayoutSize = sizeof(depthLayouts) / sizeof(depthLayouts[0]);
+
+	VkPushConstantRange pushConstants[1];
+	// Push constant object for model matrix to be used in vertex shader
+	pushConstants[0].offset = 0;
+	pushConstants[0].size = sizeof(mat4);
+	pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	u32 pushConstantCount = sizeof(pushConstants) / sizeof(pushConstants[0]);
+
+	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, depthSkeletalPipelineLayout, depthSkeletalDescriptorSetLayoutSize, depthLayouts, pushConstantCount, pushConstants);
+
+	WillEngine::VulkanUtil::createDepthSkeletalPipeline(logicalDevice, depthSkeletalPipeline, depthSkeletalPipelineLayout, depthRenderPass, depthSkeletalVertShader, 
+		depthSkeletalFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, sceneExtent);
+}
+
+void VulkanEngine::initSkeletalPipeline(VkDevice& logicalDevice)
+{
+	// Set up shader modules
+	WillEngine::VulkanUtil::initSkeletalShaderModule(logicalDevice, skeletalVertShader, skeletalFragShader);
+	
+	// Create pipeline and pipeline layout
+	VkDescriptorSetLayout layouts[] = { sceneDescriptorSet.layout, textureDescriptorSetLayout, skeletalDescriptorSetLayout };
+	u32 descriptorSetLayoutSize = sizeof(layouts) / sizeof(layouts[0]);
+
+	VkPushConstantRange pushConstants[1];
+	// Push constant object for model matrix to be used in vertex shader
+	pushConstants[0].offset = 0;
+	pushConstants[0].size = sizeof(mat4);
+	pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	u32 pushConstantCount = sizeof(pushConstants) / sizeof(pushConstants[0]);
+
+	// Create deferred pipeline layout with our just created push constant
+	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, skeletalPipelineLayout,
+		descriptorSetLayoutSize, layouts, pushConstantCount, pushConstants);
+
+	// Create deferred pipeline
+	WillEngine::VulkanUtil::createSkeletalPipeline(logicalDevice, skeletalPipeline, skeletalPipelineLayout,
+		geometryRenderPass, skeletalVertShader, skeletalFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, sceneExtent);
+}
+
 void VulkanEngine::initGeometryPipeline(VkDevice& logicalDevice)
 {
 	// Set up shader modules
@@ -1202,10 +1262,10 @@ void VulkanEngine::initGeometryPipeline(VkDevice& logicalDevice)
 
 void VulkanEngine::initDepthPipeline(VkDevice& logicalDevice)
 {
+	createDepthFramebuffer(logicalDevice, depthFramebuffer, depthRenderPass, sceneExtent);
+
 	VkDescriptorSetLayout depthLayouts[] = { sceneDescriptorSet.layout };
 	u32 depthDescriptorSetLayoutSize = sizeof(depthLayouts) / sizeof(depthLayouts[0]);
-
-	createDepthFramebuffer(logicalDevice, depthFramebuffer, depthRenderPass, sceneExtent);
 
 	WillEngine::VulkanUtil::initDepthShaderModule(logicalDevice, depthVertShader, depthFragShader);
 
@@ -1339,6 +1399,32 @@ void VulkanEngine::updateSceneUniform(Camera* camera)
 	sceneMatrix.projectionMatrix = camera->getProjectionMatrix(sceneExtent.width, sceneExtent.height);
 }
 
+void VulkanEngine::updateSkeletonUniform(VkCommandBuffer& commandBuffer)
+{
+	for (auto it = gameState->gameResources.skeletons.begin(); it != gameState->gameResources.skeletons.end(); it++)
+	{
+		Skeleton* skeleton = it->second;
+		BoneUniform& boneUniform = skeleton->boneUniform;
+
+		vkCmdUpdateBuffer(commandBuffer, skeleton->boneUniformBuffer.buffer, 0, sizeof(mat4) * MAX_BONES, &boneUniform);
+	}
+}
+
+void VulkanEngine::processTodoSkeleton(VkDevice& logicalDevice)
+{
+	while (!skeletonToInitialise.empty())
+	{
+		Skeleton* skeleton = skeletonToInitialise.front();
+
+		// Bone Uniform Buffer
+		// Used for skeletal rendering / animation
+		initUniformBuffer(logicalDevice, descriptorPool, skeleton->boneUniformBuffer, skeleton->boneDescriptorSet.descriptorSet, skeleton->boneDescriptorSet.layout, 2,
+			sizeof(mat4) * MAX_BONES, VK_SHADER_STAGE_VERTEX_BIT);
+
+		skeletonToInitialise.pop();
+	}
+}
+
 void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkFramebuffer& framebuffer, VkExtent2D& extent)
 {
 	// Begin command buffer
@@ -1355,9 +1441,8 @@ void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkFramebuffer&
 	// Update light uniform buffers
 	vkCmdUpdateBuffer(commandBuffer, lightUniformBuffer.buffer, 0, sizeof(gameState->graphicsResources.lights[1]->lightUniform), &gameState->graphicsResources.lights[1]->lightUniform);
 
-	vec4 cameraPosition = vec4(camera->position, 1);
-
 	// Update camera uniform buffers
+	vec4 cameraPosition = vec4(camera->position, 1);
 	vkCmdUpdateBuffer(commandBuffer, cameraUniformBuffer.buffer, 0, sizeof(vec4), &cameraPosition);
 
 	// Set dynamic viewport and scissor
@@ -1414,6 +1499,9 @@ void VulkanEngine::recordDepthPrePass(VkCommandBuffer& commandBuffer)
 	// Update camera uniform buffers
 	vkCmdUpdateBuffer(commandBuffer, cameraUniformBuffer.buffer, 0, sizeof(vec4), &cameraPosition);
 
+	// Update all skeleton uniform buffers
+	updateSkeletonUniform(commandBuffer);
+
 	// Set dynamic viewport and scissor
 	{
 		VkViewport viewport = WillEngine::VulkanUtil::getViewport(sceneExtent);
@@ -1448,6 +1536,9 @@ void VulkanEngine::recordShadowPass(VkCommandBuffer& commandBuffer)
 
 	// Update camera uniform buffers
 	vkCmdUpdateBuffer(commandBuffer, cameraUniformBuffer.buffer, 0, sizeof(vec4), &cameraPosition);
+
+	// Update all skeleton uniform buffers
+	updateSkeletonUniform(commandBuffer);
 
 	// Set dynamic viewport and scissor
 	{
@@ -1484,6 +1575,9 @@ void VulkanEngine::recordGeometryPass(VkCommandBuffer& commandBuffer)
 
 	// Update camera uniform buffers
 	vkCmdUpdateBuffer(commandBuffer, cameraUniformBuffer.buffer, 0, sizeof(vec4), &cameraPosition);
+
+	// Update all skeleton uniform buffers
+	updateSkeletonUniform(commandBuffer);
 
 	// Set dynamic viewport and scissor
 	{
@@ -1552,10 +1646,10 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 	vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 	// Bind pipeline
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPipeline);
+	//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPipeline);
 
 	// Bind Scene Uniform Buffer
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPipelineLayout, 0, 1, &sceneDescriptorSet.descriptorSet, 0, nullptr);
+	//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPipelineLayout, 0, 1, &sceneDescriptorSet.descriptorSet, 0, nullptr);
 
 	for (auto it = gameState->gameResources.entities.begin(); it != gameState->gameResources.entities.end(); it++)
 	{
@@ -1578,6 +1672,11 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 		{
 			if (!gameState->graphicsResources.meshes[meshComponent->meshIndex]->isReadyToDraw())
 				continue;
+
+			// Bind pipeline
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPipeline);
+
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPipelineLayout, 0, 1, &sceneDescriptorSet.descriptorSet, 0, nullptr);
 
 			Mesh* mesh = gameState->graphicsResources.meshes[meshComponent->meshIndex];
 
@@ -1606,27 +1705,38 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 
 		if (skinnedMeshComponent)
 		{
+			// Bind default pipeline
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthSkeletalPipeline);
+
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthSkeletalPipelineLayout, 0, 1, &sceneDescriptorSet.descriptorSet, 0, nullptr);
+
+			// Get the skeletal
+			Entity* rootEntity = entity->getRoot();
+
+			if (!rootEntity->HasComponent<SkeletalComponent>())
+				continue;
+
+			SkeletalComponent* skeletalComp = rootEntity->GetComponent<SkeletalComponent>();
+			Skeleton* skeleton = gameState->gameResources.skeletons[skeletalComp->skeletalId];
+
+			// Bind bone uniform buffer
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthSkeletalPipelineLayout, 1, 1, &skeleton->boneDescriptorSet.descriptorSet, 0, nullptr);
+
 			for (u32 i = 0; i < skinnedMeshComponent->getNumMesh(); i++)
 			{
 				if (!gameState->graphicsResources.meshes[skinnedMeshComponent->meshIndicies[i]]->isReadyToDraw())
 					continue;
 
-				Mesh* mesh = gameState->graphicsResources.meshes[skinnedMeshComponent->meshIndicies[i]];
+				SkinnedMesh* mesh = dynamic_cast<SkinnedMesh*>(gameState->graphicsResources.meshes[skinnedMeshComponent->meshIndicies[i]]);
 
-				VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
+				VkBuffer buffers[5] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer, mesh->boneIdsBuffer.buffer, mesh->weightsBuffer.buffer };
 
-				VkDeviceSize offsets[3]{};
+				VkDeviceSize offsets[5]{};
 
 				// Bind buffers
-				vkCmdBindVertexBuffers(commandBuffer, 0, 3, buffers, offsets);
+				vkCmdBindVertexBuffers(commandBuffer, 0, 5, buffers, offsets);
 
 				vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-
-				// Bind Texture
-				// Check if the mesh has a material
-				if (gameState->graphicsResources.materials[skinnedMeshComponent->materialIndicies[i]])
-					vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1,
-						&gameState->graphicsResources.materials[skinnedMeshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
 
 				// Push constant for model matrix
 				mat4 transformation = transformComponent->getGlobalTransformation();
@@ -1690,6 +1800,9 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 
 		if (meshComponent)
 		{
+			// Bind default pipeline
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipeline);
+
 			if (!gameState->graphicsResources.meshes[meshComponent->meshIndex]->isReadyToDraw())
 				continue;
 
@@ -1719,19 +1832,34 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 
 		if (skinnedMeshComponent)
 		{
+			// Bind default pipeline
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skeletalPipeline);
+
+			// Get the skeletal
+			Entity* rootEntity = entity->getRoot();
+
+			if (!rootEntity->HasComponent<SkeletalComponent>())
+				continue;
+
+			SkeletalComponent* skeletalComp = rootEntity->GetComponent<SkeletalComponent>();
+			Skeleton* skeleton = gameState->gameResources.skeletons[skeletalComp->skeletalId];
+
+			// Bind bone uniform buffer
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skeletalPipelineLayout, 2, 1, &skeleton->boneDescriptorSet.descriptorSet, 0, nullptr);
+
 			for (u32 i = 0; i < skinnedMeshComponent->getNumMesh(); i++)
 			{
 				if (!gameState->graphicsResources.meshes[skinnedMeshComponent->meshIndicies[i]]->isReadyToDraw())
 					continue;
 
-				Mesh* mesh = gameState->graphicsResources.meshes[skinnedMeshComponent->meshIndicies[i]];
+				SkinnedMesh* mesh = dynamic_cast<SkinnedMesh*>(gameState->graphicsResources.meshes[skinnedMeshComponent->meshIndicies[i]]);
 
-				VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
+				VkBuffer buffers[5] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer, mesh->boneIdsBuffer.buffer, mesh->weightsBuffer.buffer };
 
-				VkDeviceSize offsets[3]{};
+				VkDeviceSize offsets[5]{};
 
 				// Bind buffers
-				vkCmdBindVertexBuffers(commandBuffer, 0, 3, buffers, offsets);
+				vkCmdBindVertexBuffers(commandBuffer, 0, 5, buffers, offsets);
 
 				vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 

@@ -10,6 +10,7 @@ namespace WillEngine
 		MeshType,
 		SkinnedMeshType,
 		LightType,
+		SkeletalType,
 		ComponentTypeCount
 	};
 

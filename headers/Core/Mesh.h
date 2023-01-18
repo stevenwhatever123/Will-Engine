@@ -1,4 +1,6 @@
 #pragma once
+#include "Core/BoneWeight.h"
+
 #include "Utils/VulkanUtil.h"
 
 #include "Managers/FileManager.h"
@@ -34,6 +36,8 @@ private:
 	// Used for generating an id for a mesh
 	static u32 idCounter;
 
+protected:
+
 	bool readyToDraw;
 
 public:
@@ -42,7 +46,7 @@ public:
 	Mesh(const Mesh* mesh);
 	virtual ~Mesh();
 
-	void uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkSurfaceKHR& surface, VkQueue& queue);
+	virtual void uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkSurfaceKHR& surface, VkQueue& queue);
 
 	void cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator);
 

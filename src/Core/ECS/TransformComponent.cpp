@@ -12,11 +12,29 @@ TransformComponent::TransformComponent():
 
 }
 
+TransformComponent::TransformComponent(const vec3 position, const vec3 rotation, const vec3 scale) :
+	Component(nullptr),
+	position(position),
+	rotation(rotation),
+	scale(scale)
+{
+
+}
+
 TransformComponent::TransformComponent(Entity* entity) :
 	Component(entity),
 	position(0),
 	rotation(0),
 	scale(1)
+{
+
+}
+
+TransformComponent::TransformComponent(Entity* entity, const vec3 position, const vec3 rotation, const vec3 scale) :
+	Component(entity),
+	position(position),
+	rotation(rotation),
+	scale(scale)
 {
 
 }
@@ -32,12 +50,13 @@ mat4 TransformComponent::getLocalTransformation() const
 	mat4 translation = glm::translate(mat4(1), position);
 
 	// Rotation
-	//mat4 rotation = glm::rotate(mat4(1), rotation);
+	mat4 rotate = glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z);
 
 	// Scale
 	mat4 scaling = glm::scale(mat4(1), scale);
 
-	return scaling * translation;
+	//return scaling * translation * rotate;
+	return translation * rotate * scaling;
 }
 
 mat4 TransformComponent::getGlobalTransformation() const
