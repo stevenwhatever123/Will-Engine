@@ -97,6 +97,8 @@ public:
 
 	// Command pool and buffer
 	VkCommandPool commandPool;
+	std::vector<VkCommandBuffer> uniformUpdateBuffers;
+
 	std::vector<VkCommandBuffer> preDepthBuffers;
 	std::vector<VkCommandBuffer> shadowBuffers;
 	std::vector<VkCommandBuffer> geometryBuffers;
@@ -109,6 +111,7 @@ public:
 	// Semaphore for waiting and signaling
 	// Used for GPU - GPU sync
 	VkSemaphore imageAvailable;
+	VkSemaphore uniformUpdated;
 	VkSemaphore renderFinished;
 
 	VkSemaphore preDepthFinished;
@@ -157,6 +160,7 @@ public:
 	VkPipeline blendColorPipeline;
 
 	// Bone Descriptor sets
+	VkDescriptorSetLayout depthSkeletalDescriptorSetLayout;
 	VkDescriptorSetLayout skeletalDescriptorSetLayout;
 
 	// Scene Descriptor sets
@@ -314,13 +318,19 @@ public:
 
 	void recordCommands(VkCommandBuffer& commandBuffer, VkFramebuffer& framebuffer, VkExtent2D& extent);
 
+	void recordUniformUpdate(VkCommandBuffer& commandBuffer);
+
+	void recordDepthSkeletalPrePass(VkCommandBuffer& commandBuffer);
 	void recordDepthPrePass(VkCommandBuffer& commandBuffer);
 	void recordShadowPass(VkCommandBuffer& commandBuffer);
+	void recordGeometrySkeletalPass(VkCommandBuffer& commandBuffer);
 	void recordGeometryPass(VkCommandBuffer& commandBuffer);
 	void recordShadingPass(VkCommandBuffer& commandBuffer);
 
 	// Render passes
+	void depthSkeletalPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 	void depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
+	void geometrySkeletalPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 	void geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 	void shadowPasses(VkCommandBuffer& commandBuffer);
 	void shadingPasses(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkExtent2D extent);
