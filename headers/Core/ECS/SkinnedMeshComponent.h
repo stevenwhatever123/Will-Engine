@@ -1,12 +1,11 @@
 #pragma once
+#include "Core/ECS/IRenderableComponent.h"
 #include "Core/Mesh.h"
 #include "Core/Material.h"
 
-#include "Core/ECS/Component.h"
-
 namespace WillEngine
 {
-	class SkinnedMeshComponent : public Component
+	class SkinnedMeshComponent : public IRenderableComponent
 	{
 	public:
 
@@ -25,7 +24,7 @@ namespace WillEngine
 		virtual ~SkinnedMeshComponent();
 
 		void addMesh(Mesh* mesh, Material* material);
-		u32 getNumMesh() const { return meshIndicies.size(); };
+		virtual u32 getNumMesh() const { return meshIndicies.size(); };
 
 		virtual void update() {};
 

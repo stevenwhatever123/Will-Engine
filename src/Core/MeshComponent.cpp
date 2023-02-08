@@ -4,7 +4,6 @@
 using namespace WillEngine;
 
 MeshComponent::MeshComponent() :
-	Component(nullptr),
 	name(""),
 	meshIndex(0),
 	materialIndex(0)

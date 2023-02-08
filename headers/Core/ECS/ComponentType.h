@@ -11,7 +11,9 @@ namespace WillEngine
 		SkinnedMeshType,
 		LightType,
 		SkeletalType,
-		ComponentTypeCount
+		ComponentTypeCount,
+		// Any Type below here is private and should not be visible to the user
+		IRenderableType
 	};
 
 	extern std::map<std::type_index, ComponentType> componentTypeMap;

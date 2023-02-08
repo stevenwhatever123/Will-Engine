@@ -52,7 +52,7 @@ public:
 	virtual u32 getVulkanBufferSize() const { return 3; };
 	virtual std::vector<VkDeviceSize> getVulkanOffset() const;
 
-	void cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator);
+	virtual void cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator);
 
-	bool isReadyToDraw() const { return readyToDraw; };
+	virtual bool isReadyToDraw() const { return readyToDraw; };
 };

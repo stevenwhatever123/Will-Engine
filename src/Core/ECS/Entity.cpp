@@ -91,6 +91,17 @@ void Entity::addComponent(T* comp)
 	if (HasComponent<T>())
 		return;
 
+	// Renderable component
+	if (typeid(T) == typeid(SkinnedMeshComponent) || typeid(T) == typeid(MeshComponent))
+	{
+		if (HasComponent<IRenderableComponent>())
+			return;
+
+		components[typeid(IRenderableComponent)] = comp;
+		components[typeid(T)]->setParent(this);
+		return;
+	}
+
 	components[typeid(T)] = comp;
 	components[typeid(T)]->setParent(this);
 }

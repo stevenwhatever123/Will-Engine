@@ -64,6 +64,11 @@ namespace WillEngine
 
 		template<class T> inline bool HasComponent()
 		{
+			if (typeid(T) == typeid(SkinnedMeshComponent) || typeid(T) == typeid(MeshComponent))
+			{
+				return components[typeid(IRenderableComponent)] != nullptr;
+			}
+
 			return components[typeid(T)] != nullptr;
 		}
 

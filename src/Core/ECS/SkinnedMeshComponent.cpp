@@ -4,7 +4,7 @@
 using namespace WillEngine;
 
 SkinnedMeshComponent::SkinnedMeshComponent() :
-	Component(nullptr),
+	IRenderableComponent(),
 	name(""),
 	meshIndicies(),
 	materialIndicies(0)
