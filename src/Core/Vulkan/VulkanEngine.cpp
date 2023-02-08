@@ -1711,12 +1711,14 @@ void VulkanEngine::depthSkeletalPrePasses(VkCommandBuffer& commandBuffer, VkExte
 
 			SkinnedMesh* mesh = dynamic_cast<SkinnedMesh*>(gameState->graphicsResources.meshes[skinnedMeshComponent->meshIndicies[i]]);
 
-			VkBuffer buffers[5] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer, mesh->boneIdsBuffer.buffer, mesh->weightsBuffer.buffer };
+			u32 bufferSize = mesh->getVulkanBufferSize();
 
-			VkDeviceSize offsets[5]{};
+			std::vector<VkBuffer> buffers = mesh->getVulkanBuffers();
+
+			std::vector<VkDeviceSize> offsets = mesh->getVulkanOffset();
 
 			// Bind buffers
-			vkCmdBindVertexBuffers(commandBuffer, 0, 5, buffers, offsets);
+			vkCmdBindVertexBuffers(commandBuffer, 0, bufferSize, buffers.data(), offsets.data());
 
 			vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -1758,12 +1760,14 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 		TransformComponent* transformComponent = entity->components[typeid(TransformComponent)]->GetComponent<TransformComponent>();
 		Mesh* mesh = gameState->graphicsResources.meshes[meshComponent->meshIndex];
 
-		VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
+		u32 bufferSize = mesh->getVulkanBufferSize();
 
-		VkDeviceSize offsets[3]{};
+		std::vector<VkBuffer> buffers = mesh->getVulkanBuffers();
+
+		std::vector<VkDeviceSize> offsets = mesh->getVulkanOffset();
 
 		// Bind buffers
-		vkCmdBindVertexBuffers(commandBuffer, 0, 3, buffers, offsets);
+		vkCmdBindVertexBuffers(commandBuffer, 0, bufferSize, buffers.data(), offsets.data());
 
 		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -1826,12 +1830,14 @@ void VulkanEngine::geometrySkeletalPasses(VkCommandBuffer& commandBuffer, VkExte
 
 			SkinnedMesh* mesh = dynamic_cast<SkinnedMesh*>(gameState->graphicsResources.meshes[skinnedMeshComponent->meshIndicies[i]]);
 
-			VkBuffer buffers[5] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer, mesh->boneIdsBuffer.buffer, mesh->weightsBuffer.buffer };
+			u32 bufferSize = mesh->getVulkanBufferSize();
 
-			VkDeviceSize offsets[5]{};
+			std::vector<VkBuffer> buffers = mesh->getVulkanBuffers();
+
+			std::vector<VkDeviceSize> offsets = mesh->getVulkanOffset();
 
 			// Bind buffers
-			vkCmdBindVertexBuffers(commandBuffer, 0, 5, buffers, offsets);
+			vkCmdBindVertexBuffers(commandBuffer, 0, bufferSize, buffers.data(), offsets.data());
 
 			vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -1878,12 +1884,14 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 		TransformComponent* transformComponent = entity->components[typeid(TransformComponent)]->GetComponent<TransformComponent>();
 		Mesh* mesh = gameState->graphicsResources.meshes[meshComponent->meshIndex];
 
-		VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
+		u32 bufferSize = mesh->getVulkanBufferSize();
 
-		VkDeviceSize offsets[3]{};
+		std::vector<VkBuffer> buffers = mesh->getVulkanBuffers();
+
+		std::vector<VkDeviceSize> offsets = mesh->getVulkanOffset();
 
 		// Bind buffers
-		vkCmdBindVertexBuffers(commandBuffer, 0, 3, buffers, offsets);
+		vkCmdBindVertexBuffers(commandBuffer, 0, bufferSize, buffers.data(), offsets.data());
 
 		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -1954,12 +1962,14 @@ void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 
 		Mesh* mesh = gameState->graphicsResources.meshes[meshComponent->meshIndex];
 
-		VkBuffer buffers[3] = { mesh->positionBuffer.buffer, mesh->normalBuffer.buffer, mesh->uvBuffer.buffer };
+		u32 bufferSize = mesh->getVulkanBufferSize();
 
-		VkDeviceSize offsets[3]{};
+		std::vector<VkBuffer> buffers = mesh->getVulkanBuffers();
+
+		std::vector<VkDeviceSize> offsets = mesh->getVulkanOffset();
 
 		// Bind buffers
-		vkCmdBindVertexBuffers(commandBuffer, 0, 3, buffers, offsets);
+		vkCmdBindVertexBuffers(commandBuffer, 0, bufferSize, buffers.data(), offsets.data());
 
 		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 

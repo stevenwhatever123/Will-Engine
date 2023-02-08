@@ -187,6 +187,20 @@ void Mesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice&
 	indicies.shrink_to_fit();
 }
 
+std::vector<VkBuffer> Mesh::getVulkanBuffers() const
+{
+	std::vector<VkBuffer> returnBuffers = { positionBuffer.buffer, normalBuffer.buffer, uvBuffer.buffer };
+
+	return std::move(returnBuffers);
+}
+
+std::vector<VkDeviceSize> Mesh::getVulkanOffset() const
+{
+	std::vector<VkDeviceSize> returnOffsets(3);
+
+	return std::move(returnOffsets);
+}
+
 void Mesh::cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator)
 {
 	// Vertex Buffer

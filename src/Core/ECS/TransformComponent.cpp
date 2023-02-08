@@ -46,26 +46,14 @@ TransformComponent::~TransformComponent()
 
 mat4 TransformComponent::getLocalTransformation() const
 {
-	//// Translate
-	//mat4 translation = glm::translate(mat4(1), position);
-
-	//// Rotation
-	//mat4 rotate = glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z);
-
-	//// Scale
-	//mat4 scaling = glm::scale(mat4(1), scale);
-
-	//return translation * rotate * scaling;
-
-
-	// Scale
-	mat4 scaling = glm::scale(mat4(1), scale);
+	// Translate
+	mat4 translation = glm::translate(mat4(1), position);
 
 	// Rotation
 	mat4 rotate = glm::eulerAngleXYZ(rotation.x, rotation.y, rotation.z);
 
-	// Translate
-	return  glm::translate(rotate * scaling, position);
+	// Scaling
+	return glm::scale(translation * rotate, scale);
 }
 
 mat4 TransformComponent::getGlobalTransformation() const

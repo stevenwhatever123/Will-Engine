@@ -18,4 +18,8 @@ public:
 	virtual ~SkinnedMesh();
 
 	virtual void uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkSurfaceKHR& surface, VkQueue& queue);
+
+	virtual std::vector<VkBuffer> getVulkanBuffers() const;
+	virtual u32 getVulkanBufferSize() const { return 5; };
+	virtual std::vector<VkDeviceSize> getVulkanOffset() const;
 };

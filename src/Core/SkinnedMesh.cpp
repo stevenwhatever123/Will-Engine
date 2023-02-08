@@ -217,3 +217,17 @@ void SkinnedMesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysical
 	uvs.shrink_to_fit();
 	indicies.shrink_to_fit();
 }
+
+std::vector<VkBuffer> SkinnedMesh::getVulkanBuffers() const
+{
+	std::vector<VkBuffer> returnBuffers = { positionBuffer.buffer, normalBuffer.buffer, uvBuffer.buffer, boneIdsBuffer.buffer, weightsBuffer.buffer };
+
+	return std::move(returnBuffers);
+}
+
+std::vector<VkDeviceSize> SkinnedMesh::getVulkanOffset() const
+{
+	std::vector<VkDeviceSize> returnOffsets(5);
+
+	return std::move(returnOffsets);
+}
