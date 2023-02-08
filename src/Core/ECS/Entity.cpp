@@ -91,17 +91,6 @@ void Entity::addComponent(T* comp)
 	if (HasComponent<T>())
 		return;
 
-	// Renderable component
-	if (typeid(T) == typeid(SkinnedMeshComponent) || typeid(T) == typeid(MeshComponent))
-	{
-		if (HasComponent<IRenderableComponent>())
-			return;
-
-		components[typeid(IRenderableComponent)] = comp;
-		components[typeid(T)]->setParent(this);
-		return;
-	}
-
 	components[typeid(T)] = comp;
 	components[typeid(T)]->setParent(this);
 }
@@ -109,7 +98,6 @@ void Entity::addComponent(T* comp)
 // Explicit initialization for addComponent(T* comp)
 template void Entity::addComponent(TransformComponent* comp);
 template void Entity::addComponent(MeshComponent* comp);
-template void Entity::addComponent(SkinnedMeshComponent* comp);
 template void Entity::addComponent(SkeletalComponent* comp);
 template void Entity::addComponent(LightComponent* comp);
 
@@ -124,7 +112,6 @@ void Entity::addComponent()
 // Explicit initialization for addComponent<T>()
 template void Entity::addComponent<TransformComponent>();
 template void Entity::addComponent<MeshComponent>();
-template void Entity::addComponent<SkinnedMeshComponent>();
 template void Entity::addComponent<SkeletalComponent>();
 template void Entity::addComponent<LightComponent>();
 
@@ -143,11 +130,11 @@ void Entity::addComponent(ComponentType type)
 			throw std::runtime_error("You cannot add a Mesh Type here.....");
 			break;
 		}
-		case SkinnedMeshType:
-		{
-			throw std::runtime_error("You cannot add a Mesh Type here.....");
-			break;
-		}
+		//case SkinnedMeshType:
+		//{
+		//	throw std::runtime_error("You cannot add a Mesh Type here.....");
+		//	break;
+		//}
 		case SkeletalType:
 		{
 			SkeletalComponent* skeletal = new SkeletalComponent();

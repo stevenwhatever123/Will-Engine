@@ -403,26 +403,41 @@ void WillEngine::Utils::traverseNodeTree(const aiNode* node, Entity* parent, u8 
 		//else
 		//	printf("%*s %s, Mesh Num: %s\n", level, "    ", child->mName.C_Str(), "None");
 
-		if (child->mNumMeshes == 1)
+		if (child->mNumMeshes > 0)
 		{
 			MeshComponent* meshComp = new MeshComponent();
-			meshComp->setMesh(extractedMesh[child->mMeshes[0]]);
 
-			childEntity->addComponent(meshComp);
-		}
-		else if (child->mNumMeshes > 1)
-		{
-			SkinnedMeshComponent* skinnedMeshComp = new SkinnedMeshComponent();
 			for (u32 j = 0; j < child->mNumMeshes; j++)
 			{
 				u32 meshIndex = child->mMeshes[j];
 				u32 materialIndex = extractedMesh[meshIndex]->materialIndex;
 
-				skinnedMeshComp->addMesh(extractedMesh[meshIndex], extractedMaterial[materialIndex]);
+				meshComp->addMesh(extractedMesh[meshIndex], extractedMaterial[materialIndex]);
 			}
-			
-			childEntity->addComponent(skinnedMeshComp);
+
+			childEntity->addComponent(meshComp);
 		}
+
+		//if (child->mNumMeshes == 1)
+		//{
+		//	MeshComponent* meshComp = new MeshComponent();
+		//	meshComp->addMesh(extractedMesh[child->mMeshes[0]]);
+
+		//	childEntity->addComponent(meshComp);
+		//}
+		//else if (child->mNumMeshes > 1)
+		//{
+		//	MeshComponent* skinnedMeshComp = new SkinnedMeshComponent();
+		//	for (u32 j = 0; j < child->mNumMeshes; j++)
+		//	{
+		//		u32 meshIndex = child->mMeshes[j];
+		//		u32 materialIndex = extractedMesh[meshIndex]->materialIndex;
+
+		//		skinnedMeshComp->addMesh(extractedMesh[meshIndex], extractedMaterial[materialIndex]);
+		//	}
+		//	
+		//	childEntity->addComponent(skinnedMeshComp);
+		//}
 
 		traverseNodeTree(child, childEntity, level + 1, extractedMesh, extractedMaterial, entities);
 	}

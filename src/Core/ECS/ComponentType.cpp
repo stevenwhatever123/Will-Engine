@@ -3,9 +3,7 @@
 
 #include "Core/ECS/Component.h"
 #include "Core/ECS/TransformComponent.h"
-#include "Core/ECS/IRenderableComponent.h"
 #include "Core/MeshComponent.h"
-#include "Core/ECS/SkinnedMeshComponent.h"
 #include "Core/ECS/SkeletalComponent.h"
 #include "Core/LightComponent.h"
 
@@ -23,11 +21,9 @@ void WillEngine::initComponentType()
 		{typeid(Component),									NullType},
 		{typeid(TransformComponent),						TransformType},
 		{typeid(MeshComponent),								MeshType},
-		{typeid(SkinnedMeshComponent),						SkinnedMeshType},
 		{typeid(SkeletalComponent),							SkeletalType},
 		{typeid(LightComponent),							LightType},
 		// Any Type below here is private and should not be visible to the user
-		{typeid(IRenderableComponent),						IRenderableType}
 	};
 
 	componentTypeName =
@@ -35,10 +31,8 @@ void WillEngine::initComponentType()
 		{NullType,											"Null Component"},
 		{TransformType,										"Transform Component"},
 		{MeshType,											"Mesh Component"},
-		{SkinnedMeshType,									"Skinned Mesh Component"},
 		{SkeletalType,										"Skeletal Component"},
 		{LightType,											"Light Component"},
 		// Any Type below here is private and should not be visible to the user
-		{IRenderableType,									"Renderable Interface"}
 	};
 }

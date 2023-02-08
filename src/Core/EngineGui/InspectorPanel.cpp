@@ -39,32 +39,14 @@ void WillEngine::EngineGui::InspectorPanel::update(GameState* gameState)
 
 		if (entity->HasComponent<MeshComponent>())
 		{
-			MeshComponent* mesh = entity->GetComponent<MeshComponent>();
-
-			u32 meshId = mesh->meshIndex;
-			if (ImGui::TreeNode("Mesh"))
+			if (ImGui::TreeNode("Renderable Mesh"))
 			{
-				ImGui::Text("Mesh: %s", gameState->graphicsResources.meshes[meshId]->name.c_str());
+				MeshComponent* meshComp = entity->GetComponent<MeshComponent>();
 
-				if (mesh->materialIndex)
-					ImGui::Text("Material: %s", gameState->graphicsResources.materials[mesh->materialIndex]->name.c_str());
-				else
-					ImGui::Text("Material not selected\n");
-					
-				ImGui::TreePop();
-			}
-		}
-
-		if (entity->HasComponent<SkinnedMeshComponent>())
-		{
-			if (ImGui::TreeNode("Skinned Mesh"))
-			{
-				SkinnedMeshComponent* skinnedMeshComp = entity->GetComponent<SkinnedMeshComponent>();
-
-				for (u32 i = 0; i < skinnedMeshComp->getNumMesh(); i++)
+				for (u32 i = 0; i < meshComp->getNumMesh(); i++)
 				{
-					u32 meshId = skinnedMeshComp->meshIndicies[i];
-					u32 materialId = skinnedMeshComp->materialIndicies[i];
+					u32 meshId = meshComp->meshIndicies[i];
+					u32 materialId = meshComp->materialIndicies[i];
 					ImGui::Text("Mesh: %s", gameState->graphicsResources.meshes[meshId]->name.c_str());
 
 					if(materialId)
@@ -134,15 +116,6 @@ void WillEngine::EngineGui::InspectorPanel::update(GameState* gameState)
 				{
 					if (type == ComponentType::MeshType)
 						gameState->todoTasks.meshesToAdd.push(entity);
-
-					if (type == ComponentType::SkinnedMeshType)
-					{
-						SkinnedMeshComponent* skinnedMeshComp = new SkinnedMeshComponent();
-						skinnedMeshComp->meshIndicies.push_back(5);
-						skinnedMeshComp->materialIndicies.push_back(5);
-
-						entity->addComponent(skinnedMeshComp);
-					}
 				}
 
 				// Gray out: End

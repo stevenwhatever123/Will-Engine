@@ -41,10 +41,11 @@ void main()
 			finalPosition = vec4(position, 1);
 			break;
 		}
-		vec4 localPosition = boneMatrices[boneIds[i]] * vec4(position, 1);
-		finalPosition += localPosition * weights[i];
 
+		vec4 localPosition = boneMatrices[boneIds[i]] * vec4(position, 1);
 		vec4 localNormal = normalize(boneMatrices[boneIds[i]] * vec4(normal, 1));
+
+		finalPosition += localPosition * weights[i];
 		finalNormal += localNormal * weights[i];
 	}
 

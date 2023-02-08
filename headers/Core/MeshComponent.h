@@ -1,7 +1,7 @@
 #pragma once
 #include "Utils/VulkanUtil.h"
 
-#include "Core/ECS/IRenderableComponent.h"
+#include "Core/ECS/Component.h"
 #include "Core/Mesh.h"
 #include "Core/Material.h"
 #include "Core/UniformClass.h"
@@ -10,7 +10,7 @@
 
 namespace WillEngine
 {
-	class MeshComponent : public IRenderableComponent
+	class MeshComponent : public Component
 	{
 	public:
 
@@ -19,20 +19,21 @@ namespace WillEngine
 	public:
 
 		std::string name;
-		u32 meshIndex;
-		u32 materialIndex;
+		std::vector<u32> meshIndicies;
+		std::vector<u32> materialIndicies;
 
 	public:
 
 		MeshComponent();
-		MeshComponent(const Mesh* mesh);
+		MeshComponent(const MeshComponent* meshComp);
 		virtual ~MeshComponent();
 
-		void setMesh(Mesh* mesh);
+		void addMesh(Mesh* mesh);
+		void addMesh(Mesh* mesh, Material* material);
 
 		virtual void update() {};
 
-		virtual u32 getNumMesh() const { return 1; };
+		virtual u32 getNumMesh() const { return meshIndicies.size(); };
 
 		virtual ComponentType getType() { return id; };
 	};

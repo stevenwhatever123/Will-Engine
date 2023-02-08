@@ -127,7 +127,8 @@ void SystemManager::update()
         gameState.graphicsResources.meshes[mesh->id] = mesh;
 
         // Add a this mesh as a mesh component to the entity
-        MeshComponent* meshComp = new MeshComponent(mesh);
+        MeshComponent* meshComp = new MeshComponent();
+        meshComp->addMesh(mesh, loadedMaterials[mesh->materialIndex]);
         entity->addComponent(meshComp);
 
         // Add this material to the graphics resources

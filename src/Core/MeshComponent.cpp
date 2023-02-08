@@ -4,17 +4,19 @@
 using namespace WillEngine;
 
 MeshComponent::MeshComponent() :
+	Component(nullptr),
 	name(""),
-	meshIndex(0),
-	materialIndex(0)
+	meshIndicies(),
+	materialIndicies()
 {
 
 }
 
-MeshComponent::MeshComponent(const Mesh* mesh) :
-	name(mesh->name),
-	meshIndex(mesh->id),
-	materialIndex(mesh->materialIndex)
+MeshComponent::MeshComponent(const MeshComponent* meshComp) :
+	Component(meshComp->parent),
+	name(meshComp->name),
+	meshIndicies(meshComp->meshIndicies),
+	materialIndicies(meshComp->materialIndicies)
 {
 
 }
@@ -24,8 +26,14 @@ MeshComponent::~MeshComponent()
 
 }
 
-void MeshComponent::setMesh(Mesh* mesh)
+void MeshComponent::addMesh(Mesh* mesh)
 {
-	this->meshIndex = mesh->id;
-	this->materialIndex = mesh->materialIndex;
+	meshIndicies.push_back(mesh->id);
+	materialIndicies.push_back(mesh->materialIndex);
+}
+
+void MeshComponent::addMesh(Mesh* mesh, Material* material)
+{
+	meshIndicies.push_back(mesh->id);
+	materialIndicies.push_back(material->id);
 }

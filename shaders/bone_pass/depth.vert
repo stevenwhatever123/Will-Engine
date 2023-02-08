@@ -29,6 +29,8 @@ void main()
 	vec4 finalPosition = vec4(0);
 	for(int i = 0; i < MAX_BONE_INFLUENCE; i++)
 	{
+		// Ignore bone with id 0 as according to https://github.com/assimp/assimp/issues/3285
+		// bone id 0 has no meaning
 		if(boneIds[i] < 0)
 			continue;
 		if(boneIds[i] >= MAX_BONES)
@@ -36,6 +38,7 @@ void main()
 			finalPosition = vec4(position, 1);
 			break;
 		}
+
 		vec4 localPosition = boneMatrices[boneIds[i]] * vec4(position, 1);
 		finalPosition += localPosition * weights[i];
 	}
