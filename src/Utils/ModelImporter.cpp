@@ -515,6 +515,10 @@ void WillEngine::Utils::setVertexBoneData(SkinnedMesh* mesh, u32 index, u32 bone
 {
 	for (u32 i = 0; i < MAX_BONE_INFLUENCE; i++)
 	{
+		// Ignore this bone id and weight if it is 0
+		if (weight < 0.0001f)
+			break;
+
 		if (mesh->boneWeights[index].boneIds[i] < 0)
 		{
 			mesh->boneWeights[index].boneIds[i] = boneId;
