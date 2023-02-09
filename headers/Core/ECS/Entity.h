@@ -39,6 +39,7 @@ namespace WillEngine
 		u32 getChildrenSize() const { return children.size(); };
 
 		Entity* getRoot();
+		Entity* getParent();
 
 	private:
 
@@ -65,6 +66,43 @@ namespace WillEngine
 		template<class T> inline bool HasComponent()
 		{
 			return components[typeid(T)] != nullptr;
+		}
+
+		template<class T> inline bool AnyParentHasComponent()
+		{
+			Entity* parentEntity = this;
+
+			while (parentEntity)
+			{
+				if (parentEntity->HasComponent<T>())
+					return true;
+
+				if (parentEntity->parent == nullptr)
+					return false;
+
+				parentEntity = parentEntity->parent;
+			}
+
+			return false;
+		}
+
+		// This would return the FIRST component found when transversing the node hierarchy back to the root
+		template<class T> inline T* AnyParentGetComponent()
+		{
+			Entity* parentEntity = this;
+
+			while (parentEntity)
+			{
+				if (parentEntity->HasComponent<T>())
+					return parentEntity->GetComponent<T>();
+
+				if (parentEntity->parent == nullptr)
+					return nullptr;
+
+				parentEntity = parentEntity->parent;
+			}
+
+			return nullptr;
 		}
 
 		template<class T> inline void removeComponent()

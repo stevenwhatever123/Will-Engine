@@ -40,6 +40,8 @@ public:
 	std::map<std::string, BoneInfo> boneInfos;
 	BoneUniform boneUniform;
 
+	bool uniformUpdated;
+
 public:
 
 	// For Vulkan Uniform Buffer
@@ -52,6 +54,10 @@ public:
 	~Skeleton();
 
 	void addBone(const BoneInfo bone);
+
+	void boneUniformReset() { uniformUpdated = false; };
+	void boneUniformUpdated() { uniformUpdated = true; };
+	bool hasUniformUpdated() const { return uniformUpdated; };
 
 	void generateBoneUniform();
 	void updateBoneUniform(Entity* rootEntity);

@@ -213,6 +213,13 @@ void SystemManager::updateGui()
 
 void SystemManager::updateECS()
 {
+    // Reset Skeleton
+    for (auto it = gameState.gameResources.skeletons.begin(); it != gameState.gameResources.skeletons.end(); it++)
+    {
+        Skeleton* skeleton = it->second;
+        skeleton->boneUniformReset();
+    }
+
     for(auto it = gameState.gameResources.entities.begin(); it != gameState.gameResources.entities.end(); it++)
     {
         Entity* entity = it->second;
@@ -238,7 +245,8 @@ void SystemManager::updateECS()
             u32 skeletonId = skeleComp->skeletalId;
 
             Skeleton* skeleton = gameState.gameResources.skeletons[skeletonId];
-            skeleton->updateBoneUniform(entity);
+            if (!skeleton->hasUniformUpdated())
+                skeleton->updateBoneUniform(entity->getParent());
         }
     }
 }

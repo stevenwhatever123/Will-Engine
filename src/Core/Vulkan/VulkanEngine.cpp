@@ -1695,14 +1695,17 @@ void VulkanEngine::depthSkeletalPrePasses(VkCommandBuffer& commandBuffer, VkExte
 			continue;
 
 		// Get the skeletal
-		Entity* rootEntity = entity->getRoot();
+		//Entity* rootEntity = entity->getRoot();
 
-		if (!rootEntity->HasComponent<SkeletalComponent>())
+		//if (!rootEntity->HasComponent<SkeletalComponent>())
+		//	continue;
+		if (!entity->AnyParentHasComponent<SkeletalComponent>())
 			continue;
 
 		TransformComponent* transformComponent = entity->components[typeid(TransformComponent)]->GetComponent<TransformComponent>();
 
-		SkeletalComponent* skeletalComp = rootEntity->GetComponent<SkeletalComponent>();
+		//SkeletalComponent* skeletalComp = rootEntity->GetComponent<SkeletalComponent>();
+		SkeletalComponent* skeletalComp = entity->AnyParentGetComponent<SkeletalComponent>();
 		Skeleton* skeleton = gameState->gameResources.skeletons[skeletalComp->skeletalId];
 
 		// Bind bone uniform buffer
@@ -1727,9 +1730,9 @@ void VulkanEngine::depthSkeletalPrePasses(VkCommandBuffer& commandBuffer, VkExte
 			vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 			// Push constant for model matrix
-			mat4 transformation = transformComponent->getGlobalTransformation();
-			vkCmdPushConstants(commandBuffer, depthSkeletalPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-				sizeof(transformation), &transformation);
+			//mat4 transformation = transformComponent->getGlobalTransformation();
+			//vkCmdPushConstants(commandBuffer, depthSkeletalPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+			//	sizeof(transformation), &transformation);
 
 			vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 		}
@@ -1759,9 +1762,11 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 			continue;
 
 		// Don't render if it has skeletal component as we have rendered it already
-		Entity* rootEntity = entity->getRoot();
+		//Entity* rootEntity = entity->getRoot();
 
-		if (rootEntity->HasComponent<SkeletalComponent>())
+		//if (rootEntity->HasComponent<SkeletalComponent>())
+		//	continue;
+		if (entity->AnyParentHasComponent<SkeletalComponent>())
 			continue;
 
 		TransformComponent* transformComponent = entity->components[typeid(TransformComponent)]->GetComponent<TransformComponent>();
@@ -1824,14 +1829,17 @@ void VulkanEngine::geometrySkeletalPasses(VkCommandBuffer& commandBuffer, VkExte
 			continue;
 
 		// Get the skeletal
-		Entity* rootEntity = entity->getRoot();
+		//Entity* rootEntity = entity->getRoot();
 
-		if (!rootEntity->HasComponent<SkeletalComponent>())
+		//if (!rootEntity->HasComponent<SkeletalComponent>())
+		//	continue;
+		if (!entity->AnyParentHasComponent<SkeletalComponent>())
 			continue;
 
 		TransformComponent* transformComponent = entity->components[typeid(TransformComponent)]->GetComponent<TransformComponent>();
 
-		SkeletalComponent* skeletalComp = rootEntity->GetComponent<SkeletalComponent>();
+		//SkeletalComponent* skeletalComp = rootEntity->GetComponent<SkeletalComponent>();
+		SkeletalComponent* skeletalComp = entity->AnyParentGetComponent<SkeletalComponent>();
 		Skeleton* skeleton = gameState->gameResources.skeletons[skeletalComp->skeletalId];
 
 		// Bind bone uniform buffer
@@ -1861,9 +1869,9 @@ void VulkanEngine::geometrySkeletalPasses(VkCommandBuffer& commandBuffer, VkExte
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skeletalPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
 
 			// Push constant for model matrix
-			mat4 transformation = transformComponent->getGlobalTransformation();
-			vkCmdPushConstants(commandBuffer, skeletalPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-				sizeof(transformation), &transformation);
+			//mat4 transformation = transformComponent->getGlobalTransformation();
+			//vkCmdPushConstants(commandBuffer, skeletalPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+			//	sizeof(transformation), &transformation);
 
 			vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 		}
@@ -1900,9 +1908,11 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 				continue;
 
 			// Don't render if it has skeletal component as we have rendered it already
-			Entity* rootEntity = entity->getRoot();
+			//Entity* rootEntity = entity->getRoot();
 
-			if (rootEntity->HasComponent<SkeletalComponent>())
+			//if (rootEntity->HasComponent<SkeletalComponent>())
+			//	continue;
+			if (entity->AnyParentHasComponent<SkeletalComponent>())
 				continue;
 
 			Mesh* mesh = gameState->graphicsResources.meshes[meshComponent->meshIndicies[i]];

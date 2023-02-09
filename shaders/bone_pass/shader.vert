@@ -51,7 +51,7 @@ void main()
 
 	//oPosition = modelTransformation * finalPosition;
 	oPosition = finalPosition;
-	oNormal = finalNormal;
+	oNormal = normalize(finalNormal);
 	oTexCoord = texCoord;
 
 	//gl_Position = projectMatrix * cameraMatrix * modelTransformation * finalPosition;

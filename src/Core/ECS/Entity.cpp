@@ -77,6 +77,11 @@ Entity* Entity::getRoot()
 	return parentEntity;
 }
 
+Entity* Entity::getParent()
+{
+	return parent;
+}
+
 template<typename T> 
 void Entity::addComponent(T* comp)
 {

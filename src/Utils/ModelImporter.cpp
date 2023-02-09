@@ -68,16 +68,12 @@ std::tuple<std::vector<Mesh*>, std::map<u32, Material*>, Skeleton*>
 
 	if (entities)
 	{
-		extractNodes(filename, scene, meshes, materials, entities);
-
 		if (checkHasBones(scene))
 		{
 			skeleton = extractBones(scene);
-			SkeletalComponent* skeletalComp = new SkeletalComponent(skeleton);
-
-			Entity* rootEntity = getRootEntity(*entities);
-			rootEntity->addComponent(skeletalComp);
 		}
+
+		extractNodes(filename, scene, meshes, materials, skeleton, entities);
 	}
 
 	return { meshes, materials, skeleton };
@@ -295,7 +291,6 @@ Mesh* WillEngine::Utils::extractMeshWithoutBones(const aiMesh* currentAiMesh)
 Mesh* WillEngine::Utils::extractMeshWithBones(const aiMesh* currentAiMesh)
 {
 	SkinnedMesh* mesh = new SkinnedMesh();
-	Skeleton* skeleton = new Skeleton();
 
 	mesh->name = currentAiMesh->mName.C_Str();
 
@@ -355,7 +350,7 @@ Mesh* WillEngine::Utils::extractMeshWithBones(const aiMesh* currentAiMesh)
 }
 
 void WillEngine::Utils::extractNodes(const char* filename, const aiScene* scene, std::vector<Mesh*> extractedMesh, std::map<u32, Material*> extractedMaterial,
-	std::vector<Entity*>* entities)
+	Skeleton* extractedSkeleton, std::vector<Entity*>* entities)
 {
 	aiNode* rootNode = scene->mRootNode;
 
@@ -374,11 +369,11 @@ void WillEngine::Utils::extractNodes(const char* filename, const aiScene* scene,
 
 	//printf("%s\n", rootNode->mName.C_Str());
 
-	traverseNodeTree(rootNode, rootEntity, 1, extractedMesh, extractedMaterial,entities);
+	traverseNodeTree(scene, rootNode, rootEntity, 1, extractedMesh, extractedMaterial, extractedSkeleton, entities);
 }
 
-void WillEngine::Utils::traverseNodeTree(const aiNode* node, Entity* parent, u8 level, std::vector<Mesh*> extractedMesh, std::map<u32, Material*> extractedMaterial,
-	std::vector<Entity*>* entities)
+void WillEngine::Utils::traverseNodeTree(const aiScene* scene, const aiNode* node, Entity* parent, u8 level, std::vector<Mesh*> extractedMesh, std::map<u32, Material*> extractedMaterial,
+	Skeleton* extractedSkeleton, std::vector<Entity*>* entities)
 {
 	for (u32 i = 0; i < node->mNumChildren; i++)
 	{
@@ -412,6 +407,12 @@ void WillEngine::Utils::traverseNodeTree(const aiNode* node, Entity* parent, u8 
 				u32 meshIndex = child->mMeshes[j];
 				u32 materialIndex = extractedMesh[meshIndex]->materialIndex;
 
+				if (scene->mMeshes[meshIndex]->HasBones())
+				{
+					SkeletalComponent* skeletalComp = new SkeletalComponent(extractedSkeleton);
+					childEntity->addComponent(skeletalComp);
+				}
+
 				meshComp->addMesh(extractedMesh[meshIndex], extractedMaterial[materialIndex]);
 			}
 
@@ -439,7 +440,7 @@ void WillEngine::Utils::traverseNodeTree(const aiNode* node, Entity* parent, u8 
 		//	childEntity->addComponent(skinnedMeshComp);
 		//}
 
-		traverseNodeTree(child, childEntity, level + 1, extractedMesh, extractedMaterial, entities);
+		traverseNodeTree(scene, child, childEntity, level + 1, extractedMesh, extractedMaterial, extractedSkeleton, entities);
 	}
 }
 
@@ -502,7 +503,7 @@ void WillEngine::Utils::extractVerticesBoneWeight(SkinnedMesh* mesh, const aiMes
 		for (u32 weightIndex = 0; weightIndex < numWeights; weightIndex++)
 		{
 			u32 vertexIndex = weights[weightIndex].mVertexId;
-			float vertexWeight = weights[weightIndex].mWeight;
+			f32 vertexWeight = (f32) weights[weightIndex].mWeight;
 
 			assert(vertexIndex <= mesh->positions.size());
 			setVertexBoneData(mesh, vertexIndex, boneIndex, vertexWeight);
@@ -510,7 +511,7 @@ void WillEngine::Utils::extractVerticesBoneWeight(SkinnedMesh* mesh, const aiMes
 	}
 }
 
-void WillEngine::Utils::setVertexBoneData(SkinnedMesh* mesh, u32 index, u32 boneId, float weight)
+void WillEngine::Utils::setVertexBoneData(SkinnedMesh* mesh, u32 index, u32 boneId, f32 weight)
 {
 	for (u32 i = 0; i < MAX_BONE_INFLUENCE; i++)
 	{
