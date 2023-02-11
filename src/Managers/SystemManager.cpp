@@ -109,40 +109,11 @@ void SystemManager::initVulkanWindow()
 void SystemManager::update()
 {
     updateInputs();
+    
+    // Process to-do meshes from gameState
+    processMesh();
 
-    while (!gameState.todoTasks.meshesToAdd.empty())
-    {
-        Entity* entity = gameState.todoTasks.meshesToAdd.front();
-
-        std::string defaultPreset = "C:/Users/Steven/source/repos/Will-Engine/presets/meshes/cube.fbx";
-
-        std::vector<Mesh*> loadedMeshes;
-        std::map<u32, Material*> loadedMaterials;
-        Skeleton* loadedSkeleton = nullptr;
-        std::tie(loadedMeshes, loadedMaterials, loadedSkeleton) = WillEngine::Utils::readModel(defaultPreset.c_str());
-
-        Mesh* mesh = loadedMeshes[0];
-        mesh->uploadDataToPhysicalDevice(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator, vulkanWindow->surface, vulkanWindow->graphicsQueue);
-        // Add this mesh to the graphics resources
-        gameState.graphicsResources.meshes[mesh->id] = mesh;
-
-        // Add a this mesh as a mesh component to the entity
-        MeshComponent* meshComp = new MeshComponent();
-        meshComp->addMesh(mesh, loadedMaterials[mesh->materialIndex]);
-        entity->addComponent(meshComp);
-
-        // Add this material to the graphics resources
-        Material* material = loadedMaterials.begin()->second;
-        gameState.graphicsResources.materials[material->id] = material;
-
-        material->initBrdfDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
-            vulkanWindow->vulkanEngine->commandPools[0], vulkanWindow->vulkanEngine->descriptorPool, vulkanWindow->graphicsQueue);
-
-        gameState.todoTasks.meshesToAdd.pop();
-    }
-
-    if (camera)
-        updateCamera();
+    updateCamera();
 
     updateECS();
 
@@ -181,6 +152,9 @@ void SystemManager::updateInputs()
 
 void SystemManager::updateCamera()
 {
+    if (!camera)
+        return;
+
     if (keys['W']) { camera->moveForward(movementSpeed * (f32) deltaTime); }
     if (keys['S']) { camera->moveForward(-movementSpeed * (f32) deltaTime); }
     if (keys['A']) { camera->moveRight(-movementSpeed * (f32) deltaTime); }
@@ -307,5 +281,39 @@ void SystemManager::loadModel()
     for (u32 i = 0; i < entities.size(); i++)
     {
         gameState.gameResources.entities[entities[i]->id] = entities[i];
+    }
+}
+
+void SystemManager::processMesh()
+{
+    while (!gameState.todoTasks.meshesToAdd.empty())
+    {
+        Entity* entity = gameState.todoTasks.meshesToAdd.front();
+
+        std::string defaultPreset = "C:/Users/Steven/source/repos/Will-Engine/presets/meshes/cube.fbx";
+
+        std::vector<Mesh*> loadedMeshes;
+        std::map<u32, Material*> loadedMaterials;
+        Skeleton* loadedSkeleton = nullptr;
+        std::tie(loadedMeshes, loadedMaterials, loadedSkeleton) = WillEngine::Utils::readModel(defaultPreset.c_str());
+
+        Mesh* mesh = loadedMeshes[0];
+        mesh->uploadDataToPhysicalDevice(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator, vulkanWindow->surface, vulkanWindow->graphicsQueue);
+        // Add this mesh to the graphics resources
+        gameState.graphicsResources.meshes[mesh->id] = mesh;
+
+        // Add a this mesh as a mesh component to the entity
+        MeshComponent* meshComp = new MeshComponent();
+        meshComp->addMesh(mesh, loadedMaterials[mesh->materialIndex]);
+        entity->addComponent(meshComp);
+
+        // Add this material to the graphics resources
+        Material* material = loadedMaterials.begin()->second;
+        gameState.graphicsResources.materials[material->id] = material;
+
+        material->initBrdfDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
+            vulkanWindow->vulkanEngine->commandPools[0], vulkanWindow->vulkanEngine->descriptorPool, vulkanWindow->graphicsQueue);
+
+        gameState.todoTasks.meshesToAdd.pop();
     }
 }

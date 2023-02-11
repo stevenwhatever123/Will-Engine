@@ -84,4 +84,6 @@ public:
 
 	// Command calls
 	void loadModel();
+
+	void processMesh();
 };
