@@ -22,12 +22,15 @@ class VulkanFramebuffer
 {
 public:
 
+	static const u32 attachmentSize = 4;
+
+public:
+
 	VkFramebuffer framebuffer;
 	VulkanFramebufferAttachment GBuffer0;
 	VulkanFramebufferAttachment GBuffer1;
 	VulkanFramebufferAttachment GBuffer2;
 	VulkanFramebufferAttachment GBuffer3;
-	VulkanFramebufferAttachment GBuffer4;
 
 public:
 

@@ -33,7 +33,6 @@ struct PhongMaterialUniform
 struct BRDFMetallic
 {
 	vec4 emissive;
-	vec4 ambient;
 	vec4 albedo;
 	f32 metallic;
 	f32 roughness;

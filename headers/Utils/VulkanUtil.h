@@ -2,6 +2,8 @@
 #include "Core/Vulkan/VulkanAllocatedObject.h"
 #include "Core/Vulkan/VulkanFramebuffer.h"
 
+#include "Core/Material.h"
+
 #include "Managers/FileManager.h"
 
 #include "Utils/Image.h"

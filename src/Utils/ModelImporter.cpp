@@ -100,9 +100,7 @@ std::vector<Material*> WillEngine::Utils::extractMaterial(const aiScene* scene)
 		material->name = materialName.C_Str();
 
 		// BRDF Metallic
-		//aiTextureType brdfMetallicTextureType[] = { aiTextureType_EMISSIVE, aiTextureType_AMBIENT, aiTextureType_BASE_COLOR, aiTextureType_METALNESS ,
-		//	aiTextureType_DIFFUSE_ROUGHNESS };
-		aiTextureType brdfMetallicTextureType[] = { aiTextureType_EMISSIVE, aiTextureType_AMBIENT, aiTextureType_DIFFUSE, aiTextureType_METALNESS ,
+		aiTextureType brdfMetallicTextureType[] = { aiTextureType_EMISSIVE, aiTextureType_DIFFUSE, aiTextureType_METALNESS ,
 			aiTextureType_DIFFUSE_ROUGHNESS };
 		u32 metallicTextureTypeSize = sizeof(brdfMetallicTextureType) / sizeof(brdfMetallicTextureType[0]);
 
@@ -140,16 +138,6 @@ std::vector<Material*> WillEngine::Utils::extractMaterial(const aiScene* scene)
 			material->brdfMaterialUniform.emissive.z = color.b;
 		}
 
-		// Ambient
-		{
-			aiColor3D color(1, 1, 1);
-			ret = currentAiMaterial->Get(AI_MATKEY_COLOR_AMBIENT, color);
-
-			material->brdfMaterialUniform.ambient.x = color.r;
-			material->brdfMaterialUniform.ambient.y = color.g;
-			material->brdfMaterialUniform.ambient.z = color.b;
-		}
-
 		// Diffuse
 		{
 			aiColor3D color(1, 1, 1);
@@ -172,16 +160,13 @@ std::vector<Material*> WillEngine::Utils::extractMaterial(const aiScene* scene)
 				material->brdfTextures[j].textureImage->setImageColor(material->brdfMaterialUniform.emissive);
 				break;
 			case 1:
-				material->brdfTextures[j].textureImage->setImageColor(material->brdfMaterialUniform.ambient);
-				break;
-			case 2:
 				material->brdfTextures[j].textureImage->setImageColor(material->brdfMaterialUniform.albedo);
 				break;
-			case 3:
+			case 2:
 				// Metallic should be imported from a texture, here we use a default color
 				material->brdfTextures[j].textureImage->setImageColor(material->brdfMaterialUniform.metallic);
 				break;
-			case 4:
+			case 3:
 				// Roughness should be imported from a texture, here we use a default color
 				material->brdfTextures[j].textureImage->setImageColor(material->brdfMaterialUniform.roughness);
 				break;

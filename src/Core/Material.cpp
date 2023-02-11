@@ -20,6 +20,9 @@ TextureDescriptorSet::TextureDescriptorSet():
 
 }
 
+// Initialise the static const texture type for Material class
+const std::string Material::brdfTextureTypeNames[TextureSize] = { "Emissive", "Albedo", "Metallic", "Roughness" };
+
 Material::Material() :
 	brdfMaterialUniform({}),
 	name(""),
@@ -115,7 +118,7 @@ void Material::initBrdfDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& 
 	}
 
 	// Initialise Descriptor set layout first
-	// Binding set to 1 with 5 descriptor sets
+	// Binding set to 1 with n number of descriptor sets
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 		VK_SHADER_STAGE_FRAGMENT_BIT, 1, textureSize);
 
@@ -159,7 +162,7 @@ void Material::updateBrdfDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice
 	}
 
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, textureDescriptorSet, textureSamplers.data(), imageViews.data(),
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 5);
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, textureSize);
 }
 
 const bool Material::hasTexture(u32 index, TextureDescriptorSet* textures)

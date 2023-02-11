@@ -22,10 +22,10 @@ VulkanFramebuffer::VulkanFramebuffer():
 
 VulkanFramebuffer::VulkanFramebuffer(VkFramebuffer framebuffer) :
 	framebuffer(framebuffer),
+	GBuffer0(),
 	GBuffer1(),
 	GBuffer2(),
-	GBuffer3(),
-	GBuffer4()
+	GBuffer3()
 {
 
 }
@@ -51,7 +51,4 @@ void VulkanFramebuffer::cleanUp(VkDevice& logicalDevice, VmaAllocator& vmaAlloca
 
 	vkDestroyImageView(logicalDevice, GBuffer3.imageView, nullptr);
 	vmaDestroyImage(vmaAllocator, GBuffer3.vulkanImage.image, GBuffer3.vulkanImage.allocation);
-
-	vkDestroyImageView(logicalDevice, GBuffer4.imageView, nullptr);
-	vmaDestroyImage(vmaAllocator, GBuffer4.vulkanImage.image, GBuffer4.vulkanImage.allocation);
 }

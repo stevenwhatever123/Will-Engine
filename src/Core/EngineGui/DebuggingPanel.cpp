@@ -40,9 +40,6 @@ void WillEngine::EngineGui::DebuggingPanel::update(GameState* gameState, VulkanF
 		ImGui::Text("GBuffer3");
 		ImGui::Image((ImTextureID)attachments.GBuffer3.imguiTextureDescriptorSet, ImVec2(352, 240));
 
-		ImGui::Text("GBuffer4");
-		ImGui::Image((ImTextureID)attachments.GBuffer4.imguiTextureDescriptorSet, ImVec2(352, 240));
-
 		ImGui::TreePop();
 	}
 

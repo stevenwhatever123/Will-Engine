@@ -16,7 +16,7 @@ layout(set = 1, binding = 1) uniform camera
 	vec4 cameraPosition;
 };
 
-layout(set = 2, binding = 2) uniform sampler2D texColor[5];
+layout(set = 2, binding = 2) uniform sampler2D texColor[4];
 
 layout(set = 3, binding = 3) uniform samplerCube depthMap;
 
@@ -124,8 +124,7 @@ void main()
 	const vec3 position = vec3(vec4(texture(texColor[0], texCoord).rgb, 1));
 	const vec3 normal = vec3(vec4(normalize(texture(texColor[1], texCoord)).rgb, 1));
 	const vec4 emissive = texture(texColor[2], texCoord);
-	const vec4 ambient = texture(texColor[3], texCoord);
-	const vec4 albedo = texture(texColor[4], texCoord);
+	const vec4 albedo = texture(texColor[3], texCoord);
 	const float metallic = texture(texColor[0], texCoord).a;
 	const float roughness = texture(texColor[1], texCoord).a;
 
@@ -162,7 +161,7 @@ void main()
 	// Shadow value
 	float shadow = ShadowCalculation(position, normal);
 
-    vec4 result = emissive + ambient + (1.0 - shadow) * brdf;
+    vec4 result = emissive + (1.0 - shadow) * brdf;
 
 	oColor = result;
 }

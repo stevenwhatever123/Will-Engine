@@ -5,8 +5,7 @@ void WillEngine::EngineGui::MaterialPanel::update(GameState* gameState)
 {
 	ImGui::Begin("Material Viewer");
 
-	std::string phongMaterials[4] = { "Emissive", "Ambient", "Diffuse", "Specular" };
-	std::string brdfMaterials[5] = { "Emissive", "Ambient", "Albedo", "Metallic", "Roughness" };
+	//std::string brdfMaterials[4] = { "Emissive", "Albedo", "Metallic", "Roughness" };
 
 	std::map<u32, Material*> materials = gameState->graphicsResources.materials;
 
@@ -44,18 +43,6 @@ void WillEngine::EngineGui::MaterialPanel::update(GameState* gameState)
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				vec4 ambientTemp = material->brdfMaterialUniform.ambient;
-				ImGui::DragFloat3("Ambient", &material->brdfMaterialUniform.ambient.x, 0.01f, 0, 1);
-				vec4 ambientDiff = glm::epsilonNotEqual(ambientTemp, material->brdfMaterialUniform.ambient, 0.0001f);
-				if (ambientDiff.x || ambientDiff.y || ambientDiff.z)
-				{
-					gameState->materialUpdateInfo.updateColor = true;
-					gameState->materialUpdateInfo.materialId = materialId;
-					gameState->materialUpdateInfo.textureIndex = 1;
-				}
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
 				vec4 albedoTemp = material->brdfMaterialUniform.albedo;
 				ImGui::DragFloat3("Albedo", &material->brdfMaterialUniform.albedo.x, 0.01f, 0, 1);
 				vec4 albedoDiff = glm::epsilonNotEqual(albedoTemp, material->brdfMaterialUniform.albedo, 0.0001f);
@@ -63,7 +50,7 @@ void WillEngine::EngineGui::MaterialPanel::update(GameState* gameState)
 				{
 					gameState->materialUpdateInfo.updateColor = true;
 					gameState->materialUpdateInfo.materialId = materialId;
-					gameState->materialUpdateInfo.textureIndex = 2;
+					gameState->materialUpdateInfo.textureIndex = 1;
 				}
 
 				ImGui::TableNextRow();
@@ -75,7 +62,7 @@ void WillEngine::EngineGui::MaterialPanel::update(GameState* gameState)
 				{
 					gameState->materialUpdateInfo.updateColor = true;
 					gameState->materialUpdateInfo.materialId = materialId;
-					gameState->materialUpdateInfo.textureIndex = 3;
+					gameState->materialUpdateInfo.textureIndex = 2;
 				}
 
 				ImGui::TableNextRow();
@@ -87,18 +74,18 @@ void WillEngine::EngineGui::MaterialPanel::update(GameState* gameState)
 				{
 					gameState->materialUpdateInfo.updateColor = true;
 					gameState->materialUpdateInfo.materialId = materialId;
-					gameState->materialUpdateInfo.textureIndex = 4;
+					gameState->materialUpdateInfo.textureIndex = 3;
 				}
 
 				ImGui::EndTable();
 			}
 
 			// BRDF materials
-			for (u32 j = 0; j < 5; j++)
+			for (u32 j = 0; j < Material::TextureSize; j++)
 			{
 				ImGui::PushID(j);
 
-				ImGui::Text(brdfMaterials[j].c_str());
+				ImGui::Text(Material::brdfTextureTypeNames[j].c_str());
 
 				bool lastUseTexture = material->brdfTextures[j].useTexture;
 				ImGui::Checkbox("Use Texture", &material->brdfTextures[j].useTexture);

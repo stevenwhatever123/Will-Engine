@@ -33,6 +33,11 @@ class Material
 {
 public:
 
+	static const u32 TextureSize = 4;
+	static const std::string brdfTextureTypeNames[TextureSize];
+
+public:
+
 	std::string name;
 
 	// Id for this material
@@ -42,8 +47,8 @@ public:
 	BRDFMetallic brdfMaterialUniform;
 
 	// The metallic brdf texture
-	// BRDF: 1. Emissive, 2. Ambient, 3. Albedo (Diffuse), 4. Metallic, 5. Roughness
-	TextureDescriptorSet brdfTextures[5];
+	// BRDF: 1. Emissive, 2. Albedo (Diffuse), 3. Metallic, 4. Roughness
+	TextureDescriptorSet brdfTextures[TextureSize];
 
 	// Descriptor Set / Uniform Buffer for vulkan
 	VkDescriptorSetLayout textureDescriptorSetLayout;
