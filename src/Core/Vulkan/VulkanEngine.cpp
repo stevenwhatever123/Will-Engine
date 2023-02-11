@@ -15,7 +15,7 @@ VulkanEngine::VulkanEngine() :
 	framebuffers(),
 	offscreenFramebuffer(),
 	attachmentSampler(VK_NULL_HANDLE),
-	commandPool(VK_NULL_HANDLE),
+	commandPools(),
 	geometryBuffers(),
 	imageAvailable(VK_NULL_HANDLE),
 	uniformUpdated(VK_NULL_HANDLE),
@@ -57,7 +57,7 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 
 	// Create / Allocate resources
 	createVmaAllocator(instance, physicalDevice, logicalDevice);
-	createCommandPool(logicalDevice, physicalDevice, surface, commandPool);
+	createCommandPools(logicalDevice, physicalDevice, surface, commandPools);
 	createCommandBuffers(logicalDevice);
 	createSemaphore(logicalDevice);
 	createFence(logicalDevice, fences, VK_FENCE_CREATE_SIGNALED_BIT);
@@ -91,7 +91,7 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 
 	for (u32 i = 0; i < downSampleImages.size(); i++)
 	{
-		WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPool, graphicsQueue, swapchainImageFormat, sceneExtentTemp, downSampleImages[i]);
+		WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPools[0], graphicsQueue, swapchainImageFormat, sceneExtentTemp, downSampleImages[i]);
 
 		sceneExtentTemp.width /= 2;
 		sceneExtentTemp.height /= 2;
@@ -100,7 +100,7 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	sceneExtentTemp = sceneExtent;
 	for (u32 i = 0; i < upSampleImages.size(); i++)
 	{
-		WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPool, graphicsQueue, swapchainImageFormat, sceneExtentTemp, upSampleImages[i]);
+		WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPools[0], graphicsQueue, swapchainImageFormat, sceneExtentTemp, upSampleImages[i]);
 
 		sceneExtentTemp.width /= 2;
 		sceneExtentTemp.height /= 2;
@@ -233,8 +233,12 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	vkDestroySemaphore(logicalDevice, renderFinished, nullptr);
 
 	// Free Command Buffer and Destroy Command Pool
-	vkFreeCommandBuffers(logicalDevice, commandPool, geometryBuffers.size(), geometryBuffers.data());
-	vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
+	for (auto& commandPool : commandPools)
+	{
+		// This is definitely wrong and should not be done like this
+		//vkFreeCommandBuffers(logicalDevice, commandPool, geometryBuffers.size(), geometryBuffers.data());
+		//vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
+	}
 
 	// Destroy framebuffer
 	for (auto& framebuffer : framebuffers)
@@ -260,107 +264,6 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 
 	// Destroy Render Pass
 	vkDestroyRenderPass(logicalDevice, shadingRenderPass, nullptr);
-}
-
-void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, 
-	VkQueue graphicsQueue, bool renderWithBRDF)
-{
-	// Acquire next image of the swapchain
-	u32 imageIndex = 0;
-	const VkResult res = vkAcquireNextImageKHR(logicalDevice, swapchain, std::numeric_limits<u64>::max(), imageAvailable, VK_NULL_HANDLE, &imageIndex);
-
-	if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR || sceneExtentChanged)
-	{	
-		vkDeviceWaitIdle(logicalDevice);
-
-		recreateSwapchainFramebuffer(window, logicalDevice, physicalDevice, surface, graphicsQueue);
-
-		return;
-	}
-
-	if (res != VK_SUCCESS)
-		throw std::runtime_error("Failed to acquire swapchain image index");
-
-	// Wait for command buffer to be available
-	if (vkWaitForFences(logicalDevice, 1, &fences[imageIndex], VK_TRUE, std::numeric_limits<u64>::max()) != VK_SUCCESS)
-		throw std::runtime_error("Failed to wait for fences to be available");
-
-	if (vkResetFences(logicalDevice, 1, &fences[imageIndex]) != VK_SUCCESS)
-		throw std::runtime_error("Failed to reset fence");
-
-	assert(imageIndex < geometryBuffers.size());
-	assert(imageIndex < fences.size());
-
-	// Make sure command buffer finishes executing
-	vkResetCommandBuffer(uniformUpdateBuffers[imageIndex], 0);
-	vkResetCommandBuffer(preDepthBuffers[imageIndex], 0);
-	vkResetCommandBuffer(shadowBuffers[imageIndex], 0);
-	vkResetCommandBuffer(geometryBuffers[imageIndex], 0);
-	vkResetCommandBuffer(shadingBuffers[imageIndex], 0);
-	vkResetCommandBuffer(downscaleComputeCommandBuffers[imageIndex], 0);
-	vkResetCommandBuffer(upscaleComputeCommandBuffers[imageIndex], 0);
-	vkResetCommandBuffer(blendColorCommandBuffers[imageIndex], 0);
-	vkResetCommandBuffer(presentCommandBuffers[imageIndex], 0);
-
-	// Initialise skeleton uniform buffer if needed
-	processTodoSkeleton(logicalDevice);
-
-	// Updating uniform buffer
-	recordUniformUpdate(uniformUpdateBuffers[imageIndex]);
-	submitCommands(1, &uniformUpdateBuffers[imageIndex], 1, &imageAvailable, 1, &uniformUpdated, graphicsQueue, nullptr);
-
-	// Rendering command
-	recordDepthPrePass(preDepthBuffers[imageIndex]);
-	submitCommands(1, &preDepthBuffers[imageIndex], 1, &uniformUpdated, 1, &preDepthFinished, graphicsQueue, nullptr);
-
-	if (gameState->graphicsResources.lights[1]->shouldRenderShadow())
-	//if (true)
-	{
-		recordShadowPass(shadowBuffers[imageIndex]);
-		submitCommands(1, &shadowBuffers[imageIndex], 1, &preDepthFinished, 1, &shadowFinished, graphicsQueue, nullptr);
-		gameState->graphicsResources.lights[1]->shadowRendered();
-
-		recordGeometryPass(geometryBuffers[imageIndex]);
-		submitCommands(1, &geometryBuffers[imageIndex], 1, &shadowFinished, 1, &geometryFinished, graphicsQueue, nullptr);
-	}
-	else
-	{
-		recordGeometryPass(geometryBuffers[imageIndex]);
-		submitCommands(1, &geometryBuffers[imageIndex], 1, &preDepthFinished, 1, &geometryFinished, graphicsQueue, nullptr);
-	}
-
-	recordShadingPass(shadingBuffers[imageIndex]);
-	submitCommands(1, &shadingBuffers[imageIndex], 1, &geometryFinished, 1, &renderFinished, graphicsQueue, nullptr);
-
-	if (gameState->gameSettings.enableBloom)
-	{
-		// Record bloom commands if enabled
-		recordDownscaleComputeCommands(downscaleComputeCommandBuffers[imageIndex]);
-		submitCommands(1, &downscaleComputeCommandBuffers[imageIndex], 1, &renderFinished, 1, &downscaleFinished, graphicsQueue, nullptr);
-
-		recordUpscaleComputeCommands(upscaleComputeCommandBuffers[imageIndex]);
-		submitCommands(1, &upscaleComputeCommandBuffers[imageIndex], 1, &downscaleFinished, 1, &upscaleFinished, graphicsQueue, nullptr);
-
-		recordBlendColorComputeCommands(blendColorCommandBuffers[imageIndex]);
-		submitCommands(1, &blendColorCommandBuffers[imageIndex], 1, &upscaleFinished, 1, &colorBlendFinished, graphicsQueue, nullptr);
-
-		recordUICommands(presentCommandBuffers[imageIndex], framebuffers[imageIndex], swapchainExtent);
-		submitCommands(1, &presentCommandBuffers[imageIndex], 1, &colorBlendFinished, 1, &readyToPresent, graphicsQueue, &fences[imageIndex]);
-	}
-	else
-	{
-		recordUICommands(presentCommandBuffers[imageIndex], framebuffers[imageIndex], swapchainExtent);
-		submitCommands(1, &presentCommandBuffers[imageIndex], 1, &renderFinished, 1, &readyToPresent, graphicsQueue, &fences[imageIndex]);
-	}
-
-	presentImage(graphicsQueue, readyToPresent, swapchain, imageIndex);
-
-	// Update Texture after recording all rendering commands
-	if (gameState->materialUpdateInfo.updateTexture || gameState->materialUpdateInfo.updateColor)
-	{
-		changeMaterialTexture(logicalDevice, physicalDevice, graphicsQueue, gameState);
-		gameState->materialUpdateInfo.textureFilepath = "";
-	}
 }
 
 void VulkanEngine::createVmaAllocator(VkInstance& instance, VkPhysicalDevice& physicalDevice, VkDevice& logicalDevice)
@@ -875,7 +778,7 @@ void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& lo
 
 	for (u32 i = 0; i < downSampleImages.size(); i++)
 	{
-		WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPool, graphicsQueue, swapchainImageFormat, sceneExtentTemp, downSampleImages[i]);
+		WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPools[0], graphicsQueue, swapchainImageFormat, sceneExtentTemp, downSampleImages[i]);
 
 		sceneExtentTemp.width /= 2;
 		sceneExtentTemp.height /= 2;
@@ -884,7 +787,7 @@ void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& lo
 	sceneExtentTemp = sceneExtent;
 	for (u32 i = 0; i < upSampleImages.size(); i++)
 	{
-		WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPool, graphicsQueue, swapchainImageFormat, sceneExtentTemp, upSampleImages[i]);
+		WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPools[0], graphicsQueue, swapchainImageFormat, sceneExtentTemp, upSampleImages[i]);
 
 		sceneExtentTemp.width /= 2;
 		sceneExtentTemp.height /= 2;
@@ -958,9 +861,13 @@ void VulkanEngine::createDepthFramebuffer(VkDevice& logicalDevice, VkFramebuffer
 
 }
 
-void VulkanEngine::createCommandPool(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, VkCommandPool& commandPool)
+void VulkanEngine::createCommandPools(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, std::vector<VkCommandPool>& commandPools)
 {
-	commandPool = WillEngine::VulkanUtil::createCommandPool(logicalDevice, physicalDevice, surface);
+	commandPools.resize(MAX_THREAD);
+	for (u32 i = 0; i < MAX_THREAD; i++)
+	{
+		commandPools[i] = WillEngine::VulkanUtil::createCommandPool(logicalDevice, physicalDevice, surface);
+	}
 }
 
 void VulkanEngine::createCommandBuffers(VkDevice& logicalDevice)
@@ -977,15 +884,15 @@ void VulkanEngine::createCommandBuffers(VkDevice& logicalDevice)
 
 	for (u32 i = 0; i < numSwapchainImage; i++)
 	{
-		uniformUpdateBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPool);
-		preDepthBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPool);
-		shadowBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPool);
-		geometryBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPool);
-		shadingBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPool);
-		downscaleComputeCommandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPool);
-		upscaleComputeCommandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPool);
-		blendColorCommandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPool);
-		presentCommandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPool);
+		uniformUpdateBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[0]);
+		preDepthBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[1]);
+		shadowBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[2]);
+		geometryBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[3]);
+		shadingBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[0]);
+		downscaleComputeCommandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[0]);
+		upscaleComputeCommandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[0]);
+		blendColorCommandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[0]);
+		presentCommandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[0]);
 	}
 }
 
@@ -1405,8 +1312,140 @@ void VulkanEngine::initGui(GLFWwindow* window, VkInstance& instance, VkDevice& l
 	if (!graphicsFamilyIndicies.has_value())
 		std::runtime_error("Failed to get graphics queue family index");
 
-	vulkanGui->init(window, instance, logicalDevice, physicalDevice, surface, graphicsFamilyIndicies.value(), commandPool, descriptorPool, numSwapchainImage, shadingRenderPass,
+	vulkanGui->init(window, instance, logicalDevice, physicalDevice, surface, graphicsFamilyIndicies.value(), commandPools[0], descriptorPool, numSwapchainImage, shadingRenderPass,
 		swapchainExtent);
+}
+
+void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface,
+	VkQueue graphicsQueue, bool renderWithBRDF)
+{
+	// Acquire next image of the swapchain
+	u32 imageIndex = 0;
+	const VkResult res = vkAcquireNextImageKHR(logicalDevice, swapchain, std::numeric_limits<u64>::max(), imageAvailable, VK_NULL_HANDLE, &imageIndex);
+
+	if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR || sceneExtentChanged)
+	{
+		vkDeviceWaitIdle(logicalDevice);
+
+		recreateSwapchainFramebuffer(window, logicalDevice, physicalDevice, surface, graphicsQueue);
+
+		return;
+	}
+
+	if (res != VK_SUCCESS)
+		throw std::runtime_error("Failed to acquire swapchain image index");
+
+	// Wait for command buffer to be available
+	if (vkWaitForFences(logicalDevice, 1, &fences[imageIndex], VK_TRUE, std::numeric_limits<u64>::max()) != VK_SUCCESS)
+		throw std::runtime_error("Failed to wait for fences to be available");
+
+	if (vkResetFences(logicalDevice, 1, &fences[imageIndex]) != VK_SUCCESS)
+		throw std::runtime_error("Failed to reset fence");
+
+	assert(imageIndex < geometryBuffers.size());
+	assert(imageIndex < fences.size());
+
+	// Make sure command buffer finishes executing
+	vkResetCommandBuffer(uniformUpdateBuffers[imageIndex], 0);
+	vkResetCommandBuffer(preDepthBuffers[imageIndex], 0);
+	vkResetCommandBuffer(shadowBuffers[imageIndex], 0);
+	vkResetCommandBuffer(geometryBuffers[imageIndex], 0);
+	vkResetCommandBuffer(shadingBuffers[imageIndex], 0);
+	vkResetCommandBuffer(downscaleComputeCommandBuffers[imageIndex], 0);
+	vkResetCommandBuffer(upscaleComputeCommandBuffers[imageIndex], 0);
+	vkResetCommandBuffer(blendColorCommandBuffers[imageIndex], 0);
+	vkResetCommandBuffer(presentCommandBuffers[imageIndex], 0);
+
+	// Initialise skeleton uniform buffer if needed
+	processTodoSkeleton(logicalDevice);
+
+	// Updating uniform buffer
+	recordUniformUpdate(uniformUpdateBuffers[imageIndex]);
+	submitCommands(1, &uniformUpdateBuffers[imageIndex], 1, &imageAvailable, 1, &uniformUpdated, graphicsQueue, nullptr);
+
+	// Record depth rendering command on thread 1
+	std::thread t1(&VulkanEngine::recordDepthPrePass, this, std::ref(preDepthBuffers[imageIndex]));
+
+	std::thread t2;
+	std::thread t3;
+
+	const bool renderShadow = gameState->graphicsResources.lights[1]->shouldRenderShadow();
+
+	// Use thread 2 and thread 3 if we have to render shadows in this frame
+	// Otherwise, just use thread 2
+	if (renderShadow)
+		//if (true)
+	{
+		t2 = std::thread(&VulkanEngine::recordShadowPass, this, std::ref(shadowBuffers[imageIndex]));
+		gameState->graphicsResources.lights[1]->shadowRendered();
+
+		t3 = std::thread(&VulkanEngine::recordGeometryPass, this, std::ref(geometryBuffers[imageIndex]));
+	}
+	else
+	{
+		t2 = std::thread(&VulkanEngine::recordGeometryPass, this, std::ref(geometryBuffers[imageIndex]));
+	}
+
+	// Check if thread 1 has done recording
+	t1.join();
+
+	// Submit Depth rendering command
+	submitCommands(1, &preDepthBuffers[imageIndex], 1, &uniformUpdated, 1, &preDepthFinished, graphicsQueue, nullptr);
+
+	// Check if thread 2 has done recording
+	t2.join();
+
+	// If we need to render shadows, submit shadow rendering command
+	// Otherwise, submit geometry rendering commands with a different set of semaphores
+	if (renderShadow)
+	{
+		// Shadow
+		submitCommands(1, &shadowBuffers[imageIndex], 1, &preDepthFinished, 1, &shadowFinished, graphicsQueue, nullptr);
+
+		// Check if thread 3 has done recording
+		t3.join();
+		// Geometry
+		submitCommands(1, &geometryBuffers[imageIndex], 1, &shadowFinished, 1, &geometryFinished, graphicsQueue, nullptr);
+	}
+	else
+	{
+		// Geometry
+		submitCommands(1, &geometryBuffers[imageIndex], 1, &preDepthFinished, 1, &geometryFinished, graphicsQueue, nullptr);
+	}
+
+	// Record Shading and other commands on the main thread
+	recordShadingPass(shadingBuffers[imageIndex]);
+	submitCommands(1, &shadingBuffers[imageIndex], 1, &geometryFinished, 1, &renderFinished, graphicsQueue, nullptr);
+
+	if (gameState->gameSettings.enableBloom)
+	{
+		// Record bloom commands if enabled
+		recordDownscaleComputeCommands(downscaleComputeCommandBuffers[imageIndex]);
+		submitCommands(1, &downscaleComputeCommandBuffers[imageIndex], 1, &renderFinished, 1, &downscaleFinished, graphicsQueue, nullptr);
+
+		recordUpscaleComputeCommands(upscaleComputeCommandBuffers[imageIndex]);
+		submitCommands(1, &upscaleComputeCommandBuffers[imageIndex], 1, &downscaleFinished, 1, &upscaleFinished, graphicsQueue, nullptr);
+
+		recordBlendColorComputeCommands(blendColorCommandBuffers[imageIndex]);
+		submitCommands(1, &blendColorCommandBuffers[imageIndex], 1, &upscaleFinished, 1, &colorBlendFinished, graphicsQueue, nullptr);
+
+		recordUICommands(presentCommandBuffers[imageIndex], framebuffers[imageIndex], swapchainExtent);
+		submitCommands(1, &presentCommandBuffers[imageIndex], 1, &colorBlendFinished, 1, &readyToPresent, graphicsQueue, &fences[imageIndex]);
+	}
+	else
+	{
+		recordUICommands(presentCommandBuffers[imageIndex], framebuffers[imageIndex], swapchainExtent);
+		submitCommands(1, &presentCommandBuffers[imageIndex], 1, &renderFinished, 1, &readyToPresent, graphicsQueue, &fences[imageIndex]);
+	}
+
+	presentImage(graphicsQueue, readyToPresent, swapchain, imageIndex);
+
+	// Update Texture after recording all rendering commands
+	if (gameState->materialUpdateInfo.updateTexture || gameState->materialUpdateInfo.updateColor)
+	{
+		changeMaterialTexture(logicalDevice, physicalDevice, graphicsQueue, gameState);
+		gameState->materialUpdateInfo.textureFilepath = "";
+	}
 }
 
 void VulkanEngine::updateSceneUniform(Camera* camera)
@@ -1587,7 +1626,6 @@ void VulkanEngine::recordShadowPass(VkCommandBuffer& commandBuffer)
 	}
 
 	shadowPasses(commandBuffer);
-	gameState->graphicsResources.lights[1]->shadowRendered();
 
 	// End command buffer
 	vkEndCommandBuffer(commandBuffer);
@@ -1670,6 +1708,25 @@ void VulkanEngine::recordShadingPass(VkCommandBuffer& commandBuffer)
 
 	// End command buffer
 	vkEndCommandBuffer(commandBuffer);
+}
+
+void VulkanEngine::recordSubmitDepthPrePass(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, VkQueue& graphicsQueue, VkFence& fence)
+{
+	recordDepthPrePass(commandBuffer);
+	submitCommands(1, &commandBuffer, 1, &waitSemaphore, 1, &signalSemaphore, graphicsQueue, nullptr);
+}
+
+void VulkanEngine::recordSubmitShadowPass(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, VkQueue& graphicsQueue, VkFence& fence)
+{
+	recordShadowPass(commandBuffer);
+	submitCommands(1, &commandBuffer, 1, &waitSemaphore, 1, &signalSemaphore, graphicsQueue, nullptr);
+	gameState->graphicsResources.lights[1]->shadowRendered();
+}
+
+void VulkanEngine::recordSubmitGeometryPass(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, VkQueue& graphicsQueue, VkFence& fence)
+{
+	recordGeometryPass(commandBuffer);
+	submitCommands(1, &commandBuffer, 1, &waitSemaphore, 1, &signalSemaphore, graphicsQueue, nullptr);
 }
 
 void VulkanEngine::depthSkeletalPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D extent)
@@ -2335,5 +2392,5 @@ void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkPhysicalDevi
 	}
 
 	// Update the associated descriptor set
-	currentMaterial->updateBrdfDescriptorSet(logicalDevice, physicalDevice, vmaAllocator, commandPool, descriptorPool, graphicsQueue, textureIndex);
+	currentMaterial->updateBrdfDescriptorSet(logicalDevice, physicalDevice, vmaAllocator, commandPools[0], descriptorPool, graphicsQueue, textureIndex);
 }

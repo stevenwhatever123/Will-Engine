@@ -23,6 +23,9 @@ class VulkanEngine
 {
 private:
 
+	// Max number of threads this vulkan renderer can use
+	static const u32 MAX_THREAD = 4;
+
 public:
 
 	GameState* gameState;
@@ -96,7 +99,8 @@ public:
 	VkSampler defaultSampler;
 
 	// Command pool and buffer
-	VkCommandPool commandPool;
+	// The first command pools are used for allocation/initialisation, the rests is used for recording command buffers for rendering commands
+	std::vector<VkCommandPool> commandPools;
 	std::vector<VkCommandBuffer> uniformUpdateBuffers;
 
 	std::vector<VkCommandBuffer> preDepthBuffers;
@@ -237,8 +241,6 @@ public:
 		GameState* gameState);
 	void cleanup(VkDevice& logicalDevice);
 
-	void update(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue graphicsQueue, bool renderWithBRDF);
-
 	// Init / setup
 
 	void createVmaAllocator(VkInstance& instance, VkPhysicalDevice& physicalDevice, VkDevice& logicalDevice);
@@ -267,7 +269,7 @@ public:
 
 	void createDepthFramebuffer(VkDevice& logicalDevice, VkFramebuffer& depthFramebuffer, VkRenderPass& depthRenderPass, VkExtent2D extent);
 
-	void createCommandPool(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, VkCommandPool& commandPool);
+	void createCommandPools(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, std::vector<VkCommandPool>& commandPools);
 
 	void createCommandBuffers(VkDevice& logicalDevice);
 
@@ -311,6 +313,8 @@ public:
 	void initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue, VkSurfaceKHR& surface);
 
 	// Update
+	void update(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue graphicsQueue, bool renderWithBRDF);
+
 	void updateSceneUniform(Camera* camera);
 	void updateSkeletonUniform(VkCommandBuffer& commandBuffer);
 
@@ -320,14 +324,18 @@ public:
 
 	void recordUniformUpdate(VkCommandBuffer& commandBuffer);
 
-	void recordDepthSkeletalPrePass(VkCommandBuffer& commandBuffer);
+	// Record rendering commands
 	void recordDepthPrePass(VkCommandBuffer& commandBuffer);
 	void recordShadowPass(VkCommandBuffer& commandBuffer);
-	void recordGeometrySkeletalPass(VkCommandBuffer& commandBuffer);
 	void recordGeometryPass(VkCommandBuffer& commandBuffer);
 	void recordShadingPass(VkCommandBuffer& commandBuffer);
 
-	// Render passes
+	// Rendering commands and submitting using a thread
+	void recordSubmitDepthPrePass(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, VkQueue& graphicsQueue, VkFence& fence);
+	void recordSubmitShadowPass(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, VkQueue& graphicsQueue, VkFence& fence);
+	void recordSubmitGeometryPass(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, VkQueue& graphicsQueue, VkFence& fence);
+
+	// Render passes commands
 	void depthSkeletalPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 	void depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 	void geometrySkeletalPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
