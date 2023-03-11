@@ -33,6 +33,8 @@ namespace WillEngine::VulkanUtil
 	VulkanAllocatedImage createImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkImageUsageFlags usage, u32 width, 
 		u32 height, u32 mipLevels);
 
+	void destroyImage();
+
 	VulkanAllocatedImage createImageWithFlags(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkImageUsageFlags usage, VkImageCreateFlags flags,
 		u32 width, u32 height, u32 mipLevels, u32 arrayLayers);
 
@@ -135,7 +137,11 @@ namespace WillEngine::VulkanUtil
 	// Framebuffer
 	void createFramebufferAttachment(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkExtent2D extent, 
 		VulkanFramebufferAttachment& attachment);
+
 	void createShadingImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkFormat format, VkExtent2D extent, VulkanAllocatedImage& image);
+
 	void createComputedImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool, VkQueue& graphicsQueue, VkFormat format, 
 		VkExtent2D extent, VulkanAllocatedImage& image);
+
+	void destroyAllocatedImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VulkanAllocatedImage& image);
 }

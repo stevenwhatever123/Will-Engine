@@ -112,6 +112,9 @@ public:
 	std::vector<VkCommandBuffer> blendColorCommandBuffers;
 	std::vector<VkCommandBuffer> presentCommandBuffers;
 
+	//std::vector<VkCommandBuffer> geometryRenderSecondaryCommandBuffers;
+	//std::vector<VkCommandBuffer> skeletalRenderSecondaryCommandBuffers;
+
 	// Semaphore for waiting and signaling
 	// Used for GPU - GPU sync
 	VkSemaphore imageAvailable;
@@ -256,7 +259,9 @@ public:
 	void createGeometryRenderPass(VkDevice& logicalDevice, VkRenderPass& renderPass, VkFormat format, const VkFormat& depthFormat);
 
 	void createDepthBuffer(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, const VkExtent2D& extent);
-	void createOffscreenAttachments(VkDevice& logicalDevice, const VkExtent2D& extent);
+	void destroyDepthBuffer(VkDevice& logicalDevice, VmaAllocator& vmaAllocator);
+
+	void createGBuffers(VkDevice& logicalDevice, const VkExtent2D& extent);
 
 	void createSwapchainFramebuffer(VkDevice& logicalDevice, std::vector<VkImageView>& swapchainImageViews,
 		std::vector<VkFramebuffer>& framebuffers, VulkanFramebuffer& offscreenFramebuffer, VkRenderPass& geometryRenderPass, VkRenderPass& renderPass, VkImageView& depthImageView, 
@@ -268,6 +273,9 @@ public:
 	void createShadingFramebuffer(VkDevice& logicalDevice, VkFramebuffer& shadingFramebuffer, VkRenderPass& shadingRenderPass, VkExtent2D extent);
 
 	void createDepthFramebuffer(VkDevice& logicalDevice, VkFramebuffer& depthFramebuffer, VkRenderPass& depthRenderPass, VkExtent2D extent);
+
+	void createImageBuffersForPostProcessing(VkDevice& logicalDevice, VkQueue& graphicsQueue);
+	void destroyImageBuffersForPostProcessing(VkDevice& logicalDevice, VmaAllocator& vmaAllocator);
 
 	void createCommandPools(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, std::vector<VkCommandPool>& commandPools);
 
@@ -295,6 +303,7 @@ public:
 	void initRenderedDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
 
 	void initComputedImageDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
+	void freeComputedImageDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
 
 	// Pipeline init
 	void initDepthSkeletalPipeline(VkDevice& logicalDevice);

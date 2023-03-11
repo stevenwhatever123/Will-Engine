@@ -80,31 +80,14 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 
 	// Create and allocate GBuffer resources
 	createDepthBuffer(logicalDevice, vmaAllocator, sceneExtent);
-	createOffscreenAttachments(logicalDevice, sceneExtent);
+	createGBuffers(logicalDevice, sceneExtent);
 
+	// Create framebuffer for shading
 	WillEngine::VulkanUtil::createShadingImage(logicalDevice, vmaAllocator, swapchainImageFormat, sceneExtent, shadingImage);
 	createShadingFramebuffer(logicalDevice, shadingFramebuffer, shadingRenderPass, sceneExtent);
 
-	//WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPool, graphicsQueue, swapchainImageFormat, sceneExtent, postProcessedImage);
-
-	VkExtent2D sceneExtentTemp = sceneExtent;
-
-	for (u32 i = 0; i < downSampleImages.size(); i++)
-	{
-		WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPools[0], graphicsQueue, swapchainImageFormat, sceneExtentTemp, downSampleImages[i]);
-
-		sceneExtentTemp.width /= 2;
-		sceneExtentTemp.height /= 2;
-	}
-
-	sceneExtentTemp = sceneExtent;
-	for (u32 i = 0; i < upSampleImages.size(); i++)
-	{
-		WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPools[0], graphicsQueue, swapchainImageFormat, sceneExtentTemp, upSampleImages[i]);
-
-		sceneExtentTemp.width /= 2;
-		sceneExtentTemp.height /= 2;
-	}
+	// Create image for postprocessing
+	createImageBuffersForPostProcessing(logicalDevice, graphicsQueue);
 
 	// Create and allocate framebuffer for presenting
 	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, geometryRenderPass, shadingRenderPass, depthImage.imageView, swapchainExtent);
@@ -591,7 +574,13 @@ void VulkanEngine::createDepthBuffer(VkDevice& logicalDevice, VmaAllocator& vmaA
 	WillEngine::VulkanUtil::createImageView(logicalDevice, depthImage.image, depthImage.imageView, 1, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
-void VulkanEngine::createOffscreenAttachments(VkDevice& logicalDevice, const VkExtent2D& extent)
+void VulkanEngine::destroyDepthBuffer(VkDevice& logicalDevice, VmaAllocator& vmaAllocator)
+{
+	vkDestroyImageView(logicalDevice, depthImage.imageView, nullptr);
+	vmaDestroyImage(vmaAllocator, depthImage.image, depthImage.allocation);
+}
+
+void VulkanEngine::createGBuffers(VkDevice& logicalDevice, const VkExtent2D& extent)
 {
 	// The back buffer
 	// Create offscreen framebuffer attachments
@@ -698,102 +687,62 @@ void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& lo
 	if (extentChanged)
 	{
 		// Destroy the old depth buffer
-		vkDestroyImageView(logicalDevice, depthImage.imageView, nullptr);
-		vmaDestroyImage(vmaAllocator, depthImage.image, depthImage.allocation);
-
-		// Create a new depth buffer
-		//createDepthBuffer(logicalDevice, vmaAllocator, swapchainExtent);
-		createDepthBuffer(logicalDevice, vmaAllocator, sceneExtent);
+		destroyDepthBuffer(logicalDevice, vmaAllocator);
 
 		// Shading
-		vkDestroyImageView(logicalDevice, shadingImage.imageView, nullptr);
-		vmaDestroyImage(vmaAllocator, shadingImage.image, shadingImage.allocation);
+		WillEngine::VulkanUtil::destroyAllocatedImage(logicalDevice, vmaAllocator, shadingImage);
 
 		// Computed
-		for (u32 i = 0; i < downSampleImages.size(); i++)
-		{
-			vkDestroyImageView(logicalDevice, downSampleImages[i].imageView, nullptr);
-			vmaDestroyImage(vmaAllocator, downSampleImages[i].image, downSampleImages[i].allocation);
-		}
-		for (u32 i = 0; i < upSampleImages.size(); i++)
-		{
-			vkDestroyImageView(logicalDevice, upSampleImages[i].imageView, nullptr);
-			vmaDestroyImage(vmaAllocator, upSampleImages[i].image, upSampleImages[i].allocation);
-		}
+		destroyImageBuffersForPostProcessing(logicalDevice, vmaAllocator);
 
+		// Free and destroy descriptor sets
+		freeComputedImageDescriptors(logicalDevice, descriptorPool);
+
+		// Stuffs for Imgui
 		vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &gameState->graphicsState.renderedImage.descriptorSet);
 		vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.renderedImage.layout, nullptr);
 		vkFreeDescriptorSets(logicalDevice, vulkanGui->getDescriptorPool(), 1, &gameState->graphicsState.renderedImage_ImGui);
-
-
-		//vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.downSampledImageDescriptorSetLayout, nullptr);
-		for (u32 i = 0; i < gameState->graphicsState.downSampledImageDescriptorSetOutput.size(); i++)
-		{
-			// Downscale
-			// Output bindings
-			vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &gameState->graphicsState.downSampledImageDescriptorSetOutput[i].descriptorSet);
-			vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.downSampledImageDescriptorSetOutput[i].layout, nullptr);
-			// Input bindings
-			vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &gameState->graphicsState.downSampledImageDescriptorSetInput[i].descriptorSet);
-			vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.downSampledImageDescriptorSetInput[i].layout, nullptr);
-
-			// Upscale
-			// Output bindings
-			vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &gameState->graphicsState.upSampledImageDescriptorSetOutput[i].descriptorSet);
-			vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.upSampledImageDescriptorSetOutput[i].layout, nullptr);
-			// Input bindings
-			vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &gameState->graphicsState.upSampledImageDescriptorSetInput[i].descriptorSet);
-			vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.upSampledImageDescriptorSetInput[i].layout, nullptr);
-
-			vkFreeDescriptorSets(logicalDevice, vulkanGui->getDescriptorPool(), 1, &gameState->graphicsState.downSampledImage_ImGui[i]);
-			vkFreeDescriptorSets(logicalDevice, vulkanGui->getDescriptorPool(), 1, &gameState->graphicsState.upSampledImage_ImGui[i]);
-		}
 	}
 
-	// Destroy old framebuffers
-	
-	for (auto framebuffer : framebuffers)
-		vkDestroyFramebuffer(logicalDevice, framebuffer, nullptr);
 
-	framebuffers.clear();
-
-	offscreenFramebuffer.cleanUp(logicalDevice, vmaAllocator);
-
-	vkDestroyFramebuffer(logicalDevice, depthFramebuffer, nullptr);
-
-	vkDestroyFramebuffer(logicalDevice, shadingFramebuffer, nullptr);
-
-
-	// Recreate framebuffers
-	createDepthFramebuffer(logicalDevice, depthFramebuffer, depthRenderPass, sceneExtent);
-
-	createOffscreenAttachments(logicalDevice, sceneExtent);
-
-	WillEngine::VulkanUtil::createShadingImage(logicalDevice, vmaAllocator, swapchainImageFormat, sceneExtent, shadingImage);
-	createShadingFramebuffer(logicalDevice, shadingFramebuffer, shadingRenderPass, sceneExtent);
-
-	//WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPool, graphicsQueue, swapchainImageFormat, sceneExtent, postProcessedImage);
-
-	VkExtent2D sceneExtentTemp = sceneExtent;
-
-	for (u32 i = 0; i < downSampleImages.size(); i++)
 	{
-		WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPools[0], graphicsQueue, swapchainImageFormat, sceneExtentTemp, downSampleImages[i]);
+		// Destroy old framebuffers
 
-		sceneExtentTemp.width /= 2;
-		sceneExtentTemp.height /= 2;
+		for (auto framebuffer : framebuffers)
+			vkDestroyFramebuffer(logicalDevice, framebuffer, nullptr);
+
+		framebuffers.clear();
+
+		offscreenFramebuffer.cleanUp(logicalDevice, vmaAllocator);
+
+		vkDestroyFramebuffer(logicalDevice, depthFramebuffer, nullptr);
+
+		vkDestroyFramebuffer(logicalDevice, shadingFramebuffer, nullptr);
 	}
 
-	sceneExtentTemp = sceneExtent;
-	for (u32 i = 0; i < upSampleImages.size(); i++)
 	{
-		WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPools[0], graphicsQueue, swapchainImageFormat, sceneExtentTemp, upSampleImages[i]);
+		// Recreate necessary buffers
 
-		sceneExtentTemp.width /= 2;
-		sceneExtentTemp.height /= 2;
+		// Create a new depth buffer if extent has changed
+		if(extentChanged)
+			createDepthBuffer(logicalDevice, vmaAllocator, sceneExtent);
+
+		// Recreate framebuffers
+		createDepthFramebuffer(logicalDevice, depthFramebuffer, depthRenderPass, sceneExtent);
+
+		// Recreate G-Buffers
+		createGBuffers(logicalDevice, sceneExtent);
+
+		// Recreate framebuffer for shading
+		WillEngine::VulkanUtil::createShadingImage(logicalDevice, vmaAllocator, swapchainImageFormat, sceneExtent, shadingImage);
+		createShadingFramebuffer(logicalDevice, shadingFramebuffer, shadingRenderPass, sceneExtent);
+
+		// Recreate image buffers for post procesing
+		createImageBuffersForPostProcessing(logicalDevice, graphicsQueue);
+
+		// Recreate swapchainFramebuffer
+		createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, geometryRenderPass, shadingRenderPass, depthImage.imageView, swapchainExtent);
 	}
-
-	createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, geometryRenderPass, shadingRenderPass, depthImage.imageView, swapchainExtent);
 
 	if (extentChanged)
 	{
@@ -861,6 +810,42 @@ void VulkanEngine::createDepthFramebuffer(VkDevice& logicalDevice, VkFramebuffer
 
 }
 
+void VulkanEngine::createImageBuffersForPostProcessing(VkDevice& logicalDevice, VkQueue& graphicsQueue)
+{
+	VkExtent2D sceneExtentTemp = sceneExtent;
+
+	for (u32 i = 0; i < downSampleImages.size(); i++)
+	{
+		WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPools[0], graphicsQueue, swapchainImageFormat, sceneExtentTemp, downSampleImages[i]);
+
+		sceneExtentTemp.width /= 2;
+		sceneExtentTemp.height /= 2;
+	}
+
+	sceneExtentTemp = sceneExtent;
+	for (u32 i = 0; i < upSampleImages.size(); i++)
+	{
+		WillEngine::VulkanUtil::createComputedImage(logicalDevice, vmaAllocator, commandPools[0], graphicsQueue, swapchainImageFormat, sceneExtentTemp, upSampleImages[i]);
+
+		sceneExtentTemp.width /= 2;
+		sceneExtentTemp.height /= 2;
+	}
+}
+
+void VulkanEngine::destroyImageBuffersForPostProcessing(VkDevice& logicalDevice, VmaAllocator& vmaAllocator)
+{
+	for (u32 i = 0; i < downSampleImages.size(); i++)
+	{
+		vkDestroyImageView(logicalDevice, downSampleImages[i].imageView, nullptr);
+		vmaDestroyImage(vmaAllocator, downSampleImages[i].image, downSampleImages[i].allocation);
+	}
+	for (u32 i = 0; i < upSampleImages.size(); i++)
+	{
+		vkDestroyImageView(logicalDevice, upSampleImages[i].imageView, nullptr);
+		vmaDestroyImage(vmaAllocator, upSampleImages[i].image, upSampleImages[i].allocation);
+	}
+}
+
 void VulkanEngine::createCommandPools(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, std::vector<VkCommandPool>& commandPools)
 {
 	commandPools.resize(MAX_THREAD);
@@ -905,28 +890,28 @@ void VulkanEngine::createSemaphore(VkDevice& logicalDevice)
 		throw std::runtime_error("Failed to create wait image availabe semaphore");
 
 	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &uniformUpdated) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create wait image availabe semaphore");
+		throw std::runtime_error("Failed to create uniform updated semaphore");
 
 	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &renderFinished) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create signal render finish semaphore");
 
 	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &preDepthFinished) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create signal render finish semaphore");
+		throw std::runtime_error("Failed to create signal pre depth finish semaphore");
 
 	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &shadowFinished) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create signal render finish semaphore");
+		throw std::runtime_error("Failed to create signal shadow finish semaphore");
 
 	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &geometryFinished) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create signal render finish semaphore");
+		throw std::runtime_error("Failed to create signal geometry render finish semaphore");
 
 	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &downscaleFinished) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create signal ready to present semaphore");
+		throw std::runtime_error("Failed to create signal downscale finished semaphore");
 
 	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &upscaleFinished) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create signal ready to present semaphore");
+		throw std::runtime_error("Failed to create signal upscale finished semaphore");
 
 	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &colorBlendFinished) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create signal ready to present semaphore");
+		throw std::runtime_error("Failed to create signal colorBlendFinished semaphore");
 
 
 	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &readyToPresent) != VK_SUCCESS)
@@ -1108,6 +1093,31 @@ void VulkanEngine::initComputedImageDescriptors(VkDevice& logicalDevice, VkDescr
 
 		WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, upSampledImageDescriptorSetInput[i].descriptorSet, &defaultSampler, imageViews.data(), VK_IMAGE_LAYOUT_GENERAL,
 			VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 0, 1);
+	}
+}
+
+void VulkanEngine::freeComputedImageDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool)
+{
+	for (u32 i = 0; i < gameState->graphicsState.downSampledImageDescriptorSetOutput.size(); i++)
+	{
+		// Downscale
+		// Output bindings
+		vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &gameState->graphicsState.downSampledImageDescriptorSetOutput[i].descriptorSet);
+		vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.downSampledImageDescriptorSetOutput[i].layout, nullptr);
+		// Input bindings
+		vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &gameState->graphicsState.downSampledImageDescriptorSetInput[i].descriptorSet);
+		vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.downSampledImageDescriptorSetInput[i].layout, nullptr);
+
+		// Upscale
+		// Output bindings
+		vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &gameState->graphicsState.upSampledImageDescriptorSetOutput[i].descriptorSet);
+		vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.upSampledImageDescriptorSetOutput[i].layout, nullptr);
+		// Input bindings
+		vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &gameState->graphicsState.upSampledImageDescriptorSetInput[i].descriptorSet);
+		vkDestroyDescriptorSetLayout(logicalDevice, gameState->graphicsState.upSampledImageDescriptorSetInput[i].layout, nullptr);
+
+		vkFreeDescriptorSets(logicalDevice, vulkanGui->getDescriptorPool(), 1, &gameState->graphicsState.downSampledImage_ImGui[i]);
+		vkFreeDescriptorSets(logicalDevice, vulkanGui->getDescriptorPool(), 1, &gameState->graphicsState.upSampledImage_ImGui[i]);
 	}
 }
 
@@ -1374,7 +1384,7 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	// Use thread 2 and thread 3 if we have to render shadows in this frame
 	// Otherwise, just use thread 2
 	if (renderShadow)
-		//if (true)
+	//if (true)
 	{
 		t2 = std::thread(&VulkanEngine::recordShadowPass, this, std::ref(shadowBuffers[imageIndex]));
 		gameState->graphicsResources.lights[1]->shadowRendered();

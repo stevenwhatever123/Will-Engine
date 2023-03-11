@@ -1970,3 +1970,9 @@ void WillEngine::VulkanUtil::createComputedImage(VkDevice& logicalDevice, VmaAll
     //image = createImage(logicalDevice, vmaAllocator, format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT, extent.width, extent.height, 1);
     createImageView(logicalDevice, image.image, image.imageView, 1, format, VK_IMAGE_ASPECT_COLOR_BIT);
 }
+
+void WillEngine::VulkanUtil::destroyAllocatedImage(VkDevice& logicalDevice, VmaAllocator& vmaAllocator, VulkanAllocatedImage& image)
+{
+    vkDestroyImageView(logicalDevice, image.imageView, nullptr);
+    vmaDestroyImage(vmaAllocator, image.image, image.allocation);
+}
