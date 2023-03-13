@@ -74,6 +74,7 @@ namespace WillEngine::VulkanUtil
 	VkCommandPool createCommandPool(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface);
 
 	VkCommandBuffer createCommandBuffer(VkDevice& logicalDevice, VkCommandPool& commandPool);
+	VkCommandBuffer createSecondaryCommandBuffer(VkDevice& logicalDevice, VkCommandPool& commandPool);
 
 	// Fances
 	VkFence createFence(VkDevice& logicalDevice, bool signaled);

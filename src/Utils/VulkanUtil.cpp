@@ -589,6 +589,22 @@ VkCommandBuffer WillEngine::VulkanUtil::createCommandBuffer(VkDevice& logicalDev
     return std::move(commandBuffer);
 }
 
+VkCommandBuffer WillEngine::VulkanUtil::createSecondaryCommandBuffer(VkDevice& logicalDevice, VkCommandPool& commandPool)
+{
+    VkCommandBufferAllocateInfo allocateInfo{};
+    allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocateInfo.commandPool = commandPool;
+    allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+    allocateInfo.commandBufferCount = 1;
+
+    VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+
+    if (vkAllocateCommandBuffers(logicalDevice, &allocateInfo, &commandBuffer) != VK_SUCCESS)
+        throw std::runtime_error("Failed to allocate command buffers");
+
+    return std::move(commandBuffer);
+}
+
 VkFence WillEngine::VulkanUtil::createFence(VkDevice& logicalDevice, bool signaled)
 {
     VkFenceCreateInfo fenceInfo{};

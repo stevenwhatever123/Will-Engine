@@ -103,6 +103,18 @@ public:
 	std::vector<VkCommandPool> commandPools;
 	std::vector<VkCommandBuffer> uniformUpdateBuffers;
 
+	// Secondary Command buffers that store the rendering command that will be used several times in a rendering loop
+	std::vector<VkCommandBuffer> depthMeshBuffers;
+	std::vector<VkCommandBuffer> depthSkeletalBuffers;
+
+	std::vector<VkCommandBuffer> shadowMeshBuffers;
+	std::vector<VkCommandBuffer> shadowSkeletalBuffers;
+
+	std::vector<VkCommandBuffer> geometryMeshBuffers;
+	std::vector<VkCommandBuffer> geometrySkeletalBuffers;
+
+
+	// Primary Command Buffers
 	std::vector<VkCommandBuffer> preDepthBuffers;
 	std::vector<VkCommandBuffer> shadowBuffers;
 	std::vector<VkCommandBuffer> geometryBuffers;
@@ -111,9 +123,6 @@ public:
 	std::vector<VkCommandBuffer> upscaleComputeCommandBuffers;
 	std::vector<VkCommandBuffer> blendColorCommandBuffers;
 	std::vector<VkCommandBuffer> presentCommandBuffers;
-
-	//std::vector<VkCommandBuffer> geometryRenderSecondaryCommandBuffers;
-	//std::vector<VkCommandBuffer> skeletalRenderSecondaryCommandBuffers;
 
 	// Semaphore for waiting and signaling
 	// Used for GPU - GPU sync
@@ -280,6 +289,7 @@ public:
 	void createCommandPools(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, std::vector<VkCommandPool>& commandPools);
 
 	void createCommandBuffers(VkDevice& logicalDevice);
+	void createSecondaryCommandBuffers(VkDevice& logicalDevice);
 
 	void createSemaphore(VkDevice& logicalDevice);
 
@@ -329,24 +339,20 @@ public:
 
 	void processTodoSkeleton(VkDevice& logicalDevice);
 
-	void recordCommands(VkCommandBuffer& commandBuffer, VkFramebuffer& framebuffer, VkExtent2D& extent);
-
 	void recordUniformUpdate(VkCommandBuffer& commandBuffer);
 
 	// Record rendering commands
-	void recordDepthPrePass(VkCommandBuffer& commandBuffer);
+	void recordMeshSecondaryCommandBuffer(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout);
+	void recordSkeletalSecondaryCommandBuffer(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkPipeline& pipeline, VkPipelineLayout& pipelineLayout);
+
+	void recordDepthPrePass(VkCommandBuffer& commandBuffer, VkCommandBuffer& meshBuffer, VkCommandBuffer& skeletalBuffer);
 	void recordShadowPass(VkCommandBuffer& commandBuffer);
-	void recordGeometryPass(VkCommandBuffer& commandBuffer);
+	void recordGeometryPass(VkCommandBuffer& commandBuffer, VkCommandBuffer& meshBuffer, VkCommandBuffer& skeletalBuffer);
 	void recordShadingPass(VkCommandBuffer& commandBuffer);
 
-	// Rendering commands and submitting using a thread
-	void recordSubmitDepthPrePass(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, VkQueue& graphicsQueue, VkFence& fence);
-	void recordSubmitShadowPass(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, VkQueue& graphicsQueue, VkFence& fence);
-	void recordSubmitGeometryPass(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, VkQueue& graphicsQueue, VkFence& fence);
-
-	// Render passes commands
-	void depthSkeletalPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
-	void depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
+	// The actual render passes commands
+	void depthSkeletalPrePasses(VkCommandBuffer& commandBuffer);
+	void depthPrePasses(VkCommandBuffer& commandBuffer);
 	void geometrySkeletalPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 	void geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent);
 	void shadowPasses(VkCommandBuffer& commandBuffer);

@@ -59,6 +59,7 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	createVmaAllocator(instance, physicalDevice, logicalDevice);
 	createCommandPools(logicalDevice, physicalDevice, surface, commandPools);
 	createCommandBuffers(logicalDevice);
+	createSecondaryCommandBuffers(logicalDevice);
 	createSemaphore(logicalDevice);
 	createFence(logicalDevice, fences, VK_FENCE_CREATE_SIGNALED_BIT);
 	createDescriptionPool(logicalDevice);
@@ -881,6 +882,30 @@ void VulkanEngine::createCommandBuffers(VkDevice& logicalDevice)
 	}
 }
 
+void VulkanEngine::createSecondaryCommandBuffers(VkDevice& logicalDevice)
+{
+	depthMeshBuffers.resize(numSwapchainImage);
+	depthSkeletalBuffers.resize(numSwapchainImage);
+
+	shadowMeshBuffers.resize(numSwapchainImage);
+	shadowSkeletalBuffers.resize(numSwapchainImage);
+
+	geometryMeshBuffers.resize(numSwapchainImage);
+	geometrySkeletalBuffers.resize(numSwapchainImage);
+
+	for (u32 i = 0; i < numSwapchainImage; i++)
+	{
+		depthMeshBuffers[i] = WillEngine::VulkanUtil::createSecondaryCommandBuffer(logicalDevice, commandPools[1]);
+		depthSkeletalBuffers[i] = WillEngine::VulkanUtil::createSecondaryCommandBuffer(logicalDevice, commandPools[2]);
+
+		shadowMeshBuffers[i] = WillEngine::VulkanUtil::createSecondaryCommandBuffer(logicalDevice, commandPools[1]);
+		shadowSkeletalBuffers[i] = WillEngine::VulkanUtil::createSecondaryCommandBuffer(logicalDevice, commandPools[2]);
+
+		geometryMeshBuffers[i] = WillEngine::VulkanUtil::createSecondaryCommandBuffer(logicalDevice, commandPools[1]);
+		geometrySkeletalBuffers[i] = WillEngine::VulkanUtil::createSecondaryCommandBuffer(logicalDevice, commandPools[2]);
+	}
+}
+
 void VulkanEngine::createSemaphore(VkDevice& logicalDevice)
 {
 	VkSemaphoreCreateInfo semaphoreInfo{};
@@ -1356,6 +1381,7 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	assert(imageIndex < fences.size());
 
 	// Make sure command buffer finishes executing
+	// Primary buffers
 	vkResetCommandBuffer(uniformUpdateBuffers[imageIndex], 0);
 	vkResetCommandBuffer(preDepthBuffers[imageIndex], 0);
 	vkResetCommandBuffer(shadowBuffers[imageIndex], 0);
@@ -1365,6 +1391,13 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	vkResetCommandBuffer(upscaleComputeCommandBuffers[imageIndex], 0);
 	vkResetCommandBuffer(blendColorCommandBuffers[imageIndex], 0);
 	vkResetCommandBuffer(presentCommandBuffers[imageIndex], 0);
+	// Secondary buffers
+	vkResetCommandBuffer(depthMeshBuffers[imageIndex], 0);
+	vkResetCommandBuffer(depthSkeletalBuffers[imageIndex], 0);
+	vkResetCommandBuffer(shadowMeshBuffers[imageIndex], 0);
+	vkResetCommandBuffer(shadowSkeletalBuffers[imageIndex], 0);
+	vkResetCommandBuffer(geometryMeshBuffers[imageIndex], 0);
+	vkResetCommandBuffer(geometrySkeletalBuffers[imageIndex], 0);
 
 	// Initialise skeleton uniform buffer if needed
 	processTodoSkeleton(logicalDevice);
@@ -1373,8 +1406,46 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	recordUniformUpdate(uniformUpdateBuffers[imageIndex]);
 	submitCommands(1, &uniformUpdateBuffers[imageIndex], 1, &imageAvailable, 1, &uniformUpdated, graphicsQueue, nullptr);
 
+
+
+
+	//recordDepthPrePass(preDepthBuffers[imageIndex], depthMeshBuffers[imageIndex], depthSkeletalBuffers[imageIndex]);
+
+	//const bool renderShadow = gameState->graphicsResources.lights[1]->shouldRenderShadow();
+
+	//if (renderShadow)
+	////if (true)
+	//{
+	//	recordShadowPass(shadowBuffers[imageIndex]);
+	//	gameState->graphicsResources.lights[1]->shadowRendered();
+	//}
+
+	//recordGeometryPass(geometryBuffers[imageIndex], geometryMeshBuffers[imageIndex], geometrySkeletalBuffers[imageIndex]);
+
+	//// Submit Depth rendering command
+	//submitCommands(1, &preDepthBuffers[imageIndex], 1, &uniformUpdated, 1, &preDepthFinished, graphicsQueue, nullptr);
+
+
+	//// If we need to render shadows, submit shadow rendering command
+	//// Otherwise, submit geometry rendering commands with a different set of semaphores
+	//if (renderShadow)
+	//{
+	//	// Shadow
+	//	submitCommands(1, &shadowBuffers[imageIndex], 1, &preDepthFinished, 1, &shadowFinished, graphicsQueue, nullptr);
+
+	//	// Geometry
+	//	submitCommands(1, &geometryBuffers[imageIndex], 1, &shadowFinished, 1, &geometryFinished, graphicsQueue, nullptr);
+	//}
+	//else
+	//{
+	//	// Geometry
+	//	submitCommands(1, &geometryBuffers[imageIndex], 1, &preDepthFinished, 1, &geometryFinished, graphicsQueue, nullptr);
+	//}
+
+
 	// Record depth rendering command on thread 1
-	std::thread t1(&VulkanEngine::recordDepthPrePass, this, std::ref(preDepthBuffers[imageIndex]));
+	std::thread t1(&VulkanEngine::recordDepthPrePass, this, std::ref(preDepthBuffers[imageIndex]), std::ref(depthMeshBuffers[imageIndex]), 
+		std::ref(depthSkeletalBuffers[imageIndex]));
 
 	std::thread t2;
 	std::thread t3;
@@ -1389,11 +1460,13 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 		t2 = std::thread(&VulkanEngine::recordShadowPass, this, std::ref(shadowBuffers[imageIndex]));
 		gameState->graphicsResources.lights[1]->shadowRendered();
 
-		t3 = std::thread(&VulkanEngine::recordGeometryPass, this, std::ref(geometryBuffers[imageIndex]));
+		t3 = std::thread(&VulkanEngine::recordGeometryPass, this, std::ref(geometryBuffers[imageIndex]), std::ref(geometryMeshBuffers[imageIndex]), 
+			std::ref(geometrySkeletalBuffers[imageIndex]));
 	}
 	else
 	{
-		t2 = std::thread(&VulkanEngine::recordGeometryPass, this, std::ref(geometryBuffers[imageIndex]));
+		t2 = std::thread(&VulkanEngine::recordGeometryPass, this, std::ref(geometryBuffers[imageIndex]), std::ref(geometryMeshBuffers[imageIndex]),
+			std::ref(geometrySkeletalBuffers[imageIndex]));
 	}
 
 	// Check if thread 1 has done recording
@@ -1491,59 +1564,6 @@ void VulkanEngine::processTodoSkeleton(VkDevice& logicalDevice)
 	}
 }
 
-void VulkanEngine::recordCommands(VkCommandBuffer& commandBuffer, VkFramebuffer& framebuffer, VkExtent2D& extent)
-{
-	// Begin command buffer
-	VkCommandBufferBeginInfo commandBeginInfo{};
-	commandBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	commandBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-	if (vkBeginCommandBuffer(commandBuffer, &commandBeginInfo) != VK_SUCCESS)
-		throw std::runtime_error("Failed to begin command buffer");
-
-	// Update uniform buffers
-	vkCmdUpdateBuffer(commandBuffer, sceneUniformBuffer.buffer, 0, sizeof(sceneMatrix), &sceneMatrix);
-
-	// Update light uniform buffers
-	vkCmdUpdateBuffer(commandBuffer, lightUniformBuffer.buffer, 0, sizeof(gameState->graphicsResources.lights[1]->lightUniform), &gameState->graphicsResources.lights[1]->lightUniform);
-
-	// Update camera uniform buffers
-	vec4 cameraPosition = vec4(camera->position, 1);
-	vkCmdUpdateBuffer(commandBuffer, cameraUniformBuffer.buffer, 0, sizeof(vec4), &cameraPosition);
-
-	// Set dynamic viewport and scissor
-	{
-		VkViewport viewport = WillEngine::VulkanUtil::getViewport(sceneExtent);
-		VkRect2D scissor = WillEngine::VulkanUtil::getScissor(sceneExtent);
-		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-	}
-
-	// ========================================================
-	// Recording all the rendering command
-
-	depthPrePasses(commandBuffer, sceneExtent);
-
-	// Deferred rendering pass
-	geometryPasses(commandBuffer, sceneExtent);
-
-	// Shadow pass
-	//if (gameState->graphicsResources.lights[0]->shouldRenderShadow())
-	if (true)
-	{
-		shadowPasses(commandBuffer);
-		gameState->graphicsResources.lights[1]->shadowRendered();
-	}
-
-	// Shading
-	shadingPasses(commandBuffer, shadingRenderPass, shadingFramebuffer, sceneExtent);
-
-	// ========================================================
-
-	// End command buffer
-	vkEndCommandBuffer(commandBuffer);
-}
-
 void VulkanEngine::recordUniformUpdate(VkCommandBuffer& commandBuffer)
 {
 	// Begin command buffer
@@ -1572,12 +1592,204 @@ void VulkanEngine::recordUniformUpdate(VkCommandBuffer& commandBuffer)
 	vkEndCommandBuffer(commandBuffer);
 }
 
-void VulkanEngine::recordDepthPrePass(VkCommandBuffer& commandBuffer)
+void VulkanEngine::recordMeshSecondaryCommandBuffer(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkPipeline& pipeline,
+	VkPipelineLayout& pipelineLayout)
 {
+	VkCommandBufferInheritanceInfo inheritInfo{};
+	inheritInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+	inheritInfo.renderPass = renderPass;
+	inheritInfo.subpass = 0;
+	inheritInfo.framebuffer = framebuffer;
+	inheritInfo.occlusionQueryEnable = VK_FALSE;
+
+	// Begin command buffer
+	VkCommandBufferBeginInfo commandBeginInfo{};
+	commandBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	commandBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+	commandBeginInfo.pInheritanceInfo = &inheritInfo;
+
+	if (vkBeginCommandBuffer(commandBuffer, &commandBeginInfo) != VK_SUCCESS)
+		throw std::runtime_error("Failed to begin command buffer");
+
+	// Set dynamic viewport and scissor
+	{
+		VkViewport viewport = WillEngine::VulkanUtil::getViewport(sceneExtent);
+		VkRect2D scissor = WillEngine::VulkanUtil::getScissor(sceneExtent);
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+	}
+
+	// Bind pipeline
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+	// Bind Scene Uniform Buffer
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &sceneDescriptorSet.descriptorSet, 0, nullptr);
+
+	// Actual rendering commands here
+	for (auto it = gameState->gameResources.entities.begin(); it != gameState->gameResources.entities.end(); it++)
+	{
+		Entity* entity = it->second;
+
+		MeshComponent* meshComponent = entity->GetComponent<MeshComponent>();
+
+		bool hasRenderable = meshComponent != nullptr;
+
+		if (!entity->isEnable)
+			continue;
+
+		if (!hasRenderable)
+			continue;
+
+		TransformComponent* transformComponent = entity->components[typeid(TransformComponent)]->GetComponent<TransformComponent>();
+
+		for (u32 i = 0; i < meshComponent->getNumMesh(); i++)
+		{
+			if (!gameState->graphicsResources.meshes[meshComponent->meshIndicies[i]]->isReadyToDraw())
+				continue;
+
+			// Don't render if it has skeletal component
+			if (entity->AnyParentHasComponent<SkeletalComponent>())
+				continue;
+
+			Mesh* mesh = gameState->graphicsResources.meshes[meshComponent->meshIndicies[i]];
+
+			u32 bufferSize = mesh->getVulkanBufferSize();
+
+			std::vector<VkBuffer> buffers = mesh->getVulkanBuffers();
+
+			std::vector<VkDeviceSize> offsets = mesh->getVulkanOffset();
+
+			// Bind buffers
+			vkCmdBindVertexBuffers(commandBuffer, 0, bufferSize, buffers.data(), offsets.data());
+
+			vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+			// Bind Texture
+			// Check if the mesh has a material
+			if (gameState->graphicsResources.materials[meshComponent->materialIndicies[i]])
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
+
+			// Push constant for model matrix
+			mat4 transformation = transformComponent->getGlobalTransformation();
+			//mat4 transformation = transformComponent->getLocalTransformation();
+
+			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+				sizeof(transformation), &transformation);
+
+			vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
+		}
+	}
+
+	vkEndCommandBuffer(commandBuffer);
+}
+
+void VulkanEngine::recordSkeletalSecondaryCommandBuffer(VkCommandBuffer& commandBuffer, VkRenderPass& renderPass, VkFramebuffer& framebuffer, VkPipeline& pipeline,
+	VkPipelineLayout& pipelineLayout)
+{
+	VkCommandBufferInheritanceInfo inheritInfo{};
+	inheritInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+	inheritInfo.renderPass = renderPass;
+	inheritInfo.subpass = 0;
+	inheritInfo.framebuffer = framebuffer;
+	inheritInfo.occlusionQueryEnable = VK_FALSE;
+
+	// Begin command buffer
+	VkCommandBufferBeginInfo commandBeginInfo{};
+	commandBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	commandBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+	commandBeginInfo.pInheritanceInfo = &inheritInfo;
+
+	if (vkBeginCommandBuffer(commandBuffer, &commandBeginInfo) != VK_SUCCESS)
+		throw std::runtime_error("Failed to begin command buffer");
+
+	// Set dynamic viewport and scissor
+	{
+		VkViewport viewport = WillEngine::VulkanUtil::getViewport(sceneExtent);
+		VkRect2D scissor = WillEngine::VulkanUtil::getScissor(sceneExtent);
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+	}
+
+	// Bind pipeline
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+	// Bind Scene Uniform Buffer
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &sceneDescriptorSet.descriptorSet, 0, nullptr);
+
+	// Actual rendering commands here
+	for (auto it = gameState->gameResources.entities.begin(); it != gameState->gameResources.entities.end(); it++)
+	{
+		Entity* entity = it->second;
+
+		MeshComponent* meshComponent = entity->GetComponent<MeshComponent>();
+
+		bool hasRenderable = meshComponent != nullptr;
+
+		if (!entity->isEnable)
+			continue;
+
+		if (!hasRenderable)
+			continue;
+
+		// Don't render it if it does not have skeletal component
+		if (!entity->AnyParentHasComponent<SkeletalComponent>())
+			continue;
+
+		TransformComponent* transformComponent = entity->components[typeid(TransformComponent)]->GetComponent<TransformComponent>();
+
+		//SkeletalComponent* skeletalComp = rootEntity->GetComponent<SkeletalComponent>();
+		SkeletalComponent* skeletalComp = entity->AnyParentGetComponent<SkeletalComponent>();
+		Skeleton* skeleton = gameState->gameResources.skeletons[skeletalComp->skeletalId];
+
+		// Bind bone uniform buffer
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skeletalPipelineLayout, 2, 1, &skeleton->boneDescriptorSet.descriptorSet, 0, nullptr);
+
+		for (u32 i = 0; i < meshComponent->getNumMesh(); i++)
+		{
+			if (!gameState->graphicsResources.meshes[meshComponent->meshIndicies[i]]->isReadyToDraw())
+				continue;
+
+			Mesh* mesh = dynamic_cast<Mesh*>(gameState->graphicsResources.meshes[meshComponent->meshIndicies[i]]);
+
+			u32 bufferSize = mesh->getVulkanBufferSize();
+
+			std::vector<VkBuffer> buffers = mesh->getVulkanBuffers();
+
+			std::vector<VkDeviceSize> offsets = mesh->getVulkanOffset();
+
+			// Bind buffers
+			vkCmdBindVertexBuffers(commandBuffer, 0, bufferSize, buffers.data(), offsets.data());
+
+			vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+			// Bind Texture
+			// Check if the mesh has a material
+			if (gameState->graphicsResources.materials[meshComponent->materialIndicies[i]])
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skeletalPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
+
+			vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
+		}
+	}
+
+	vkEndCommandBuffer(commandBuffer);
+}
+
+void VulkanEngine::recordDepthPrePass(VkCommandBuffer& commandBuffer, VkCommandBuffer& meshBuffer, VkCommandBuffer& skeletalBuffer)
+{
+	//std::thread t1(&VulkanEngine::recordMeshSecondaryCommandBuffer, this, std::ref(meshBuffer), std::ref(depthRenderPass), std::ref(depthFramebuffer),
+	//	std::ref(depthPipeline), std::ref(depthPipelineLayout));
+
+	//std::thread t2(&VulkanEngine::recordSkeletalSecondaryCommandBuffer, this, std::ref(skeletalBuffer), std::ref(depthRenderPass), std::ref(depthFramebuffer),
+	//	std::ref(depthSkeletalPipeline), std::ref(depthSkeletalPipelineLayout));
+
+	//t1.join();
+	//t2.join();
+
 	// Begin command buffer
 	VkCommandBufferBeginInfo commandBeginInfo{};
 	commandBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	commandBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	//commandBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 
 	if (vkBeginCommandBuffer(commandBuffer, &commandBeginInfo) != VK_SUCCESS)
 		throw std::runtime_error("Failed to begin command buffer");
@@ -1603,12 +1815,15 @@ void VulkanEngine::recordDepthPrePass(VkCommandBuffer& commandBuffer)
 
 	// Begin Render pass
 	vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+	//vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
 	// Render Skeletal meshes first
-	depthSkeletalPrePasses(commandBuffer, sceneExtent);
+	depthSkeletalPrePasses(commandBuffer);
+	//vkCmdExecuteCommands(commandBuffer, 1, &skeletalBuffer);
 
 	// Render normal meshes
-	depthPrePasses(commandBuffer, sceneExtent);
+	depthPrePasses(commandBuffer);
+	//vkCmdExecuteCommands(commandBuffer, 1, &meshBuffer);
 
 	// End Render pass
 	vkCmdEndRenderPass(commandBuffer);
@@ -1641,11 +1856,21 @@ void VulkanEngine::recordShadowPass(VkCommandBuffer& commandBuffer)
 	vkEndCommandBuffer(commandBuffer);
 }
 
-void VulkanEngine::recordGeometryPass(VkCommandBuffer& commandBuffer)
+void VulkanEngine::recordGeometryPass(VkCommandBuffer& commandBuffer, VkCommandBuffer& meshBuffer, VkCommandBuffer& skeletalBuffer)
 {
+	//std::thread t1(&VulkanEngine::recordMeshSecondaryCommandBuffer, this, std::ref(meshBuffer), std::ref(geometryRenderPass), std::ref(offscreenFramebuffer.framebuffer),
+	//	std::ref(geometryPipeline), std::ref(geometryPipelineLayout));
+
+	//std::thread t2(&VulkanEngine::recordSkeletalSecondaryCommandBuffer, this, std::ref(skeletalBuffer), std::ref(geometryRenderPass), std::ref(offscreenFramebuffer.framebuffer),
+	//	std::ref(skeletalPipeline), std::ref(skeletalPipelineLayout));
+
+	//t1.join();
+	//t2.join();
+
 	// Begin command buffer
 	VkCommandBufferBeginInfo commandBeginInfo{};
 	commandBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	//commandBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 	commandBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
 	if (vkBeginCommandBuffer(commandBuffer, &commandBeginInfo) != VK_SUCCESS)
@@ -1681,12 +1906,15 @@ void VulkanEngine::recordGeometryPass(VkCommandBuffer& commandBuffer)
 
 	// Begin Render Pass
 	vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+	//vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
 	// Render Skeletal geometry first
 	geometrySkeletalPasses(commandBuffer, sceneExtent);
+	//vkCmdExecuteCommands(commandBuffer, 1, &skeletalBuffer);
 
 	// Render normal geometry
 	geometryPasses(commandBuffer, sceneExtent);
+	//vkCmdExecuteCommands(commandBuffer, 1, &meshBuffer);
 
 	// End Render Pass
 	vkCmdEndRenderPass(commandBuffer);
@@ -1720,26 +1948,7 @@ void VulkanEngine::recordShadingPass(VkCommandBuffer& commandBuffer)
 	vkEndCommandBuffer(commandBuffer);
 }
 
-void VulkanEngine::recordSubmitDepthPrePass(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, VkQueue& graphicsQueue, VkFence& fence)
-{
-	recordDepthPrePass(commandBuffer);
-	submitCommands(1, &commandBuffer, 1, &waitSemaphore, 1, &signalSemaphore, graphicsQueue, nullptr);
-}
-
-void VulkanEngine::recordSubmitShadowPass(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, VkQueue& graphicsQueue, VkFence& fence)
-{
-	recordShadowPass(commandBuffer);
-	submitCommands(1, &commandBuffer, 1, &waitSemaphore, 1, &signalSemaphore, graphicsQueue, nullptr);
-	gameState->graphicsResources.lights[1]->shadowRendered();
-}
-
-void VulkanEngine::recordSubmitGeometryPass(VkCommandBuffer& commandBuffer, VkSemaphore& waitSemaphore, VkSemaphore& signalSemaphore, VkQueue& graphicsQueue, VkFence& fence)
-{
-	recordGeometryPass(commandBuffer);
-	submitCommands(1, &commandBuffer, 1, &waitSemaphore, 1, &signalSemaphore, graphicsQueue, nullptr);
-}
-
-void VulkanEngine::depthSkeletalPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D extent)
+void VulkanEngine::depthSkeletalPrePasses(VkCommandBuffer& commandBuffer)
 {
 	// Bind pipeline
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthSkeletalPipeline);
@@ -1761,11 +1970,7 @@ void VulkanEngine::depthSkeletalPrePasses(VkCommandBuffer& commandBuffer, VkExte
 		if (!hasRenderable)
 			continue;
 
-		// Get the skeletal
-		//Entity* rootEntity = entity->getRoot();
-
-		//if (!rootEntity->HasComponent<SkeletalComponent>())
-		//	continue;
+		// Don't render if it does not have Skeletal Component
 		if (!entity->AnyParentHasComponent<SkeletalComponent>())
 			continue;
 
@@ -1806,7 +2011,7 @@ void VulkanEngine::depthSkeletalPrePasses(VkCommandBuffer& commandBuffer, VkExte
 	}
 }
 
-void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D extent)
+void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer)
 {
 	// Bind pipeline
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPipeline);
@@ -1829,10 +2034,6 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 			continue;
 
 		// Don't render if it has skeletal component as we have rendered it already
-		//Entity* rootEntity = entity->getRoot();
-
-		//if (rootEntity->HasComponent<SkeletalComponent>())
-		//	continue;
 		if (entity->AnyParentHasComponent<SkeletalComponent>())
 			continue;
 
@@ -1975,10 +2176,6 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 				continue;
 
 			// Don't render if it has skeletal component as we have rendered it already
-			//Entity* rootEntity = entity->getRoot();
-
-			//if (rootEntity->HasComponent<SkeletalComponent>())
-			//	continue;
 			if (entity->AnyParentHasComponent<SkeletalComponent>())
 				continue;
 
