@@ -13,6 +13,11 @@ namespace WillEngine
 		vec3 rotation;
 		vec3 scale;
 
+	private:
+
+		// A boolean to check if we have to update the world transformation
+		mat4 worldTransformation;
+
 	public:
 
 		TransformComponent();
@@ -31,6 +36,9 @@ namespace WillEngine
 
 		mat4 getLocalTransformation() const;
 		mat4 getGlobalTransformation() const;
+		mat4& const getWorldTransformation() { return worldTransformation; };
+
+		void updateWorldTransformation() { worldTransformation = getGlobalTransformation(); };
 
 	private:
 

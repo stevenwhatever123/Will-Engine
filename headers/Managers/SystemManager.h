@@ -85,5 +85,9 @@ public:
 	// Command calls
 	void loadModel();
 
+	// Process Queried Tasks
+	void processQueriedTasks();
+
 	void processMesh();
+	void processTransformationCalculations();
 };

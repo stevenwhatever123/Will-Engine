@@ -1406,43 +1406,6 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	recordUniformUpdate(uniformUpdateBuffers[imageIndex]);
 	submitCommands(1, &uniformUpdateBuffers[imageIndex], 1, &imageAvailable, 1, &uniformUpdated, graphicsQueue, nullptr);
 
-
-
-
-	//recordDepthPrePass(preDepthBuffers[imageIndex], depthMeshBuffers[imageIndex], depthSkeletalBuffers[imageIndex]);
-
-	//const bool renderShadow = gameState->graphicsResources.lights[1]->shouldRenderShadow();
-
-	//if (renderShadow)
-	////if (true)
-	//{
-	//	recordShadowPass(shadowBuffers[imageIndex]);
-	//	gameState->graphicsResources.lights[1]->shadowRendered();
-	//}
-
-	//recordGeometryPass(geometryBuffers[imageIndex], geometryMeshBuffers[imageIndex], geometrySkeletalBuffers[imageIndex]);
-
-	//// Submit Depth rendering command
-	//submitCommands(1, &preDepthBuffers[imageIndex], 1, &uniformUpdated, 1, &preDepthFinished, graphicsQueue, nullptr);
-
-
-	//// If we need to render shadows, submit shadow rendering command
-	//// Otherwise, submit geometry rendering commands with a different set of semaphores
-	//if (renderShadow)
-	//{
-	//	// Shadow
-	//	submitCommands(1, &shadowBuffers[imageIndex], 1, &preDepthFinished, 1, &shadowFinished, graphicsQueue, nullptr);
-
-	//	// Geometry
-	//	submitCommands(1, &geometryBuffers[imageIndex], 1, &shadowFinished, 1, &geometryFinished, graphicsQueue, nullptr);
-	//}
-	//else
-	//{
-	//	// Geometry
-	//	submitCommands(1, &geometryBuffers[imageIndex], 1, &preDepthFinished, 1, &geometryFinished, graphicsQueue, nullptr);
-	//}
-
-
 	// Record depth rendering command on thread 1
 	std::thread t1(&VulkanEngine::recordDepthPrePass, this, std::ref(preDepthBuffers[imageIndex]), std::ref(depthMeshBuffers[imageIndex]), 
 		std::ref(depthSkeletalBuffers[imageIndex]));
@@ -1670,7 +1633,8 @@ void VulkanEngine::recordMeshSecondaryCommandBuffer(VkCommandBuffer& commandBuff
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
 
 			// Push constant for model matrix
-			mat4 transformation = transformComponent->getGlobalTransformation();
+			mat4 transformation = transformComponent->getWorldTransformation();
+			//mat4 transformation = transformComponent->getGlobalTransformation();
 			//mat4 transformation = transformComponent->getLocalTransformation();
 
 			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
@@ -2063,7 +2027,8 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer)
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
 
 			// Push constant for model matrix
-			mat4 transformation = transformComponent->getGlobalTransformation();
+			mat4 transformation = transformComponent->getWorldTransformation();
+			//mat4 transformation = transformComponent->getGlobalTransformation();
 			//mat4 transformation = transformComponent->getLocalTransformation();
 
 			vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
@@ -2198,7 +2163,8 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
 
 			// Push constant for model matrix
-			mat4 transformation = transformComponent->getGlobalTransformation();
+			mat4 transformation = transformComponent->getWorldTransformation();
+			//mat4 transformation = transformComponent->getGlobalTransformation();
 			//mat4 transformation = transformComponent->getLocalTransformation();
 
 			vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
@@ -2274,8 +2240,9 @@ void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 			vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 			// Push constant for model matrix
-			TransformComponent* transform = entity->GetComponent<TransformComponent>();
-			mat4 transformation = transform->getGlobalTransformation();
+			TransformComponent* transformComponent = entity->GetComponent<TransformComponent>();
+			//mat4 transformation = transform->getGlobalTransformation();
+			mat4 transformation = transformComponent->getWorldTransformation();
 			vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(transformation), &transformation);
 
 			vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);

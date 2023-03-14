@@ -8,6 +8,7 @@
 #include "Core/LightComponent.h"
 
 #include "Core/ECS/Entity.h"
+#include "Core/ECS/TransformComponent.h"
 
 #include "Core/Vulkan/VulkanDescriptorSet.h"
 #include "Core/Vulkan/VulkanFramebuffer.h"
@@ -57,10 +58,11 @@ struct GameState
 		u32 selectedEntityId;
 	} uiParams;
 
-	struct TodoTasks
+	struct QueryTasks
 	{
 		std::queue<Entity*> meshesToAdd;
-	} todoTasks;
+		bool updateTransformation = false;
+	} queryTasks;
 	
 	struct MaterialUpdateInfo
 	{

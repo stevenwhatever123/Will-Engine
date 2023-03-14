@@ -9,7 +9,7 @@ TransformComponent::TransformComponent():
 	rotation(0),
 	scale(1)
 {
-
+	worldTransformation = getGlobalTransformation();
 }
 
 TransformComponent::TransformComponent(const vec3 position, const vec3 rotation, const vec3 scale) :
@@ -18,7 +18,7 @@ TransformComponent::TransformComponent(const vec3 position, const vec3 rotation,
 	rotation(rotation),
 	scale(scale)
 {
-
+	worldTransformation = getGlobalTransformation();
 }
 
 TransformComponent::TransformComponent(Entity* entity) :
@@ -27,7 +27,7 @@ TransformComponent::TransformComponent(Entity* entity) :
 	rotation(0),
 	scale(1)
 {
-
+	worldTransformation = getGlobalTransformation();
 }
 
 TransformComponent::TransformComponent(Entity* entity, const vec3 position, const vec3 rotation, const vec3 scale) :
@@ -36,12 +36,12 @@ TransformComponent::TransformComponent(Entity* entity, const vec3 position, cons
 	rotation(rotation),
 	scale(scale)
 {
-
+	worldTransformation = getGlobalTransformation();
 }
 
 TransformComponent::~TransformComponent()
 {
-
+	
 }
 
 mat4 TransformComponent::getLocalTransformation() const

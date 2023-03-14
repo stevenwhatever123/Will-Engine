@@ -110,8 +110,8 @@ void SystemManager::update()
 {
     updateInputs();
     
-    // Process to-do meshes from gameState
-    processMesh();
+    // Process queried tasks
+    processQueriedTasks();
 
     updateCamera();
 
@@ -187,13 +187,6 @@ void SystemManager::updateGui()
 
 void SystemManager::updateECS()
 {
-    // Reset Skeleton
-    for (auto it = gameState.gameResources.skeletons.begin(); it != gameState.gameResources.skeletons.end(); it++)
-    {
-        Skeleton* skeleton = it->second;
-        skeleton->boneUniformReset();
-    }
-
     for(auto it = gameState.gameResources.entities.begin(); it != gameState.gameResources.entities.end(); it++)
     {
         Entity* entity = it->second;
@@ -210,17 +203,6 @@ void SystemManager::updateECS()
 
             gameState.graphicsResources.lights[lightComp->lightIndex]->updateLightPosition(transform->getPosition());
             gameState.graphicsResources.lights[lightComp->lightIndex]->update();
-        }
-
-        // Update Skeleton
-        if (entity->HasComponent<SkeletalComponent>())
-        {
-            SkeletalComponent* skeleComp = entity->GetComponent<SkeletalComponent>();
-            u32 skeletonId = skeleComp->skeletalId;
-
-            Skeleton* skeleton = gameState.gameResources.skeletons[skeletonId];
-            if (!skeleton->hasUniformUpdated())
-                skeleton->updateBoneUniform(entity->getParent());
         }
     }
 }
@@ -282,13 +264,22 @@ void SystemManager::loadModel()
     {
         gameState.gameResources.entities[entities[i]->id] = entities[i];
     }
+
+    // Signal the game state to update transformation
+    gameState.queryTasks.updateTransformation = true;
+}
+
+void SystemManager::processQueriedTasks()
+{
+    processMesh();
+    processTransformationCalculations();
 }
 
 void SystemManager::processMesh()
 {
-    while (!gameState.todoTasks.meshesToAdd.empty())
+    while (!gameState.queryTasks.meshesToAdd.empty())
     {
-        Entity* entity = gameState.todoTasks.meshesToAdd.front();
+        Entity* entity = gameState.queryTasks.meshesToAdd.front();
 
         std::string defaultPreset = "C:/Users/Steven/source/repos/Will-Engine/presets/meshes/cube.fbx";
 
@@ -314,6 +305,35 @@ void SystemManager::processMesh()
         material->initBrdfDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
             vulkanWindow->vulkanEngine->commandPools[0], vulkanWindow->vulkanEngine->descriptorPool, vulkanWindow->graphicsQueue);
 
-        gameState.todoTasks.meshesToAdd.pop();
+        gameState.queryTasks.meshesToAdd.pop();
     }
+}
+
+void SystemManager::processTransformationCalculations()
+{
+    if (!gameState.queryTasks.updateTransformation)
+        return;
+
+    for (auto it = gameState.gameResources.entities.begin(); it != gameState.gameResources.entities.end(); it++)
+    {
+        u32 id = it->first;
+        Entity* entity = it->second;
+
+        TransformComponent* transformComponent = entity->GetComponent<TransformComponent>();
+        transformComponent->updateWorldTransformation();
+
+
+        if (!entity->HasComponent<SkeletalComponent>())
+            continue;
+
+        // Update Skeleton's bone transformation if this entity has skeletal component
+        SkeletalComponent* skeleComp = entity->GetComponent<SkeletalComponent>();
+        u32 skeletonId = skeleComp->skeletalId;
+
+        Skeleton* skeleton = gameState.gameResources.skeletons[skeletonId];
+        skeleton->updateBoneUniform(entity->getParent());
+    }
+
+    // signal the boolean not to update the transformation 
+    gameState.queryTasks.updateTransformation = false;
 }
