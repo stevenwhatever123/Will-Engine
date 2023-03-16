@@ -671,8 +671,8 @@ VkShaderModule WillEngine::VulkanUtil::createShaderModule(VkDevice& logicalDevic
 
 void WillEngine::VulkanUtil::initSkeletalShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader)
 {
-    const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/bone_pass/shader.vert.spv";
-    const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/geometry_pass/deferred.frag.spv";
+    const char* vertShaderPath = "././shaders/bone_pass/shader.vert.spv";
+    const char* fragShaderPath = "././shaders/geometry_pass/deferred.frag.spv";
 
     auto vertShaderCode = WillEngine::Utils::readSprivShader(vertShaderPath);
     auto fragShaderCode = WillEngine::Utils::readSprivShader(fragShaderPath);
@@ -683,8 +683,8 @@ void WillEngine::VulkanUtil::initSkeletalShaderModule(VkDevice& logicalDevice, V
 
 void WillEngine::VulkanUtil::initGeometryShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader)
 {
-    const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/geometry_pass/shader.vert.spv";
-    const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/geometry_pass/deferred.frag.spv";
+    const char* vertShaderPath = "././shaders/geometry_pass/shader.vert.spv";
+    const char* fragShaderPath = "././shaders/geometry_pass/deferred.frag.spv";
 
     auto vertShaderCode = WillEngine::Utils::readSprivShader(vertShaderPath);
     auto fragShaderCode = WillEngine::Utils::readSprivShader(fragShaderPath);
@@ -695,9 +695,9 @@ void WillEngine::VulkanUtil::initGeometryShaderModule(VkDevice& logicalDevice, V
 
 void WillEngine::VulkanUtil::initShadingShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader)
 {
-    const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/shading_pass/brdfShading.vert.spv";
-    //const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/shading_pass/brdfShading.frag.spv";
-    const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/shading_pass/epicBRDFShading.frag.spv";
+    const char* vertShaderPath = "././shaders/shading_pass/brdfShading.vert.spv";
+    //const char* fragShaderPath = "././shaders/shading_pass/brdfShading.frag.spv";
+    const char* fragShaderPath = "././shaders/shading_pass/epicBRDFShading.frag.spv";
 
     auto vertShaderCode = WillEngine::Utils::readSprivShader(vertShaderPath);
     auto fragShaderCode = WillEngine::Utils::readSprivShader(fragShaderPath);
@@ -708,9 +708,9 @@ void WillEngine::VulkanUtil::initShadingShaderModule(VkDevice& logicalDevice, Vk
 
 void WillEngine::VulkanUtil::initShadowShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& geomShader, VkShaderModule& fragShader)
 {
-    const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/shadow_pass/point_light/shadow.vert.spv";
-    const char* geomShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/shadow_pass/point_light/shadow.geom.spv";
-    const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/shadow_pass/point_light/shadow.frag.spv";
+    const char* vertShaderPath = "././shaders/shadow_pass/point_light/shadow.vert.spv";
+    const char* geomShaderPath = "././shaders/shadow_pass/point_light/shadow.geom.spv";
+    const char* fragShaderPath = "././shaders/shadow_pass/point_light/shadow.frag.spv";
 
     auto vertShaderCode = WillEngine::Utils::readSprivShader(vertShaderPath);
     auto geomShaderCode = WillEngine::Utils::readSprivShader(geomShaderPath);
@@ -723,8 +723,8 @@ void WillEngine::VulkanUtil::initShadowShaderModule(VkDevice& logicalDevice, VkS
 
 void WillEngine::VulkanUtil::initDepthShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader)
 {
-    const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/depth_pre_pass/shader.vert.spv";
-    const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/depth_pre_pass/shader.frag.spv";
+    const char* vertShaderPath = "././shaders/depth_pre_pass/shader.vert.spv";
+    const char* fragShaderPath = "././shaders/depth_pre_pass/shader.frag.spv";
 
     auto vertShaderCode = WillEngine::Utils::readSprivShader(vertShaderPath);
     auto fragShaderCode = WillEngine::Utils::readSprivShader(fragShaderPath);
@@ -735,8 +735,8 @@ void WillEngine::VulkanUtil::initDepthShaderModule(VkDevice& logicalDevice, VkSh
 
 void WillEngine::VulkanUtil::initDepthSkeletonShaderModule(VkDevice& logicalDevice, VkShaderModule& vertShader, VkShaderModule& fragShader)
 {
-    const char* vertShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/bone_pass/depth.vert.spv";
-    const char* fragShaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/bone_pass/depth.frag.spv";
+    const char* vertShaderPath = "././shaders/bone_pass/depth.vert.spv";
+    const char* fragShaderPath = "././shaders/bone_pass/depth.frag.spv";
 
     auto vertShaderCode = WillEngine::Utils::readSprivShader(vertShaderPath);
     auto fragShaderCode = WillEngine::Utils::readSprivShader(fragShaderPath);
@@ -747,8 +747,8 @@ void WillEngine::VulkanUtil::initDepthSkeletonShaderModule(VkDevice& logicalDevi
 
 void WillEngine::VulkanUtil::initFilterBrightShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader)
 {
-    //const char* shaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/post_processing/bloomDownscale.comp.spv";
-    const char* shaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/post_processing/filterBright.comp.spv";
+    //const char* shaderPath = "././shaders/post_processing/bloomDownscale.comp.spv";
+    const char* shaderPath = "././shaders/post_processing/filterBright.comp.spv";
 
     auto shaderCode = WillEngine::Utils::readSprivShader(shaderPath);
 
@@ -757,7 +757,7 @@ void WillEngine::VulkanUtil::initFilterBrightShaderModule(VkDevice& logicalDevic
 
 void WillEngine::VulkanUtil::initClearColorShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader)
 {
-    const char* shaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/post_processing/clearColor.comp.spv";
+    const char* shaderPath = "././shaders/post_processing/clearColor.comp.spv";
 
     auto shaderCode = WillEngine::Utils::readSprivShader(shaderPath);
 
@@ -766,7 +766,7 @@ void WillEngine::VulkanUtil::initClearColorShaderModule(VkDevice& logicalDevice,
 
 void WillEngine::VulkanUtil::initDownscaleShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader)
 {
-    const char* shaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/post_processing/bloomDownscale.comp.spv";
+    const char* shaderPath = "././shaders/post_processing/bloomDownscale.comp.spv";
 
     auto shaderCode = WillEngine::Utils::readSprivShader(shaderPath);
 
@@ -775,7 +775,7 @@ void WillEngine::VulkanUtil::initDownscaleShaderModule(VkDevice& logicalDevice, 
 
 void WillEngine::VulkanUtil::initUpscaleShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader)
 {
-    const char* shaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/post_processing/bloomUpscale.comp.spv";
+    const char* shaderPath = "././shaders/post_processing/bloomUpscale.comp.spv";
 
     auto shaderCode = WillEngine::Utils::readSprivShader(shaderPath);
 
@@ -784,7 +784,7 @@ void WillEngine::VulkanUtil::initUpscaleShaderModule(VkDevice& logicalDevice, Vk
 
 void WillEngine::VulkanUtil::initBlendColorShaderModule(VkDevice& logicalDevice, VkShaderModule& compShader)
 {
-    const char* shaderPath = "C:/Users/Steven/source/repos/Will-Engine/shaders/post_processing/blendColor.comp.spv";
+    const char* shaderPath = "././shaders/post_processing/blendColor.comp.spv";
 
     auto shaderCode = WillEngine::Utils::readSprivShader(shaderPath);
 
