@@ -39,6 +39,7 @@ namespace WillEngine
 		mat4& const getWorldTransformation() { return worldTransformation; };
 
 		void updateWorldTransformation() { worldTransformation = getGlobalTransformation(); };
+		void updateAllChildWorldTransformation();
 
 	private:
 

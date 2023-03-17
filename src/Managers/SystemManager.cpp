@@ -58,7 +58,7 @@ void SystemManager::initLight()
 {
     Entity* entity = new Entity();
 
-    TransformComponent* transform = new TransformComponent(entity);
+    TransformComponent* transform = new TransformComponent();
 
     Light* light = new Light(transform->getPosition());
 
@@ -265,8 +265,8 @@ void SystemManager::loadModel()
         gameState.gameResources.entities[entities[i]->id] = entities[i];
     }
 
-    // Signal the game state to update transformation
-    gameState.queryTasks.updateTransformation = true;
+    // Add all the entities to the query to update transformation
+    gameState.queryTasks.transformToUpdate.push(entities[0]);
 }
 
 void SystemManager::processQueriedTasks()
@@ -311,29 +311,41 @@ void SystemManager::processMesh()
 
 void SystemManager::processTransformationCalculations()
 {
-    if (!gameState.queryTasks.updateTransformation)
-        return;
-
-    for (auto it = gameState.gameResources.entities.begin(); it != gameState.gameResources.entities.end(); it++)
+    // Update Global Transformation
+    while (!gameState.queryTasks.transformToUpdate.empty())
     {
-        u32 id = it->first;
-        Entity* entity = it->second;
+        Entity* currentEntity = gameState.queryTasks.transformToUpdate.front();
 
-        TransformComponent* transformComponent = entity->GetComponent<TransformComponent>();
-        transformComponent->updateWorldTransformation();
+        // Update Global Transformation
+        TransformComponent* transformComponent = currentEntity->GetComponent<TransformComponent>();
+        transformComponent->updateAllChildWorldTransformation();
 
+        // Update Skeleton Bone Transformation
+        for (auto it = gameState.gameResources.skeletons.begin(); it != gameState.gameResources.skeletons.end(); it++)
+        {
+            u32 skeletonId = it->first;
+            Skeleton* skeleton = it->second;
 
-        if (!entity->HasComponent<SkeletalComponent>())
-            continue;
+            // This is a horrible way to match if the current entity (or it's child) has a skeleton or not but it will work for now
+            for (auto jt = gameState.gameResources.entities.begin(); jt != gameState.gameResources.entities.end(); jt++)
+            {
+                u32 entityId = jt->first;
+                Entity* entity = jt->second;
 
-        // Update Skeleton's bone transformation if this entity has skeletal component
-        SkeletalComponent* skeleComp = entity->GetComponent<SkeletalComponent>();
-        u32 skeletonId = skeleComp->skeletalId;
+                // Check if they're from the same root entity
+                if (entity->getRoot() != currentEntity->getRoot())
+                    continue;
 
-        Skeleton* skeleton = gameState.gameResources.skeletons[skeletonId];
-        skeleton->updateBoneUniform(entity->getParent());
+                if (skeleton->hasBone(entity->name))
+                {
+                    Entity* rootEntity = currentEntity->getRoot();
+                    skeleton->updateBoneUniform(rootEntity);
+                    break;
+                }
+            }
+        }
+
+        // Remove the current entity from the queue
+        gameState.queryTasks.transformToUpdate.pop();
     }
-
-    // signal the boolean not to update the transformation 
-    gameState.queryTasks.updateTransformation = false;
 }

@@ -7,18 +7,20 @@ TransformComponent::TransformComponent():
 	Component(nullptr),
 	position(0),
 	rotation(0),
-	scale(1)
+	scale(1),
+	worldTransformation(1)
 {
-	worldTransformation = getGlobalTransformation();
+	
 }
 
 TransformComponent::TransformComponent(const vec3 position, const vec3 rotation, const vec3 scale) :
 	Component(nullptr),
 	position(position),
 	rotation(rotation),
-	scale(scale)
+	scale(scale),
+	worldTransformation(1)
 {
-	worldTransformation = getGlobalTransformation();
+	
 }
 
 TransformComponent::TransformComponent(Entity* entity) :
@@ -60,7 +62,10 @@ mat4 TransformComponent::getGlobalTransformation() const
 {
 	mat4 resultMatrix = getLocalTransformation();
 
-	Entity* parentEntity = parent->parent;
+	if (!parent->hasParent())
+		return resultMatrix;
+
+	Entity* parentEntity = parent->getParent();
 	while (parentEntity)
 	{
 		TransformComponent* transformComp = parentEntity->GetComponent<TransformComponent>();
@@ -70,4 +75,15 @@ mat4 TransformComponent::getGlobalTransformation() const
 	}
 
 	return resultMatrix;
+}
+
+void TransformComponent::updateAllChildWorldTransformation()
+{
+	updateWorldTransformation();
+
+	for (auto child : parent->children)
+	{
+		TransformComponent* childTransform = child->GetComponent<TransformComponent>();
+		childTransform->updateAllChildWorldTransformation();
+	}
 }

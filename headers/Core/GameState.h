@@ -61,7 +61,8 @@ struct GameState
 	struct QueryTasks
 	{
 		std::queue<Entity*> meshesToAdd;
-		bool updateTransformation = false;
+		//bool updateTransformation = false;
+		std::queue<Entity*> transformToUpdate;
 	} queryTasks;
 	
 	struct MaterialUpdateInfo

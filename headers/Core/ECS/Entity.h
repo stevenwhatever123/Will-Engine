@@ -39,6 +39,8 @@ namespace WillEngine
 		u32 getChildrenSize() const { return children.size(); };
 
 		Entity* getRoot();
+
+		bool hasParent() { return parent ?  true :  false; };
 		Entity* getParent();
 
 	private:

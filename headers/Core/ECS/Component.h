@@ -18,6 +18,7 @@ namespace WillEngine
 		virtual void update() {};
 
 		void setParent(Entity* entity) { parent = entity; };
+		const Entity* const getParent() { return parent; };
 
 		virtual ComponentType getType() { return ComponentType::NullType; };
 

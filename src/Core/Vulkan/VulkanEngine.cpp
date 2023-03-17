@@ -1965,11 +1965,6 @@ void VulkanEngine::depthSkeletalPrePasses(VkCommandBuffer& commandBuffer)
 
 			vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-			// Push constant for model matrix
-			//mat4 transformation = transformComponent->getGlobalTransformation();
-			//vkCmdPushConstants(commandBuffer, depthSkeletalPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-			//	sizeof(transformation), &transformation);
-
 			vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 		}
 	}
@@ -2027,9 +2022,8 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer)
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
 
 			// Push constant for model matrix
-			mat4 transformation = transformComponent->getWorldTransformation();
-			//mat4 transformation = transformComponent->getGlobalTransformation();
-			//mat4 transformation = transformComponent->getLocalTransformation();
+			// Copying the reference is faster than copying the actual mat4 value
+			mat4& transformation = transformComponent->getWorldTransformation();
 
 			vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
 				sizeof(transformation), &transformation);
@@ -2101,11 +2095,6 @@ void VulkanEngine::geometrySkeletalPasses(VkCommandBuffer& commandBuffer, VkExte
 			if (gameState->graphicsResources.materials[meshComponent->materialIndicies[i]])
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skeletalPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
 
-			// Push constant for model matrix
-			//mat4 transformation = transformComponent->getGlobalTransformation();
-			//vkCmdPushConstants(commandBuffer, skeletalPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-			//	sizeof(transformation), &transformation);
-
 			vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 		}
 	}
@@ -2163,9 +2152,8 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
 
 			// Push constant for model matrix
-			mat4 transformation = transformComponent->getWorldTransformation();
-			//mat4 transformation = transformComponent->getGlobalTransformation();
-			//mat4 transformation = transformComponent->getLocalTransformation();
+			// Copying the reference is faster than copying the actual mat4 value
+			mat4& transformation = transformComponent->getWorldTransformation();
 
 			vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
 				sizeof(transformation), &transformation);
@@ -2241,8 +2229,8 @@ void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 
 			// Push constant for model matrix
 			TransformComponent* transformComponent = entity->GetComponent<TransformComponent>();
-			//mat4 transformation = transform->getGlobalTransformation();
-			mat4 transformation = transformComponent->getWorldTransformation();
+			// Copying the reference is faster than copying the actual mat4 value
+			mat4& transformation = transformComponent->getWorldTransformation();
 			vkCmdPushConstants(commandBuffer, geometryPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(transformation), &transformation);
 
 			vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);

@@ -29,17 +29,21 @@ void WillEngine::EngineGui::InspectorPanel::update(GameState* gameState)
 
 				if (ImGui::DragFloat3("Position", &transform->getPosition().x, 0.1f, 0, 0, "%.7f"))
 				{
-					gameState->queryTasks.updateTransformation = true;
+					//gameState->queryTasks.updateTransformation = true;
+
+					gameState->queryTasks.transformToUpdate.push(entity);
 				}
 
 				if (ImGui::DragFloat3("Rotation", &transform->getRotation().x, 0.1f, 0, 0, "%.7f"))
 				{
-					gameState->queryTasks.updateTransformation = true;
+					//gameState->queryTasks.updateTransformation = true;
+					gameState->queryTasks.transformToUpdate.push(entity);
 				}
 
 				if (ImGui::DragFloat3("Scale", &transform->getScale().x, 0.1f, 0, 0, "%.7f"))
 				{
-					gameState->queryTasks.updateTransformation = true;
+					//gameState->queryTasks.updateTransformation = true;
+					gameState->queryTasks.transformToUpdate.push(entity);
 				}
 
 				ImGui::TreePop();
