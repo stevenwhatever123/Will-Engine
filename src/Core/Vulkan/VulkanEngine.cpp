@@ -504,15 +504,15 @@ void VulkanEngine::createSwapchain(GLFWwindow* window, VkDevice& logicalDevice, 
 	VkPresentModeKHR presentMode = selectSwapchainPresentMode(presentModes);
 
 	// Make sure we have enough image for swapchain and make sure it does not exceed the maximum number
-	if (numSwapchainImage < capabilities.minImageCount)
+	if (NUM_SWAPCHAIN < capabilities.minImageCount)
 		throw std::runtime_error("Number of swapchain desired is less than the minimum required");
-	if (numSwapchainImage > capabilities.maxImageCount)
+	if (NUM_SWAPCHAIN > capabilities.maxImageCount)
 		throw std::runtime_error("Number of swapchain desired is more than the maximum supported");
 
 	VkSwapchainCreateInfoKHR swapchainInfo{};
 	swapchainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	swapchainInfo.surface = surface;
-	swapchainInfo.minImageCount = numSwapchainImage;
+	swapchainInfo.minImageCount = NUM_SWAPCHAIN;
 	swapchainInfo.imageFormat = surfaceFormat.format;
 	swapchainInfo.imageColorSpace = surfaceFormat.colorSpace;
 	swapchainInfo.imageExtent = extent;
@@ -858,17 +858,17 @@ void VulkanEngine::createCommandPools(VkDevice& logicalDevice, VkPhysicalDevice&
 
 void VulkanEngine::createCommandBuffers(VkDevice& logicalDevice)
 {
-	uniformUpdateBuffers.resize(numSwapchainImage);
-	preDepthBuffers.resize(numSwapchainImage);
-	shadowBuffers.resize(numSwapchainImage);
-	geometryBuffers.resize(numSwapchainImage);
-	shadingBuffers.resize(numSwapchainImage);
-	downscaleComputeCommandBuffers.resize(numSwapchainImage);
-	upscaleComputeCommandBuffers.resize(numSwapchainImage);
-	blendColorCommandBuffers.resize(numSwapchainImage);
-	presentCommandBuffers.resize(numSwapchainImage);
+	uniformUpdateBuffers.resize(NUM_SWAPCHAIN);
+	preDepthBuffers.resize(NUM_SWAPCHAIN);
+	shadowBuffers.resize(NUM_SWAPCHAIN);
+	geometryBuffers.resize(NUM_SWAPCHAIN);
+	shadingBuffers.resize(NUM_SWAPCHAIN);
+	downscaleComputeCommandBuffers.resize(NUM_SWAPCHAIN);
+	upscaleComputeCommandBuffers.resize(NUM_SWAPCHAIN);
+	blendColorCommandBuffers.resize(NUM_SWAPCHAIN);
+	presentCommandBuffers.resize(NUM_SWAPCHAIN);
 
-	for (u32 i = 0; i < numSwapchainImage; i++)
+	for (u32 i = 0; i < NUM_SWAPCHAIN; i++)
 	{
 		uniformUpdateBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[0]);
 		preDepthBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[1]);
@@ -884,16 +884,16 @@ void VulkanEngine::createCommandBuffers(VkDevice& logicalDevice)
 
 void VulkanEngine::createSecondaryCommandBuffers(VkDevice& logicalDevice)
 {
-	depthMeshBuffers.resize(numSwapchainImage);
-	depthSkeletalBuffers.resize(numSwapchainImage);
+	depthMeshBuffers.resize(NUM_SWAPCHAIN);
+	depthSkeletalBuffers.resize(NUM_SWAPCHAIN);
 
-	shadowMeshBuffers.resize(numSwapchainImage);
-	shadowSkeletalBuffers.resize(numSwapchainImage);
+	shadowMeshBuffers.resize(NUM_SWAPCHAIN);
+	shadowSkeletalBuffers.resize(NUM_SWAPCHAIN);
 
-	geometryMeshBuffers.resize(numSwapchainImage);
-	geometrySkeletalBuffers.resize(numSwapchainImage);
+	geometryMeshBuffers.resize(NUM_SWAPCHAIN);
+	geometrySkeletalBuffers.resize(NUM_SWAPCHAIN);
 
-	for (u32 i = 0; i < numSwapchainImage; i++)
+	for (u32 i = 0; i < NUM_SWAPCHAIN; i++)
 	{
 		depthMeshBuffers[i] = WillEngine::VulkanUtil::createSecondaryCommandBuffer(logicalDevice, commandPools[1]);
 		depthSkeletalBuffers[i] = WillEngine::VulkanUtil::createSecondaryCommandBuffer(logicalDevice, commandPools[2]);
@@ -945,7 +945,7 @@ void VulkanEngine::createSemaphore(VkDevice& logicalDevice)
 
 void VulkanEngine::createFence(VkDevice& logicalDevice, std::vector<VkFence>& fences, VkFenceCreateFlagBits flag)
 {
-	fences.resize(numSwapchainImage);
+	fences.resize(NUM_SWAPCHAIN);
 
 	for (u32 i = 0; i < fences.size(); i++)
 	{
@@ -1347,7 +1347,7 @@ void VulkanEngine::initGui(GLFWwindow* window, VkInstance& instance, VkDevice& l
 	if (!graphicsFamilyIndicies.has_value())
 		std::runtime_error("Failed to get graphics queue family index");
 
-	vulkanGui->init(window, instance, logicalDevice, physicalDevice, surface, graphicsFamilyIndicies.value(), commandPools[0], descriptorPool, numSwapchainImage, shadingRenderPass,
+	vulkanGui->init(window, instance, logicalDevice, physicalDevice, surface, graphicsFamilyIndicies.value(), commandPools[0], descriptorPool, NUM_SWAPCHAIN, shadingRenderPass,
 		swapchainExtent);
 }
 
@@ -1920,54 +1920,108 @@ void VulkanEngine::depthSkeletalPrePasses(VkCommandBuffer& commandBuffer)
 	// Bind Scene Uniform Buffer
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthSkeletalPipelineLayout, 0, 1, &sceneDescriptorSet.descriptorSet, 0, nullptr);
 
-	for (auto it = gameState->gameResources.entities.begin(); it != gameState->gameResources.entities.end(); it++)
+	//=======================================================
+	for (auto it = gameState->gameResources.skeletons.begin(); it != gameState->gameResources.skeletons.end(); it++)
 	{
-		Entity* entity = it->second;
-
-		MeshComponent* meshComponent = entity->GetComponent<MeshComponent>();
-
-		bool hasRenderable = meshComponent != nullptr;
-
-		if (!entity->isEnable)
-			continue;
-
-		if (!hasRenderable)
-			continue;
-
-		// Don't render if it does not have Skeletal Component
-		if (!entity->AnyParentHasComponent<SkeletalComponent>())
-			continue;
-
-		TransformComponent* transformComponent = entity->components[typeid(TransformComponent)]->GetComponent<TransformComponent>();
-
-		//SkeletalComponent* skeletalComp = rootEntity->GetComponent<SkeletalComponent>();
-		SkeletalComponent* skeletalComp = entity->AnyParentGetComponent<SkeletalComponent>();
-		Skeleton* skeleton = gameState->gameResources.skeletons[skeletalComp->skeletalId];
+		u32 skeletonId = it->first;
+		Skeleton* skeleton = it->second;
 
 		// Bind bone uniform buffer
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthSkeletalPipelineLayout, 1, 1, &skeleton->boneDescriptorSet.descriptorSet, 0, nullptr);
 
-		for (u32 i = 0; i < meshComponent->getNumMesh(); i++)
+		for (auto jt = gameState->gameResources.entities.begin(); jt != gameState->gameResources.entities.end(); jt++)
 		{
-			if (!gameState->graphicsResources.meshes[meshComponent->meshIndicies[i]]->isReadyToDraw())
+			u32 entityId = jt->first;
+			Entity* entity = jt->second;
+
+			if (!entity->isEnable)
 				continue;
 
-			Mesh* mesh = dynamic_cast<Mesh*>(gameState->graphicsResources.meshes[meshComponent->meshIndicies[i]]);
+			if (!entity->HasComponent<MeshComponent>())
+				continue;
 
-			u32 bufferSize = mesh->getVulkanBufferSize();
+			// Don't render if it does not have Skeletal Component
+			if (!entity->AnyParentHasComponent<SkeletalComponent>())
+				continue;
 
-			std::vector<VkBuffer> buffers = mesh->getVulkanBuffers();
+			// Don't render if the skeleton id is NOT the same
+			if (entity->AnyParentGetComponent<SkeletalComponent>()->skeletalId != skeletonId)
+				continue;
 
-			std::vector<VkDeviceSize> offsets = mesh->getVulkanOffset();
+			TransformComponent* transformComponent = entity->GetComponent<TransformComponent>();
+			MeshComponent* meshComponent = entity->GetComponent<MeshComponent>();
 
-			// Bind buffers
-			vkCmdBindVertexBuffers(commandBuffer, 0, bufferSize, buffers.data(), offsets.data());
+			for (u32 i = 0; i < meshComponent->getNumMesh(); i++)
+			{
+				if (!gameState->graphicsResources.meshes[meshComponent->meshIndicies[i]]->isReadyToDraw())
+					continue;
 
-			vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+				Mesh* mesh = dynamic_cast<Mesh*>(gameState->graphicsResources.meshes[meshComponent->meshIndicies[i]]);
 
-			vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
+				u32 bufferSize = mesh->getVulkanBufferSize();
+
+				std::vector<VkBuffer> buffers = mesh->getVulkanBuffers();
+
+				std::vector<VkDeviceSize> offsets = mesh->getVulkanOffset();
+
+				// Bind buffers
+				vkCmdBindVertexBuffers(commandBuffer, 0, bufferSize, buffers.data(), offsets.data());
+
+				vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+				vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
+			}
 		}
 	}
+
+	//for (auto it = gameState->gameResources.entities.begin(); it != gameState->gameResources.entities.end(); it++)
+	//{
+	//	Entity* entity = it->second;
+
+	//	MeshComponent* meshComponent = entity->GetComponent<MeshComponent>();
+
+	//	bool hasRenderable = meshComponent != nullptr;
+
+	//	if (!entity->isEnable)
+	//		continue;
+
+	//	if (!hasRenderable)
+	//		continue;
+
+	//	// Don't render if it does not have Skeletal Component
+	//	if (!entity->AnyParentHasComponent<SkeletalComponent>())
+	//		continue;
+
+	//	TransformComponent* transformComponent = entity->components[typeid(TransformComponent)]->GetComponent<TransformComponent>();
+
+	//	//SkeletalComponent* skeletalComp = rootEntity->GetComponent<SkeletalComponent>();
+	//	SkeletalComponent* skeletalComp = entity->AnyParentGetComponent<SkeletalComponent>();
+	//	Skeleton* skeleton = gameState->gameResources.skeletons[skeletalComp->skeletalId];
+
+	//	// Bind bone uniform buffer
+	//	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, depthSkeletalPipelineLayout, 1, 1, &skeleton->boneDescriptorSet.descriptorSet, 0, nullptr);
+
+	//	for (u32 i = 0; i < meshComponent->getNumMesh(); i++)
+	//	{
+	//		if (!gameState->graphicsResources.meshes[meshComponent->meshIndicies[i]]->isReadyToDraw())
+	//			continue;
+
+	//		Mesh* mesh = dynamic_cast<Mesh*>(gameState->graphicsResources.meshes[meshComponent->meshIndicies[i]]);
+
+	//		u32 bufferSize = mesh->getVulkanBufferSize();
+
+	//		std::vector<VkBuffer> buffers = mesh->getVulkanBuffers();
+
+	//		std::vector<VkDeviceSize> offsets = mesh->getVulkanOffset();
+
+	//		// Bind buffers
+	//		vkCmdBindVertexBuffers(commandBuffer, 0, bufferSize, buffers.data(), offsets.data());
+
+	//		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+	//		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
+	//	}
+	//}
 }
 
 void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer)
@@ -2041,63 +2095,122 @@ void VulkanEngine::geometrySkeletalPasses(VkCommandBuffer& commandBuffer, VkExte
 	// Bind Scene Uniform Buffer
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skeletalPipelineLayout, 0, 1, &sceneDescriptorSet.descriptorSet, 0, nullptr);
 
-	for (auto it = gameState->gameResources.entities.begin(); it != gameState->gameResources.entities.end(); it++)
+	//================================
+	for (auto it = gameState->gameResources.skeletons.begin(); it != gameState->gameResources.skeletons.end(); it++)
 	{
-		Entity* entity = it->second;
-
-		MeshComponent* meshComponent = entity->GetComponent<MeshComponent>();
-
-		bool hasRenderable = meshComponent != nullptr;
-
-		if (!entity->isEnable)
-			continue;
-
-		if (!hasRenderable)
-			continue;
-
-		// Get the skeletal
-		//Entity* rootEntity = entity->getRoot();
-
-		//if (!rootEntity->HasComponent<SkeletalComponent>())
-		//	continue;
-		if (!entity->AnyParentHasComponent<SkeletalComponent>())
-			continue;
-
-		TransformComponent* transformComponent = entity->components[typeid(TransformComponent)]->GetComponent<TransformComponent>();
-
-		//SkeletalComponent* skeletalComp = rootEntity->GetComponent<SkeletalComponent>();
-		SkeletalComponent* skeletalComp = entity->AnyParentGetComponent<SkeletalComponent>();
-		Skeleton* skeleton = gameState->gameResources.skeletons[skeletalComp->skeletalId];
+		u32 skeletonId = it->first;
+		Skeleton* skeleton = it->second;
 
 		// Bind bone uniform buffer
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skeletalPipelineLayout, 2, 1, &skeleton->boneDescriptorSet.descriptorSet, 0, nullptr);
 
-		for (u32 i = 0; i < meshComponent->getNumMesh(); i++)
+		for (auto jt = gameState->gameResources.entities.begin(); jt != gameState->gameResources.entities.end(); jt++)
 		{
-			if (!gameState->graphicsResources.meshes[meshComponent->meshIndicies[i]]->isReadyToDraw())
+			u32 entityId = jt->first;
+			Entity* entity = jt->second;
+
+			if (!entity->isEnable)
 				continue;
 
-			Mesh* mesh = dynamic_cast<Mesh*>(gameState->graphicsResources.meshes[meshComponent->meshIndicies[i]]);
+			if (!entity->HasComponent<MeshComponent>())
+				continue;
 
-			u32 bufferSize = mesh->getVulkanBufferSize();
+			// Don't render if it does not have Skeletal Component
+			if (!entity->AnyParentHasComponent<SkeletalComponent>())
+				continue;
 
-			std::vector<VkBuffer> buffers = mesh->getVulkanBuffers();
+			// Don't render if the skeleton id is NOT the same
+			if (entity->AnyParentGetComponent<SkeletalComponent>()->skeletalId != skeletonId)
+				continue;
 
-			std::vector<VkDeviceSize> offsets = mesh->getVulkanOffset();
+			TransformComponent* transformComponent = entity->GetComponent<TransformComponent>();
+			MeshComponent* meshComponent = entity->GetComponent<MeshComponent>();
 
-			// Bind buffers
-			vkCmdBindVertexBuffers(commandBuffer, 0, bufferSize, buffers.data(), offsets.data());
+			for (u32 i = 0; i < meshComponent->getNumMesh(); i++)
+			{
+				if (!gameState->graphicsResources.meshes[meshComponent->meshIndicies[i]]->isReadyToDraw())
+					continue;
 
-			vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+				Mesh* mesh = dynamic_cast<Mesh*>(gameState->graphicsResources.meshes[meshComponent->meshIndicies[i]]);
 
-			// Bind Texture
+				u32 bufferSize = mesh->getVulkanBufferSize();
+
+				std::vector<VkBuffer> buffers = mesh->getVulkanBuffers();
+
+				std::vector<VkDeviceSize> offsets = mesh->getVulkanOffset();
+
+				// Bind buffers
+				vkCmdBindVertexBuffers(commandBuffer, 0, bufferSize, buffers.data(), offsets.data());
+
+				vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+				// Bind Texture
 			// Check if the mesh has a material
-			if (gameState->graphicsResources.materials[meshComponent->materialIndicies[i]])
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skeletalPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
+				if (gameState->graphicsResources.materials[meshComponent->materialIndicies[i]])
+					vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skeletalPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
 
-			vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
+				vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
+			}
 		}
 	}
+
+	//for (auto it = gameState->gameResources.entities.begin(); it != gameState->gameResources.entities.end(); it++)
+	//{
+	//	Entity* entity = it->second;
+
+	//	MeshComponent* meshComponent = entity->GetComponent<MeshComponent>();
+
+	//	bool hasRenderable = meshComponent != nullptr;
+
+	//	if (!entity->isEnable)
+	//		continue;
+
+	//	if (!hasRenderable)
+	//		continue;
+
+	//	// Get the skeletal
+	//	//Entity* rootEntity = entity->getRoot();
+
+	//	//if (!rootEntity->HasComponent<SkeletalComponent>())
+	//	//	continue;
+	//	if (!entity->AnyParentHasComponent<SkeletalComponent>())
+	//		continue;
+
+	//	TransformComponent* transformComponent = entity->components[typeid(TransformComponent)]->GetComponent<TransformComponent>();
+
+	//	//SkeletalComponent* skeletalComp = rootEntity->GetComponent<SkeletalComponent>();
+	//	SkeletalComponent* skeletalComp = entity->AnyParentGetComponent<SkeletalComponent>();
+	//	Skeleton* skeleton = gameState->gameResources.skeletons[skeletalComp->skeletalId];
+
+	//	// Bind bone uniform buffer
+	//	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skeletalPipelineLayout, 2, 1, &skeleton->boneDescriptorSet.descriptorSet, 0, nullptr);
+
+	//	for (u32 i = 0; i < meshComponent->getNumMesh(); i++)
+	//	{
+	//		if (!gameState->graphicsResources.meshes[meshComponent->meshIndicies[i]]->isReadyToDraw())
+	//			continue;
+
+	//		Mesh* mesh = dynamic_cast<Mesh*>(gameState->graphicsResources.meshes[meshComponent->meshIndicies[i]]);
+
+	//		u32 bufferSize = mesh->getVulkanBufferSize();
+
+	//		std::vector<VkBuffer> buffers = mesh->getVulkanBuffers();
+
+	//		std::vector<VkDeviceSize> offsets = mesh->getVulkanOffset();
+
+	//		// Bind buffers
+	//		vkCmdBindVertexBuffers(commandBuffer, 0, bufferSize, buffers.data(), offsets.data());
+
+	//		vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+	//		// Bind Texture
+	//		// Check if the mesh has a material
+	//		if (gameState->graphicsResources.materials[meshComponent->materialIndicies[i]])
+	//			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skeletalPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
+
+	//		vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
+	//	}
+	//}
 }
 
 void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent)

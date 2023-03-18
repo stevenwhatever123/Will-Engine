@@ -77,7 +77,7 @@ Entity* Entity::getRoot()
 	return parentEntity;
 }
 
-Entity* Entity::getParent()
+Entity* Entity::getParent() const
 {
 	return parent;
 }

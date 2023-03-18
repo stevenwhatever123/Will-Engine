@@ -28,9 +28,13 @@ namespace WillEngine
 
 		virtual void update() {};
 
-		vec3& getPosition() { return position; };
-		vec3& getRotation() { return rotation; };
-		vec3& getScale() { return scale; };
+		const vec3& const getPosition() { return position; };
+		const vec3& const getRotation() { return rotation; };
+		const vec3& const getScale() { return scale; };
+
+		vec3& getModifiablePosition() { return position; };
+		vec3& getModifiableRotation() { return rotation; };
+		vec3& getModifiableScale() { return scale; };
 
 		virtual ComponentType getType() { return id; };
 

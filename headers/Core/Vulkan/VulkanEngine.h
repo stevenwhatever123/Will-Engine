@@ -37,7 +37,7 @@ public:
 public:
 
 	// Triple buffering
-	const u32 numSwapchainImage = 3;
+	static const u32 NUM_SWAPCHAIN = 3;
 
 	const VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
 

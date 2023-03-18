@@ -71,7 +71,7 @@ mat4 TransformComponent::getGlobalTransformation() const
 		TransformComponent* transformComp = parentEntity->GetComponent<TransformComponent>();
 		resultMatrix = transformComp->getLocalTransformation() * resultMatrix;
 
-		parentEntity = parentEntity->parent;
+		parentEntity = parentEntity->getParent();
 	}
 
 	return resultMatrix;
