@@ -30,12 +30,16 @@ struct PhongMaterialUniform
 };
 
 // Metallic-Roughness Material model 
-struct BRDFMetallic
+struct MaterialUniform
 {
+	// The First 4 is the BRDF matieral properties
 	vec4 emissive;
 	vec4 albedo;
 	f32 metallic;
 	f32 roughness;
+
+	// The others following after would be textures such as normal/specular map
+	vec3 normal;
 };
 
 // Specular-Glossiness Material model

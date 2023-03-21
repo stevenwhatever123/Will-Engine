@@ -33,8 +33,9 @@ class Material
 {
 public:
 
-	static const u32 TextureSize = 4;
-	static const std::string brdfTextureTypeNames[TextureSize];
+	static const u32 TEXTURE_SIZE = 5;
+	static const u32 BRDF_TEXTURE_SIZE = 4;
+	static const std::string TEXTURE_TYPE_NAME[TEXTURE_SIZE];
 
 public:
 
@@ -44,11 +45,13 @@ public:
 	const u32 id;
 
 	// Material for BRDF
-	BRDFMetallic brdfMaterialUniform;
+	MaterialUniform materialUniform;
 
 	// The metallic brdf texture
+	// The FIRST 4 is fixed as the BRDF materials, anything after that is textures such as normal/specular map
 	// BRDF: 1. Emissive, 2. Albedo (Diffuse), 3. Metallic, 4. Roughness
-	TextureDescriptorSet brdfTextures[TextureSize];
+	// Others: 5. Normal Map
+	TextureDescriptorSet textures[TEXTURE_SIZE];
 
 	// Descriptor Set / Uniform Buffer for vulkan
 	VkDescriptorSetLayout textureDescriptorSetLayout;
@@ -75,11 +78,11 @@ public:
 	void initTexture(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool, VkQueue& graphicsQueue, 
 		TextureDescriptorSet* textures, u32 index);
 
-	void initBrdfDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
+	void initDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
 		VkDescriptorPool& descriptorPool, VkQueue& graphicsQueue);
 
 	// Update
-	void updateBrdfDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
+	void updateDescriptorSet(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkCommandPool& commandPool,
 		VkDescriptorPool& descriptorPool, VkQueue& graphicsQueue, u32 index);
 
 	// Getters

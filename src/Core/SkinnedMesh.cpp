@@ -22,6 +22,12 @@ void SkinnedMesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysical
 	normalBuffer = WillEngine::VulkanUtil::createBuffer(vmaAllocator, sizeof(vec3) * normals.size(),
 		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
+	tangentBuffer = WillEngine::VulkanUtil::createBuffer(vmaAllocator, sizeof(vec3) * tangents.size(),
+		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+
+	bitangentBuffer = WillEngine::VulkanUtil::createBuffer(vmaAllocator, sizeof(vec3) * bitangents.size(),
+		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+
 	uvBuffer = WillEngine::VulkanUtil::createBuffer(vmaAllocator, sizeof(vec2) * uvs.size(),
 		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
@@ -42,6 +48,14 @@ void SkinnedMesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysical
 
 	VulkanAllocatedMemory normalStagingBuffer{};
 	normalStagingBuffer = WillEngine::VulkanUtil::createBuffer(vmaAllocator, sizeof(vec3) * normals.size(),
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+	VulkanAllocatedMemory tangentStagingBuffer{};
+	tangentStagingBuffer = WillEngine::VulkanUtil::createBuffer(vmaAllocator, sizeof(vec3) * tangents.size(),
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+	VulkanAllocatedMemory bitangentStagingBuffer{};
+	bitangentStagingBuffer = WillEngine::VulkanUtil::createBuffer(vmaAllocator, sizeof(vec3) * bitangents.size(),
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	VulkanAllocatedMemory uvStagingBuffer{};
@@ -72,6 +86,18 @@ void SkinnedMesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysical
 		throw std::runtime_error("Failed to map memory");
 	std::memcpy(normalPtr, normals.data(), sizeof(vec3) * normals.size());
 	vmaUnmapMemory(vmaAllocator, normalStagingBuffer.allocation);
+
+	void* tangentPtr = nullptr;
+	if (vmaMapMemory(vmaAllocator, tangentStagingBuffer.allocation, &tangentPtr) != VK_SUCCESS)
+		throw std::runtime_error("Failed to map memory");
+	std::memcpy(tangentPtr, tangents.data(), sizeof(vec3) * tangents.size());
+	vmaUnmapMemory(vmaAllocator, tangentStagingBuffer.allocation);
+
+	void* bitangentPtr = nullptr;
+	if (vmaMapMemory(vmaAllocator, bitangentStagingBuffer.allocation, &bitangentPtr) != VK_SUCCESS)
+		throw std::runtime_error("Failed to map memory");
+	std::memcpy(bitangentPtr, bitangents.data(), sizeof(vec3) * bitangents.size());
+	vmaUnmapMemory(vmaAllocator, bitangentStagingBuffer.allocation);
 
 	void* uvPtr = nullptr;
 	if (vmaMapMemory(vmaAllocator, uvStagingBuffer.allocation, &uvPtr) != VK_SUCCESS)
@@ -146,6 +172,20 @@ void SkinnedMesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysical
 	WillEngine::VulkanUtil::bufferBarrier(commandBuffer, normalBuffer.buffer, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
 		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_WHOLE_SIZE, 0, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
+	VkBufferCopy tangentCopy{};
+	tangentCopy.size = sizeof(vec3) * tangents.size();
+	vkCmdCopyBuffer(commandBuffer, tangentStagingBuffer.buffer, tangentBuffer.buffer, 1, &tangentCopy);
+
+	WillEngine::VulkanUtil::bufferBarrier(commandBuffer, tangentBuffer.buffer, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
+		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_WHOLE_SIZE, 0, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+
+	VkBufferCopy bitangentCopy{};
+	bitangentCopy.size = sizeof(vec3) * bitangents.size();
+	vkCmdCopyBuffer(commandBuffer, bitangentStagingBuffer.buffer, bitangentBuffer.buffer, 1, &bitangentCopy);
+
+	WillEngine::VulkanUtil::bufferBarrier(commandBuffer, bitangentBuffer.buffer, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
+		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_WHOLE_SIZE, 0, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+
 	VkBufferCopy uvCopy{};
 	uvCopy.size = sizeof(vec2) * uvs.size();
 	vkCmdCopyBuffer(commandBuffer, uvStagingBuffer.buffer, uvBuffer.buffer, 1, &uvCopy);
@@ -196,6 +236,8 @@ void SkinnedMesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysical
 	// Clean up staging buffers
 	vmaDestroyBuffer(vmaAllocator, positionStagingBuffer.buffer, positionStagingBuffer.allocation);
 	vmaDestroyBuffer(vmaAllocator, normalStagingBuffer.buffer, normalStagingBuffer.allocation);
+	vmaDestroyBuffer(vmaAllocator, tangentStagingBuffer.buffer, tangentStagingBuffer.allocation);
+	vmaDestroyBuffer(vmaAllocator, bitangentStagingBuffer.buffer, bitangentStagingBuffer.allocation);
 	vmaDestroyBuffer(vmaAllocator, uvStagingBuffer.buffer, uvStagingBuffer.allocation);
 	vmaDestroyBuffer(vmaAllocator, boneIdsStagingBuffer.buffer, boneIdsStagingBuffer.allocation);
 	vmaDestroyBuffer(vmaAllocator, weightsStagingBuffer.buffer, weightsStagingBuffer.allocation);
@@ -209,25 +251,30 @@ void SkinnedMesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysical
 	// Remove unnecessary data from memory
 	positions.clear();
 	normals.clear();
+	tangents.clear();
+	bitangents.clear();
 	uvs.clear();
 	indicies.clear();
 
 	positions.shrink_to_fit();
 	normals.shrink_to_fit();
+	tangents.clear();
+	bitangents.clear();
 	uvs.shrink_to_fit();
 	indicies.shrink_to_fit();
 }
 
 std::vector<VkBuffer> SkinnedMesh::getVulkanBuffers() const
 {
-	std::vector<VkBuffer> returnBuffers = { positionBuffer.buffer, normalBuffer.buffer, uvBuffer.buffer, boneIdsBuffer.buffer, weightsBuffer.buffer };
+	std::vector<VkBuffer> returnBuffers = { positionBuffer.buffer, normalBuffer.buffer, tangentBuffer.buffer, bitangentBuffer.buffer, uvBuffer.buffer, 
+		boneIdsBuffer.buffer, weightsBuffer.buffer };
 
 	return std::move(returnBuffers);
 }
 
 std::vector<VkDeviceSize> SkinnedMesh::getVulkanOffset() const
 {
-	std::vector<VkDeviceSize> returnOffsets(5);
+	std::vector<VkDeviceSize> returnOffsets(getVulkanBufferSize());
 
 	return std::move(returnOffsets);
 }

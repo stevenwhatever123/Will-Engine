@@ -16,6 +16,8 @@ public:
 
 	std::vector<vec3> positions;
 	std::vector<vec3> normals;
+	std::vector<vec3> tangents;
+	std::vector<vec3> bitangents;
 	std::vector<vec2> uvs;
 	std::vector<u32> indicies;
 
@@ -26,6 +28,8 @@ public:
 	// Vertex Buffer
 	VulkanAllocatedMemory positionBuffer;
 	VulkanAllocatedMemory normalBuffer;
+	VulkanAllocatedMemory tangentBuffer;
+	VulkanAllocatedMemory bitangentBuffer;
 	VulkanAllocatedMemory uvBuffer;
 	VulkanAllocatedMemory indexBuffer;
 
@@ -49,7 +53,7 @@ public:
 	virtual void uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkSurfaceKHR& surface, VkQueue& queue);
 
 	virtual std::vector<VkBuffer> getVulkanBuffers() const;
-	virtual u32 getVulkanBufferSize() const { return 3; };
+	virtual u32 getVulkanBufferSize() const { return 5; };
 	virtual std::vector<VkDeviceSize> getVulkanOffset() const;
 
 	virtual void cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator);

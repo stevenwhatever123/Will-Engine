@@ -235,7 +235,7 @@ void SystemManager::loadModel()
     {
         Material* material = it->second;
 
-        material->initBrdfDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
+        material->initDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
             vulkanWindow->vulkanEngine->commandPools[0], vulkanWindow->vulkanEngine->descriptorPool, vulkanWindow->graphicsQueue);
 
         // Add this material to the game state graphics resources
@@ -302,7 +302,7 @@ void SystemManager::processMesh()
         Material* material = loadedMaterials.begin()->second;
         gameState.graphicsResources.materials[material->id] = material;
 
-        material->initBrdfDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
+        material->initDescriptorSet(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator,
             vulkanWindow->vulkanEngine->commandPools[0], vulkanWindow->vulkanEngine->descriptorPool, vulkanWindow->graphicsQueue);
 
         gameState.queryTasks.meshesToAdd.pop();

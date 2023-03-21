@@ -10,6 +10,7 @@ public:
 	~Image();
 
 	void setImageColor(vec4 color);
+	void setImageColor(vec3 color);
 	void setImageColor(f32 value);
 
 	void readImage(const char* path, i32& width, i32& height, i32& numChannels);

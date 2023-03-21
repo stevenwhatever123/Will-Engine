@@ -1052,7 +1052,7 @@ void WillEngine::VulkanUtil::createSkeletalPipeline(VkDevice& logicalDevice, VkP
 
     // Shader code inputs
     // Position
-    VkVertexInputBindingDescription vertexInputs[5]{};
+    VkVertexInputBindingDescription vertexInputs[7]{};
     vertexInputs[0].binding = 0;
     vertexInputs[0].stride = sizeof(vec3);
     vertexInputs[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -1060,20 +1060,28 @@ void WillEngine::VulkanUtil::createSkeletalPipeline(VkDevice& logicalDevice, VkP
     vertexInputs[1].binding = 1;
     vertexInputs[1].stride = sizeof(vec3);
     vertexInputs[1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    // UV
+    // Tangent
     vertexInputs[2].binding = 2;
-    vertexInputs[2].stride = sizeof(vec2);
+    vertexInputs[2].stride = sizeof(vec3);
     vertexInputs[2].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    // Bone IDs
+    // Bitangent
     vertexInputs[3].binding = 3;
-    vertexInputs[3].stride = sizeof(ivec4);
+    vertexInputs[3].stride = sizeof(vec3);
     vertexInputs[3].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    // Weights
+    // UV
     vertexInputs[4].binding = 4;
-    vertexInputs[4].stride = sizeof(vec4);
+    vertexInputs[4].stride = sizeof(vec2);
     vertexInputs[4].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    // Bone IDs
+    vertexInputs[5].binding = 5;
+    vertexInputs[5].stride = sizeof(ivec4);
+    vertexInputs[5].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    // Weights
+    vertexInputs[6].binding = 6;
+    vertexInputs[6].stride = sizeof(vec4);
+    vertexInputs[6].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-    VkVertexInputAttributeDescription vertexAttrib[5]{};
+    VkVertexInputAttributeDescription vertexAttrib[7]{};
     // Position
     vertexAttrib[0].location = 0;
     vertexAttrib[0].binding = 0;
@@ -1084,22 +1092,32 @@ void WillEngine::VulkanUtil::createSkeletalPipeline(VkDevice& logicalDevice, VkP
     vertexAttrib[1].binding = 1;
     vertexAttrib[1].format = VK_FORMAT_R32G32B32_SFLOAT;
     vertexAttrib[1].offset = 0;
-    // UV
+    // Tangent
     vertexAttrib[2].location = 2;
     vertexAttrib[2].binding = 2;
-    vertexAttrib[2].format = VK_FORMAT_R32G32_SFLOAT;
+    vertexAttrib[2].format = VK_FORMAT_R32G32B32_SFLOAT;
     vertexAttrib[2].offset = 0;
-    // Bone IDs
+    // Biangent
     vertexAttrib[3].location = 3;
     vertexAttrib[3].binding = 3;
-    //vertexAttrib[3].format = VK_FORMAT_R8G8B8A8_SINT;
-    vertexAttrib[3].format = VK_FORMAT_R32G32B32A32_SINT;
+    vertexAttrib[3].format = VK_FORMAT_R32G32B32_SFLOAT;
     vertexAttrib[3].offset = 0;
-    // Weights
+    // UV
     vertexAttrib[4].location = 4;
     vertexAttrib[4].binding = 4;
-    vertexAttrib[4].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    vertexAttrib[4].format = VK_FORMAT_R32G32_SFLOAT;
     vertexAttrib[4].offset = 0;
+    // Bone IDs
+    vertexAttrib[5].location = 5;
+    vertexAttrib[5].binding = 5;
+    //vertexAttrib[5].format = VK_FORMAT_R8G8B8A8_SINT;
+    vertexAttrib[5].format = VK_FORMAT_R32G32B32A32_SINT;
+    vertexAttrib[5].offset = 0;
+    // Weights
+    vertexAttrib[6].location = 6;
+    vertexAttrib[6].binding = 6;
+    vertexAttrib[6].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    vertexAttrib[6].offset = 0;
 
     // Input Info
     VkPipelineVertexInputStateCreateInfo inputInfo{};
@@ -1153,8 +1171,8 @@ void WillEngine::VulkanUtil::createSkeletalPipeline(VkDevice& logicalDevice, VkP
     multisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
     multisampleInfo.sampleShadingEnable = VK_FALSE;
 
-    VkPipelineColorBlendAttachmentState colorBlend[Material::TextureSize]{};
-    for (u32 i = 0; i < Material::TextureSize; i++)
+    VkPipelineColorBlendAttachmentState colorBlend[Material::BRDF_TEXTURE_SIZE]{};
+    for (u32 i = 0; i < Material::BRDF_TEXTURE_SIZE; i++)
     {
         colorBlend[i].blendEnable = VK_FALSE;
         colorBlend[i].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
@@ -1225,7 +1243,7 @@ void WillEngine::VulkanUtil::createGeometryPipeline(VkDevice& logicalDevice, VkP
 
     // Shader code inputs
     // Position
-    VkVertexInputBindingDescription vertexInputs[3]{};
+    VkVertexInputBindingDescription vertexInputs[5]{};
     vertexInputs[0].binding = 0;
     vertexInputs[0].stride = sizeof(vec3);
     vertexInputs[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -1233,12 +1251,20 @@ void WillEngine::VulkanUtil::createGeometryPipeline(VkDevice& logicalDevice, VkP
     vertexInputs[1].binding = 1;
     vertexInputs[1].stride = sizeof(vec3);
     vertexInputs[1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    // UV
+    // Tangent
     vertexInputs[2].binding = 2;
-    vertexInputs[2].stride = sizeof(vec2);
+    vertexInputs[2].stride = sizeof(vec3);
     vertexInputs[2].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    // Bitangent
+    vertexInputs[3].binding = 3;
+    vertexInputs[3].stride = sizeof(vec3);
+    vertexInputs[3].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    // UV
+    vertexInputs[4].binding = 4;
+    vertexInputs[4].stride = sizeof(vec2);
+    vertexInputs[4].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-    VkVertexInputAttributeDescription vertexAttrib[3]{};
+    VkVertexInputAttributeDescription vertexAttrib[5]{};
     // Position
     vertexAttrib[0].location = 0;
     vertexAttrib[0].binding = 0;
@@ -1249,11 +1275,21 @@ void WillEngine::VulkanUtil::createGeometryPipeline(VkDevice& logicalDevice, VkP
     vertexAttrib[1].binding = 1;
     vertexAttrib[1].format = VK_FORMAT_R32G32B32_SFLOAT;
     vertexAttrib[1].offset = 0;
-    // UV
+    // Tangent
     vertexAttrib[2].location = 2;
     vertexAttrib[2].binding = 2;
-    vertexAttrib[2].format = VK_FORMAT_R32G32_SFLOAT;
+    vertexAttrib[2].format = VK_FORMAT_R32G32B32_SFLOAT;
     vertexAttrib[2].offset = 0;
+    // Bitangent
+    vertexAttrib[3].location = 3;
+    vertexAttrib[3].binding = 3;
+    vertexAttrib[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+    vertexAttrib[3].offset = 0;
+    // UV
+    vertexAttrib[4].location = 4;
+    vertexAttrib[4].binding = 4;
+    vertexAttrib[4].format = VK_FORMAT_R32G32_SFLOAT;
+    vertexAttrib[4].offset = 0;
 
     // Input Info
     VkPipelineVertexInputStateCreateInfo inputInfo{};
@@ -1307,8 +1343,8 @@ void WillEngine::VulkanUtil::createGeometryPipeline(VkDevice& logicalDevice, VkP
     multisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
     multisampleInfo.sampleShadingEnable = VK_FALSE;
 
-    VkPipelineColorBlendAttachmentState colorBlend[Material::TextureSize]{};
-    for (u32 i = 0; i < Material::TextureSize; i++)
+    VkPipelineColorBlendAttachmentState colorBlend[Material::BRDF_TEXTURE_SIZE]{};
+    for (u32 i = 0; i < Material::BRDF_TEXTURE_SIZE; i++)
     {
         colorBlend[i].blendEnable = VK_FALSE;
         colorBlend[i].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
@@ -1503,7 +1539,7 @@ void WillEngine::VulkanUtil::createShadowPipeline(VkDevice& logicalDevice, VkPip
 
     // Shader code inputs
     // Position
-    VkVertexInputBindingDescription vertexInputs[3]{};
+    VkVertexInputBindingDescription vertexInputs[5]{};
     vertexInputs[0].binding = 0;
     vertexInputs[0].stride = sizeof(vec3);
     vertexInputs[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -1511,12 +1547,20 @@ void WillEngine::VulkanUtil::createShadowPipeline(VkDevice& logicalDevice, VkPip
     vertexInputs[1].binding = 1;
     vertexInputs[1].stride = sizeof(vec3);
     vertexInputs[1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    // UV
+    // Tangent
     vertexInputs[2].binding = 2;
-    vertexInputs[2].stride = sizeof(vec2);
+    vertexInputs[2].stride = sizeof(vec3);
     vertexInputs[2].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    // Biangent
+    vertexInputs[3].binding = 3;
+    vertexInputs[3].stride = sizeof(vec3);
+    vertexInputs[3].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    // UV
+    vertexInputs[4].binding = 4;
+    vertexInputs[4].stride = sizeof(vec2);
+    vertexInputs[4].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-    VkVertexInputAttributeDescription vertexAttrib[3]{};
+    VkVertexInputAttributeDescription vertexAttrib[5]{};
     // Position
     vertexAttrib[0].location = 0;
     vertexAttrib[0].binding = 0;
@@ -1527,11 +1571,21 @@ void WillEngine::VulkanUtil::createShadowPipeline(VkDevice& logicalDevice, VkPip
     vertexAttrib[1].binding = 1;
     vertexAttrib[1].format = VK_FORMAT_R32G32B32_SFLOAT;
     vertexAttrib[1].offset = 0;
-    // UV
+    // Tangent
     vertexAttrib[2].location = 2;
     vertexAttrib[2].binding = 2;
-    vertexAttrib[2].format = VK_FORMAT_R32G32_SFLOAT;
+    vertexAttrib[2].format = VK_FORMAT_R32G32B32_SFLOAT;
     vertexAttrib[2].offset = 0;
+    // Bitangent
+    vertexAttrib[3].location = 3;
+    vertexAttrib[3].binding = 3;
+    vertexAttrib[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+    vertexAttrib[3].offset = 0;
+    // UV
+    vertexAttrib[4].location = 4;
+    vertexAttrib[4].binding = 4;
+    vertexAttrib[4].format = VK_FORMAT_R32G32_SFLOAT;
+    vertexAttrib[4].offset = 0;
 
     // Input Info
     VkPipelineVertexInputStateCreateInfo inputInfo{};
@@ -1635,7 +1689,7 @@ void WillEngine::VulkanUtil::createDepthPipeline(VkDevice& logicalDevice, VkPipe
 
     // Shader code inputs
     // Position
-    VkVertexInputBindingDescription vertexInputs[3]{};
+    VkVertexInputBindingDescription vertexInputs[5]{};
     vertexInputs[0].binding = 0;
     vertexInputs[0].stride = sizeof(vec3);
     vertexInputs[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -1643,12 +1697,20 @@ void WillEngine::VulkanUtil::createDepthPipeline(VkDevice& logicalDevice, VkPipe
     vertexInputs[1].binding = 1;
     vertexInputs[1].stride = sizeof(vec3);
     vertexInputs[1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    // UV
+    // Tangent
     vertexInputs[2].binding = 2;
-    vertexInputs[2].stride = sizeof(vec2);
+    vertexInputs[2].stride = sizeof(vec3);
     vertexInputs[2].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    // Biangent
+    vertexInputs[3].binding = 3;
+    vertexInputs[3].stride = sizeof(vec3);
+    vertexInputs[3].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    // UV
+    vertexInputs[4].binding = 4;
+    vertexInputs[4].stride = sizeof(vec2);
+    vertexInputs[4].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-    VkVertexInputAttributeDescription vertexAttrib[3]{};
+    VkVertexInputAttributeDescription vertexAttrib[5]{};
     // Position
     vertexAttrib[0].location = 0;
     vertexAttrib[0].binding = 0;
@@ -1659,11 +1721,21 @@ void WillEngine::VulkanUtil::createDepthPipeline(VkDevice& logicalDevice, VkPipe
     vertexAttrib[1].binding = 1;
     vertexAttrib[1].format = VK_FORMAT_R32G32B32_SFLOAT;
     vertexAttrib[1].offset = 0;
-    // UV
+    // Tangent
     vertexAttrib[2].location = 2;
     vertexAttrib[2].binding = 2;
-    vertexAttrib[2].format = VK_FORMAT_R32G32_SFLOAT;
+    vertexAttrib[2].format = VK_FORMAT_R32G32B32_SFLOAT;
     vertexAttrib[2].offset = 0;
+    // Bitangent
+    vertexAttrib[3].location = 3;
+    vertexAttrib[3].binding = 3;
+    vertexAttrib[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+    vertexAttrib[3].offset = 0;
+    // UV
+    vertexAttrib[4].location = 4;
+    vertexAttrib[4].binding = 4;
+    vertexAttrib[4].format = VK_FORMAT_R32G32_SFLOAT;
+    vertexAttrib[4].offset = 0;
 
     // Input Info
     VkPipelineVertexInputStateCreateInfo inputInfo{};
@@ -1774,7 +1846,7 @@ void WillEngine::VulkanUtil::createDepthSkeletalPipeline(VkDevice& logicalDevice
 
     // Shader code inputs
     // Position
-    VkVertexInputBindingDescription vertexInputs[5]{};
+    VkVertexInputBindingDescription vertexInputs[7]{};
     vertexInputs[0].binding = 0;
     vertexInputs[0].stride = sizeof(vec3);
     vertexInputs[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -1782,20 +1854,28 @@ void WillEngine::VulkanUtil::createDepthSkeletalPipeline(VkDevice& logicalDevice
     vertexInputs[1].binding = 1;
     vertexInputs[1].stride = sizeof(vec3);
     vertexInputs[1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    // UV
+    // Tangent
     vertexInputs[2].binding = 2;
-    vertexInputs[2].stride = sizeof(vec2);
+    vertexInputs[2].stride = sizeof(vec3);
     vertexInputs[2].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    // Bone IDs
+    // Bitangent
     vertexInputs[3].binding = 3;
-    vertexInputs[3].stride = sizeof(ivec4);
+    vertexInputs[3].stride = sizeof(vec3);
     vertexInputs[3].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    // Weights
+    // UV
     vertexInputs[4].binding = 4;
-    vertexInputs[4].stride = sizeof(vec4);
+    vertexInputs[4].stride = sizeof(vec2);
     vertexInputs[4].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    // Bone IDs
+    vertexInputs[5].binding = 5;
+    vertexInputs[5].stride = sizeof(ivec4);
+    vertexInputs[5].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    // Weights
+    vertexInputs[6].binding = 6;
+    vertexInputs[6].stride = sizeof(vec4);
+    vertexInputs[6].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-    VkVertexInputAttributeDescription vertexAttrib[5]{};
+    VkVertexInputAttributeDescription vertexAttrib[7]{};
     // Position
     vertexAttrib[0].location = 0;
     vertexAttrib[0].binding = 0;
@@ -1806,22 +1886,32 @@ void WillEngine::VulkanUtil::createDepthSkeletalPipeline(VkDevice& logicalDevice
     vertexAttrib[1].binding = 1;
     vertexAttrib[1].format = VK_FORMAT_R32G32B32_SFLOAT;
     vertexAttrib[1].offset = 0;
-    // UV
+    // Tangent
     vertexAttrib[2].location = 2;
     vertexAttrib[2].binding = 2;
-    vertexAttrib[2].format = VK_FORMAT_R32G32_SFLOAT;
+    vertexAttrib[2].format = VK_FORMAT_R32G32B32_SFLOAT;
     vertexAttrib[2].offset = 0;
-    // Bone IDs
+    // Bitangent
     vertexAttrib[3].location = 3;
     vertexAttrib[3].binding = 3;
-    //vertexAttrib[3].format = VK_FORMAT_R8G8B8A8_SINT;
-    vertexAttrib[3].format = VK_FORMAT_R32G32B32A32_SINT;
+    vertexAttrib[3].format = VK_FORMAT_R32G32B32_SFLOAT;
     vertexAttrib[3].offset = 0;
-    // Weights
+    // UV
     vertexAttrib[4].location = 4;
     vertexAttrib[4].binding = 4;
-    vertexAttrib[4].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    vertexAttrib[4].format = VK_FORMAT_R32G32_SFLOAT;
     vertexAttrib[4].offset = 0;
+    // Bone IDs
+    vertexAttrib[5].location = 5;
+    vertexAttrib[5].binding = 5;
+    //vertexAttri[5].format = VK_FORMAT_R8G8B8A8_SINT;
+    vertexAttrib[5].format = VK_FORMAT_R32G32B32A32_SINT;
+    vertexAttrib[5].offset = 0;
+    // Weights
+    vertexAttrib[6].location = 6;
+    vertexAttrib[6].binding = 6;
+    vertexAttrib[6].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    vertexAttrib[6].offset = 0;
 
     // Input Info
     VkPipelineVertexInputStateCreateInfo inputInfo{};

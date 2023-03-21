@@ -14,13 +14,11 @@ std::tuple<bool, std::string> WillEngine::Utils::selectFile()
 	ofn.lpstrFile = szFile;
 	ofn.lpstrFile[0] = '\0';
 	ofn.nMaxFile = sizeof(szFile);
-	//ofn.lpstrFilter = L"BVH Motion Data (*.bvh)\0*.bvh\0All (*.*)\0*.*\0";
 	ofn.nFilterIndex = 1;
 	ofn.lpstrFileTitle = NULL;
 	ofn.nMaxFileTitle = 0;
 	ofn.lpstrInitialDir = NULL;
 	ofn.lpstrTitle = L"Select File";
-	//ofn.lpstrDefExt = L"bvh";
 	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
 	bool readSuccess = GetOpenFileName(&ofn);

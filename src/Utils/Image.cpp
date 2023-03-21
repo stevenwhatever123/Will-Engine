@@ -35,6 +35,16 @@ void Image::setImageColor(vec4 color)
 	memcpy(data, colorToImage, sizeof(colorToImage));
 }
 
+void Image::setImageColor(vec3 color)
+{
+	unsigned char colorToImage[] = { color.x * 255, color.y * 255, color.z * 255, 1 * 255 };
+
+	// Allocate memory for this 1x1 texture
+	data = (unsigned char*)malloc(sizeof(colorToImage));
+
+	memcpy(data, colorToImage, sizeof(colorToImage));
+}
+
 void Image::setImageColor(f32 value)
 {
 	unsigned char valueToImage[] = { value * 255, 0, 0, 1 };

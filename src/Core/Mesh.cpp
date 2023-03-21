@@ -9,11 +9,15 @@ Mesh::Mesh() :
 	materialIndex(0),
 	positions(),
 	normals(),
+	tangents(),
+	bitangents(),
 	uvs(),
 	indicies(),
 	indiciesSize(0),
 	positionBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
 	normalBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
+	tangentBuffer({ VK_NULL_HANDLE, VK_NULL_HANDLE }),
+	bitangentBuffer({ VK_NULL_HANDLE, VK_NULL_HANDLE }),
 	uvBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
 	indexBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
 	primitive(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST),
@@ -28,11 +32,15 @@ Mesh::Mesh(const Mesh* mesh) :
 	materialIndex(mesh->materialIndex),
 	positions(mesh->positions),
 	normals(mesh->normals),
+	tangents(mesh->tangents),
+	bitangents(mesh->bitangents),
 	uvs(mesh->uvs),
 	indicies(mesh->indicies),
 	indiciesSize(mesh->indiciesSize),
 	positionBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
 	normalBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
+	tangentBuffer({ VK_NULL_HANDLE, VK_NULL_HANDLE }),
+	bitangentBuffer({ VK_NULL_HANDLE, VK_NULL_HANDLE }),
 	uvBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
 	indexBuffer({ VK_NULL_HANDLE , VK_NULL_HANDLE }),
 	primitive(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST),
@@ -55,6 +63,12 @@ void Mesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice&
 	normalBuffer = WillEngine::VulkanUtil::createBuffer(vmaAllocator, sizeof(vec3) * normals.size(),
 		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
+	tangentBuffer = WillEngine::VulkanUtil::createBuffer(vmaAllocator, sizeof(vec3) * tangents.size(),
+		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+
+	bitangentBuffer = WillEngine::VulkanUtil::createBuffer(vmaAllocator, sizeof(vec3) * bitangents.size(),
+		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+
 	uvBuffer = WillEngine::VulkanUtil::createBuffer(vmaAllocator, sizeof(vec2) * uvs.size(),
 		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
@@ -69,6 +83,14 @@ void Mesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice&
 
 	VulkanAllocatedMemory normalStagingBuffer{};
 	normalStagingBuffer = WillEngine::VulkanUtil::createBuffer(vmaAllocator, sizeof(vec3) * normals.size(),
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+	VulkanAllocatedMemory tangentStagingBuffer{};
+	tangentStagingBuffer = WillEngine::VulkanUtil::createBuffer(vmaAllocator, sizeof(vec3) * tangents.size(),
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+	VulkanAllocatedMemory bitangentStagingBuffer{};
+	bitangentStagingBuffer = WillEngine::VulkanUtil::createBuffer(vmaAllocator, sizeof(vec3) * bitangents.size(),
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	VulkanAllocatedMemory uvStagingBuffer{};
@@ -91,6 +113,18 @@ void Mesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice&
 		throw std::runtime_error("Failed to map memory");
 	std::memcpy(normalPtr, normals.data(), sizeof(vec3) * normals.size());
 	vmaUnmapMemory(vmaAllocator, normalStagingBuffer.allocation);
+
+	void* tangentPtr = nullptr;
+	if (vmaMapMemory(vmaAllocator, tangentStagingBuffer.allocation, &tangentPtr) != VK_SUCCESS)
+		throw std::runtime_error("Failed to map memory");
+	std::memcpy(tangentPtr, tangents.data(), sizeof(vec3) * tangents.size());
+	vmaUnmapMemory(vmaAllocator, tangentStagingBuffer.allocation);
+
+	void* bitangentPtr = nullptr;
+	if (vmaMapMemory(vmaAllocator, bitangentStagingBuffer.allocation, &bitangentPtr) != VK_SUCCESS)
+		throw std::runtime_error("Failed to map memory");
+	std::memcpy(bitangentPtr, bitangents.data(), sizeof(vec3) * bitangents.size());
+	vmaUnmapMemory(vmaAllocator, bitangentStagingBuffer.allocation);
 
 	void* uvPtr = nullptr;
 	if (vmaMapMemory(vmaAllocator, uvStagingBuffer.allocation, &uvPtr) != VK_SUCCESS)
@@ -131,6 +165,20 @@ void Mesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice&
 	WillEngine::VulkanUtil::bufferBarrier(commandBuffer, normalBuffer.buffer, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
 		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_WHOLE_SIZE, 0, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
 
+	VkBufferCopy tangentCopy{};
+	tangentCopy.size = sizeof(vec3) * tangents.size();
+	vkCmdCopyBuffer(commandBuffer, tangentStagingBuffer.buffer, tangentBuffer.buffer, 1, &tangentCopy);
+
+	WillEngine::VulkanUtil::bufferBarrier(commandBuffer, tangentBuffer.buffer, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
+		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_WHOLE_SIZE, 0, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+
+	VkBufferCopy bitangentCopy{};
+	bitangentCopy.size = sizeof(vec3) * bitangents.size();
+	vkCmdCopyBuffer(commandBuffer, bitangentStagingBuffer.buffer, bitangentBuffer.buffer, 1, &bitangentCopy);
+
+	WillEngine::VulkanUtil::bufferBarrier(commandBuffer, bitangentBuffer.buffer, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
+		VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_WHOLE_SIZE, 0, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED);
+
 	VkBufferCopy uvCopy{};
 	uvCopy.size = sizeof(vec2) * uvs.size();
 	vkCmdCopyBuffer(commandBuffer, uvStagingBuffer.buffer, uvBuffer.buffer, 1, &uvCopy);
@@ -167,6 +215,8 @@ void Mesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice&
 	// Clean up staging buffers
 	vmaDestroyBuffer(vmaAllocator, positionStagingBuffer.buffer, positionStagingBuffer.allocation);
 	vmaDestroyBuffer(vmaAllocator, normalStagingBuffer.buffer, normalStagingBuffer.allocation);
+	vmaDestroyBuffer(vmaAllocator, tangentStagingBuffer.buffer, tangentStagingBuffer.allocation);
+	vmaDestroyBuffer(vmaAllocator, bitangentStagingBuffer.buffer, bitangentStagingBuffer.allocation);
 	vmaDestroyBuffer(vmaAllocator, uvStagingBuffer.buffer, uvStagingBuffer.allocation);
 	vmaDestroyBuffer(vmaAllocator, indexStagingBuffer.buffer, indexStagingBuffer.allocation);
 
@@ -178,25 +228,29 @@ void Mesh::uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice&
 	// Remove unnecessary data from memory
 	positions.clear();
 	normals.clear();
+	tangents.clear();
+	bitangents.clear();
 	uvs.clear();
 	indicies.clear();
 
 	positions.shrink_to_fit();
 	normals.shrink_to_fit();
+	tangents.shrink_to_fit();
+	bitangents.shrink_to_fit();
 	uvs.shrink_to_fit();
 	indicies.shrink_to_fit();
 }
 
 std::vector<VkBuffer> Mesh::getVulkanBuffers() const
 {
-	std::vector<VkBuffer> returnBuffers = { positionBuffer.buffer, normalBuffer.buffer, uvBuffer.buffer };
+	std::vector<VkBuffer> returnBuffers = { positionBuffer.buffer, normalBuffer.buffer, tangentBuffer.buffer, bitangentBuffer.buffer, uvBuffer.buffer };
 
 	return std::move(returnBuffers);
 }
 
 std::vector<VkDeviceSize> Mesh::getVulkanOffset() const
 {
-	std::vector<VkDeviceSize> returnOffsets(3);
+	std::vector<VkDeviceSize> returnOffsets(getVulkanBufferSize());
 
 	return std::move(returnOffsets);
 }
@@ -208,6 +262,12 @@ void Mesh::cleanup(VkDevice& logicalDevice, VmaAllocator vmaAllocator)
 
 	// Normal Buffer
 	vmaDestroyBuffer(vmaAllocator, normalBuffer.buffer, normalBuffer.allocation);
+
+	// Tangent Buffer
+	vmaDestroyBuffer(vmaAllocator, tangentBuffer.buffer, tangentBuffer.allocation);
+
+	// Bitangent Buffer
+	vmaDestroyBuffer(vmaAllocator, bitangentBuffer.buffer, bitangentBuffer.allocation);
 
 	// UV Buffer
 	vmaDestroyBuffer(vmaAllocator, uvBuffer.buffer, uvBuffer.allocation);

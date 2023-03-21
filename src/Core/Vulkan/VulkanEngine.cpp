@@ -113,13 +113,10 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	// Camera Descriptors for camera position with binding 1 in fragment shader
 	initUniformBuffer(logicalDevice, descriptorPool, cameraUniformBuffer, cameraDescriptorSet.descriptorSet, cameraDescriptorSet.layout, 1, sizeof(vec4), VK_SHADER_STAGE_FRAGMENT_BIT);
 
-	// How many descriptors we need for GBuffer
-	u32 descriptorSize = VulkanFramebuffer::attachmentSize;
-
 	// Texture Descriptor with binding 1 in fragment shader
 	// We only need to know the layout of the descriptor
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		VK_SHADER_STAGE_FRAGMENT_BIT, 1, descriptorSize);
+		VK_SHADER_STAGE_FRAGMENT_BIT, 1, Material::TEXTURE_SIZE);
 
 	initSkeletalDescriptorSetLayout(logicalDevice, descriptorPool);
 
@@ -1345,7 +1342,7 @@ void VulkanEngine::initGui(GLFWwindow* window, VkInstance& instance, VkDevice& l
 	std::optional<u32> graphicsFamilyIndicies = WillEngine::VulkanUtil::findQueueFamilies(physicalDevice, VK_QUEUE_GRAPHICS_BIT, VK_NULL_HANDLE);
 
 	if (!graphicsFamilyIndicies.has_value())
-		std::runtime_error("Failed to get graphics queue family index");
+		throw std::runtime_error("Failed to get graphics queue family index");
 
 	vulkanGui->init(window, instance, logicalDevice, physicalDevice, surface, graphicsFamilyIndicies.value(), commandPools[0], descriptorPool, NUM_SWAPCHAIN, shadingRenderPass,
 		swapchainExtent);
@@ -2606,7 +2603,7 @@ void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkPhysicalDevi
 
 	Material* currentMaterial = gameState->graphicsResources.materials[gameState->materialUpdateInfo.materialId];
 	u32& textureIndex = gameState->materialUpdateInfo.textureIndex;
-	TextureDescriptorSet& currentTexture = currentMaterial->brdfTextures[textureIndex];
+	TextureDescriptorSet& currentTexture = currentMaterial->textures[textureIndex];
 
 	if (gameState->materialUpdateInfo.updateTexture)
 	{
@@ -2648,16 +2645,19 @@ void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkPhysicalDevi
 		switch (textureIndex)
 		{
 		case 0:
-			currentMaterial->brdfTextures[textureIndex].textureImage->setImageColor(currentMaterial->brdfMaterialUniform.emissive);
+			currentMaterial->textures[textureIndex].textureImage->setImageColor(currentMaterial->materialUniform.emissive);
 			break;
 		case 1:
-			currentMaterial->brdfTextures[textureIndex].textureImage->setImageColor(currentMaterial->brdfMaterialUniform.albedo);
+			currentMaterial->textures[textureIndex].textureImage->setImageColor(currentMaterial->materialUniform.albedo);
 			break;
 		case 2:
-			currentMaterial->brdfTextures[textureIndex].textureImage->setImageColor(currentMaterial->brdfMaterialUniform.metallic);
+			currentMaterial->textures[textureIndex].textureImage->setImageColor(currentMaterial->materialUniform.metallic);
 			break;
 		case 3:
-			currentMaterial->brdfTextures[textureIndex].textureImage->setImageColor(currentMaterial->brdfMaterialUniform.roughness);
+			currentMaterial->textures[textureIndex].textureImage->setImageColor(currentMaterial->materialUniform.roughness);
+			break;
+		case 4:
+			currentMaterial->textures[textureIndex].textureImage->setImageColor(currentMaterial->materialUniform.normal);
 			break;
 		}
 
@@ -2667,5 +2667,5 @@ void VulkanEngine::changeMaterialTexture(VkDevice& logicalDevice, VkPhysicalDevi
 	}
 
 	// Update the associated descriptor set
-	currentMaterial->updateBrdfDescriptorSet(logicalDevice, physicalDevice, vmaAllocator, commandPools[0], descriptorPool, graphicsQueue, textureIndex);
+	currentMaterial->updateDescriptorSet(logicalDevice, physicalDevice, vmaAllocator, commandPools[0], descriptorPool, graphicsQueue, textureIndex);
 }

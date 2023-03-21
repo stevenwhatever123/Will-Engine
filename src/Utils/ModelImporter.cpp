@@ -9,6 +9,8 @@
 #include "Utils/Image.h"
 #include "Utils/MathUtil.h"
 
+#include <assimp/cimport.h>
+
 #define MAX_BONE_INFLUENCE 4
 
 using namespace WillEngine;
@@ -23,8 +25,11 @@ std::tuple<std::vector<Mesh*>, std::map<u32, Material*>, Skeleton*>
 		aiProcess_Triangulate |
 		aiProcess_FlipUVs |
 		aiProcess_GenNormals |
-		aiProcess_JoinIdenticalVertices
+		aiProcess_JoinIdenticalVertices |
+		aiProcess_CalcTangentSpace
 	);
+
+	//scene = aiApplyPostProcessing(scene, aiProcess_CalcTangentSpace);
 
 	// Get filename from path
 	std::string filepath_s(filepath);
@@ -100,30 +105,29 @@ std::vector<Material*> WillEngine::Utils::extractMaterial(const aiScene* scene)
 		material->name = materialName.C_Str();
 
 		// BRDF Metallic
-		aiTextureType brdfMetallicTextureType[] = { aiTextureType_EMISSIVE, aiTextureType_DIFFUSE, aiTextureType_METALNESS ,
-			aiTextureType_DIFFUSE_ROUGHNESS };
-		u32 metallicTextureTypeSize = sizeof(brdfMetallicTextureType) / sizeof(brdfMetallicTextureType[0]);
+		aiTextureType textureType[] = { aiTextureType_EMISSIVE, aiTextureType_DIFFUSE, aiTextureType_METALNESS , aiTextureType_DIFFUSE_ROUGHNESS,
+										aiTextureType_NORMALS};
 
-		for (u32 j = 0; j < metallicTextureTypeSize; j++)
+		for (u32 j = 0; j < Material::TEXTURE_SIZE; j++)
 		{
-			i32 numTextures = currentAiMaterial->GetTextureCount(brdfMetallicTextureType[j]);
+			i32 numTextures = currentAiMaterial->GetTextureCount(textureType[j]);
 			aiString texturePath;
 			if (numTextures)
 			{
-				ret = currentAiMaterial->Get(AI_MATKEY_TEXTURE(brdfMetallicTextureType[j], 0), texturePath);
+				ret = currentAiMaterial->Get(AI_MATKEY_TEXTURE(textureType[j], 0), texturePath);
 
 				if (ret == AI_SUCCESS)
 				{
-					material->brdfTextures[j].has_texture = true;
-					material->brdfTextures[j].useTexture = true;
-					material->brdfTextures[j].texture_path = texturePath.C_Str();
+					material->textures[j].has_texture = true;
+					material->textures[j].useTexture = true;
+					material->textures[j].texture_path = texturePath.C_Str();
 				}
 			}
 			else
 			{
-				material->brdfTextures[j].has_texture = false;
-				material->brdfTextures[j].useTexture = false;
-				material->brdfTextures[j].texture_path = "";
+				material->textures[j].has_texture = false;
+				material->textures[j].useTexture = false;
+				material->textures[j].texture_path = "";
 			}
 		}
 
@@ -133,9 +137,9 @@ std::vector<Material*> WillEngine::Utils::extractMaterial(const aiScene* scene)
 			aiColor3D color(1, 1, 1);
 			ret = currentAiMaterial->Get(AI_MATKEY_COLOR_EMISSIVE, color);
 
-			material->brdfMaterialUniform.emissive.x = color.r;
-			material->brdfMaterialUniform.emissive.y = color.g;
-			material->brdfMaterialUniform.emissive.z = color.b;
+			material->materialUniform.emissive.x = color.r;
+			material->materialUniform.emissive.y = color.g;
+			material->materialUniform.emissive.z = color.b;
 		}
 
 		// Diffuse
@@ -143,52 +147,56 @@ std::vector<Material*> WillEngine::Utils::extractMaterial(const aiScene* scene)
 			aiColor3D color(1, 1, 1);
 			ret = currentAiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, color);
 			// BRDF
-			material->brdfMaterialUniform.albedo.x = color.r;
-			material->brdfMaterialUniform.albedo.y = color.g;
-			material->brdfMaterialUniform.albedo.z = color.b;
+			material->materialUniform.albedo.x = color.r;
+			material->materialUniform.albedo.y = color.g;
+			material->materialUniform.albedo.z = color.b;
 		}
 
-		u32 brdfMetallicTextureSize = sizeof(material->brdfTextures) / sizeof(material->brdfTextures[0]);
-		for (u32 j = 0; j < brdfMetallicTextureSize; j++)
+		// Initialise Materials
+		for (u32 j = 0; j < Material::TEXTURE_SIZE; j++)
 		{
-			material->brdfTextures[j].width = 1;
-			material->brdfTextures[j].height = 1;
+			material->textures[j].width = 1;
+			material->textures[j].height = 1;
 
 			switch (j)
 			{
 			case 0:
-				material->brdfTextures[j].textureImage->setImageColor(material->brdfMaterialUniform.emissive);
+				material->textures[j].textureImage->setImageColor(material->materialUniform.emissive);
 				break;
 			case 1:
-				material->brdfTextures[j].textureImage->setImageColor(material->brdfMaterialUniform.albedo);
+				material->textures[j].textureImage->setImageColor(material->materialUniform.albedo);
 				break;
 			case 2:
 				// Metallic should be imported from a texture, here we use a default color
-				material->brdfTextures[j].textureImage->setImageColor(material->brdfMaterialUniform.metallic);
+				material->textures[j].textureImage->setImageColor(material->materialUniform.metallic);
 				break;
 			case 3:
 				// Roughness should be imported from a texture, here we use a default color
-				material->brdfTextures[j].textureImage->setImageColor(material->brdfMaterialUniform.roughness);
+				material->textures[j].textureImage->setImageColor(material->materialUniform.roughness);
+				break;
+			case 4:
+				material->textures[j].textureImage->setImageColor(material->materialUniform.normal);
 				break;
 			}
 
-			if (material->hasTexture(j, material->brdfTextures))
+			if (material->hasTexture(j, material->textures))
 			{
-				if (checkTexturePathExist(j, material->brdfTextures))
+				if (checkTexturePathExist(j, material->textures))
 				{
-					loadTexture(j, material, material->brdfTextures);
+					loadTexture(j, material, material->textures);
 				}
 				else
 				{
-					material->brdfTextures[j].has_texture = false;
-					material->brdfTextures[j].useTexture = false;
-					material->brdfTextures[j].texture_path = "";
+					material->textures[j].has_texture = false;
+					material->textures[j].useTexture = false;
+					material->textures[j].texture_path = "";
 
-					material->brdfTextures[j].width = 1;
-					material->brdfTextures[j].height = 1;
+					material->textures[j].width = 1;
+					material->textures[j].height = 1;
 				}
 			}
 		}
+
 		materials.emplace_back(material);
 	}
 
@@ -228,6 +236,8 @@ Mesh* WillEngine::Utils::extractMeshWithoutBones(const aiMesh* currentAiMesh)
 	// Reserve memory space
 	mesh->positions.reserve(currentAiMesh->mNumVertices);
 	mesh->normals.reserve(currentAiMesh->mNumVertices);
+	mesh->tangents.reserve(currentAiMesh->mNumVertices);
+	mesh->bitangents.reserve(currentAiMesh->mNumVertices);
 	mesh->uvs.reserve(currentAiMesh->mNumVertices);
 	mesh->indicies.reserve(currentAiMesh->mNumVertices);
 
@@ -237,16 +247,22 @@ Mesh* WillEngine::Utils::extractMeshWithoutBones(const aiMesh* currentAiMesh)
 
 	const aiVector3D* pVertex = currentAiMesh->mVertices;
 	const aiVector3D* pNormal = currentAiMesh->mNormals;
+	const aiVector3D* pTangent = currentAiMesh->mTangents;
+	const aiVector3D* pBitangent = currentAiMesh->mBitangents;
 	const aiVector3D* pUV = hasTexture ? currentAiMesh->mTextureCoords[0] : &zero3D;
 
 	for (u64 j = 0; j < currentAiMesh->mNumVertices; j++)
 	{
 		mesh->positions.emplace_back(pVertex->x, pVertex->y, pVertex->z);
 		mesh->normals.emplace_back(pNormal->x, pNormal->y, pNormal->z);
+		mesh->tangents.emplace_back(pTangent->x, pTangent->y, pTangent->z);
+		mesh->bitangents.emplace_back(pBitangent->x, pBitangent->y, pBitangent->z);
 		mesh->uvs.emplace_back(pUV->x, pUV->y);
 
 		pVertex++;
 		pNormal++;
+		pTangent++;
+		pBitangent++;
 
 		if (hasTexture)
 			pUV++;
@@ -282,6 +298,8 @@ Mesh* WillEngine::Utils::extractMeshWithBones(const aiMesh* currentAiMesh)
 	// Reserve memory space
 	mesh->positions.reserve(currentAiMesh->mNumVertices);
 	mesh->normals.reserve(currentAiMesh->mNumVertices);
+	mesh->tangents.reserve(currentAiMesh->mNumVertices);
+	mesh->bitangents.reserve(currentAiMesh->mNumVertices);
 	mesh->uvs.reserve(currentAiMesh->mNumVertices);
 	mesh->boneWeights.resize(currentAiMesh->mNumVertices);
 	mesh->indicies.reserve(currentAiMesh->mNumVertices);
@@ -292,16 +310,22 @@ Mesh* WillEngine::Utils::extractMeshWithBones(const aiMesh* currentAiMesh)
 
 	const aiVector3D* pVertex = currentAiMesh->mVertices;
 	const aiVector3D* pNormal = currentAiMesh->mNormals;
+	const aiVector3D* pTangent = currentAiMesh->mTangents;
+	const aiVector3D* pBitangent = currentAiMesh->mBitangents;
 	const aiVector3D* pUV = hasTexture ? currentAiMesh->mTextureCoords[0] : &zero3D;
 
 	for (u64 j = 0; j < currentAiMesh->mNumVertices; j++)
 	{
 		mesh->positions.emplace_back(pVertex->x, pVertex->y, pVertex->z);
 		mesh->normals.emplace_back(pNormal->x, pNormal->y, pNormal->z);
+		mesh->tangents.emplace_back(pTangent->x, pTangent->y, pTangent->z);
+		mesh->bitangents.emplace_back(pBitangent->x, pBitangent->y, pBitangent->z);
 		mesh->uvs.emplace_back(pUV->x, pUV->y);
 
 		pVertex++;
 		pNormal++;
+		pTangent++;
+		pBitangent++;
 
 		if (hasTexture)
 			pUV++;
