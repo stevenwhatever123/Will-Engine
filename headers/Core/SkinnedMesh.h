@@ -20,6 +20,6 @@ public:
 	virtual void uploadDataToPhysicalDevice(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VmaAllocator& vmaAllocator, VkSurfaceKHR& surface, VkQueue& queue);
 
 	virtual std::vector<VkBuffer> getVulkanBuffers() const;
-	virtual u32 getVulkanBufferSize() const { return 7; };
+	virtual u32 getVulkanBufferSize() const { return 6; };
 	virtual std::vector<VkDeviceSize> getVulkanOffset() const;
 };

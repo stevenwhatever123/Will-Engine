@@ -3,10 +3,9 @@
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
 layout(location = 2) in vec3 tangent;
-layout(location = 3) in vec3 bitangent;
-layout(location = 4) in vec2 texCoord;
-layout(location = 5) in ivec4 boneIds;
-layout(location = 6) in vec4 weights;
+layout(location = 3) in vec2 texCoord;
+layout(location = 4) in ivec4 boneIds;
+layout(location = 5) in vec4 weights;
 
 layout(set = 0, binding = 0) uniform sceneMatrix
 {
@@ -53,9 +52,9 @@ void main()
 		mat3 upperMatrix = mat3(boneMatrices[boneIds[i]]);
 		mat3 normalMatrix = transpose(upperMatrix);
 
-		vec4 localNormal = normalize(vec4(normalMatrix * normal, 1));
-		vec4 localTangent = normalize(vec4(normalMatrix * tangent, 1));
-		vec4 localBitangent = normalize(vec4(normalMatrix * bitangent, 1));
+		vec4 localNormal = normalize(vec4(normalMatrix * normal, 0));
+		vec4 localTangent = normalize(vec4(normalMatrix * tangent, 0));
+		vec4 localBitangent = normalize(vec4(cross(localTangent.rgb, localNormal.rgb), 0));
 
 		finalPosition += localPosition * weights[i];
 		finalNormal += localNormal * weights[i];

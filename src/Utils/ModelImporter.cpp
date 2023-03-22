@@ -237,7 +237,6 @@ Mesh* WillEngine::Utils::extractMeshWithoutBones(const aiMesh* currentAiMesh)
 	mesh->positions.reserve(currentAiMesh->mNumVertices);
 	mesh->normals.reserve(currentAiMesh->mNumVertices);
 	mesh->tangents.reserve(currentAiMesh->mNumVertices);
-	mesh->bitangents.reserve(currentAiMesh->mNumVertices);
 	mesh->uvs.reserve(currentAiMesh->mNumVertices);
 	mesh->indicies.reserve(currentAiMesh->mNumVertices);
 
@@ -248,7 +247,6 @@ Mesh* WillEngine::Utils::extractMeshWithoutBones(const aiMesh* currentAiMesh)
 	const aiVector3D* pVertex = currentAiMesh->mVertices;
 	const aiVector3D* pNormal = currentAiMesh->mNormals;
 	const aiVector3D* pTangent = currentAiMesh->mTangents;
-	const aiVector3D* pBitangent = currentAiMesh->mBitangents;
 	const aiVector3D* pUV = hasTexture ? currentAiMesh->mTextureCoords[0] : &zero3D;
 
 	for (u64 j = 0; j < currentAiMesh->mNumVertices; j++)
@@ -256,13 +254,11 @@ Mesh* WillEngine::Utils::extractMeshWithoutBones(const aiMesh* currentAiMesh)
 		mesh->positions.emplace_back(pVertex->x, pVertex->y, pVertex->z);
 		mesh->normals.emplace_back(pNormal->x, pNormal->y, pNormal->z);
 		mesh->tangents.emplace_back(pTangent->x, pTangent->y, pTangent->z);
-		mesh->bitangents.emplace_back(pBitangent->x, pBitangent->y, pBitangent->z);
 		mesh->uvs.emplace_back(pUV->x, pUV->y);
 
 		pVertex++;
 		pNormal++;
 		pTangent++;
-		pBitangent++;
 
 		if (hasTexture)
 			pUV++;
@@ -299,7 +295,6 @@ Mesh* WillEngine::Utils::extractMeshWithBones(const aiMesh* currentAiMesh)
 	mesh->positions.reserve(currentAiMesh->mNumVertices);
 	mesh->normals.reserve(currentAiMesh->mNumVertices);
 	mesh->tangents.reserve(currentAiMesh->mNumVertices);
-	mesh->bitangents.reserve(currentAiMesh->mNumVertices);
 	mesh->uvs.reserve(currentAiMesh->mNumVertices);
 	mesh->boneWeights.resize(currentAiMesh->mNumVertices);
 	mesh->indicies.reserve(currentAiMesh->mNumVertices);
@@ -311,7 +306,6 @@ Mesh* WillEngine::Utils::extractMeshWithBones(const aiMesh* currentAiMesh)
 	const aiVector3D* pVertex = currentAiMesh->mVertices;
 	const aiVector3D* pNormal = currentAiMesh->mNormals;
 	const aiVector3D* pTangent = currentAiMesh->mTangents;
-	const aiVector3D* pBitangent = currentAiMesh->mBitangents;
 	const aiVector3D* pUV = hasTexture ? currentAiMesh->mTextureCoords[0] : &zero3D;
 
 	for (u64 j = 0; j < currentAiMesh->mNumVertices; j++)
@@ -319,13 +313,11 @@ Mesh* WillEngine::Utils::extractMeshWithBones(const aiMesh* currentAiMesh)
 		mesh->positions.emplace_back(pVertex->x, pVertex->y, pVertex->z);
 		mesh->normals.emplace_back(pNormal->x, pNormal->y, pNormal->z);
 		mesh->tangents.emplace_back(pTangent->x, pTangent->y, pTangent->z);
-		mesh->bitangents.emplace_back(pBitangent->x, pBitangent->y, pBitangent->z);
 		mesh->uvs.emplace_back(pUV->x, pUV->y);
 
 		pVertex++;
 		pNormal++;
 		pTangent++;
-		pBitangent++;
 
 		if (hasTexture)
 			pUV++;
