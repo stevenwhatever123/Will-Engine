@@ -84,8 +84,13 @@ void Material::initTexture(VkDevice& logicalDevice, VkPhysicalDevice& physicalDe
 	textures[index].mipLevels = WillEngine::VulkanUtil::calculateMiplevels(textures[index].width, textures[index].height);
 
 	// Create vulkan image
+	VkFormat imageFormat = VK_FORMAT_R8G8B8A8_SRGB;
+	// Normals have to be created with UNORM
+	if (index == 4)
+		imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+	
 	textures[index].vulkanImage = WillEngine::VulkanUtil::createImage(logicalDevice, vmaAllocator,
-		VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, textures[index].width, textures[index].height, textures[index].mipLevels);
+		imageFormat, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, textures[index].width, textures[index].height, textures[index].mipLevels);
 
 	// Load image to physical device with mipmapping
 	WillEngine::VulkanUtil::loadTextureImageWithMipmap(logicalDevice, vmaAllocator,
@@ -98,8 +103,9 @@ void Material::initTexture(VkDevice& logicalDevice, VkPhysicalDevice& physicalDe
 	WillEngine::VulkanUtil::createTextureSampler(logicalDevice, physicalDevice, textures[index].textureSampler, textures[index].mipLevels);
 
 	// Create a sampler and image view for the texture image
-	WillEngine::VulkanUtil::createImageView(logicalDevice, textures[index].vulkanImage.image, textures[index].imageView, textures[index].mipLevels, VK_FORMAT_R8G8B8A8_SRGB,
+	WillEngine::VulkanUtil::createImageView(logicalDevice, textures[index].vulkanImage.image, textures[index].imageView, textures[index].mipLevels, imageFormat,
 		VK_IMAGE_ASPECT_COLOR_BIT);
+
 
 	// Descriptor Set for imgui texture
 	textures[index].imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(textures[index].textureSampler, textures[index].imageView,

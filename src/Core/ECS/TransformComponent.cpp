@@ -81,7 +81,7 @@ void TransformComponent::updateAllChildWorldTransformation()
 {
 	updateWorldTransformation();
 
-	for (auto child : parent->children)
+	for (auto child : getParent()->children)
 	{
 		TransformComponent* childTransform = child->GetComponent<TransformComponent>();
 		childTransform->updateAllChildWorldTransformation();

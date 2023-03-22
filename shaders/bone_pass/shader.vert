@@ -53,11 +53,9 @@ void main()
 		mat3 upperMatrix = mat3(boneMatrices[boneIds[i]]);
 		mat3 normalMatrix = transpose(upperMatrix);
 
-		vec4 localNormal = normalize(vec4(upperMatrix * normal, 1));
-		//vec4 localTangent = normalize(vec4(upperMatrix * tangent, 1));
-		//vec4 localBitangent = normalize(vec4(upperMatrix * bitangent, 1));
-		vec4 localTangent = normalize(boneMatrices[boneIds[i]] * vec4(tangent, 1));
-		vec4 localBitangent = normalize(boneMatrices[boneIds[i]] * vec4(bitangent, 1));
+		vec4 localNormal = normalize(vec4(normalMatrix * normal, 1));
+		vec4 localTangent = normalize(vec4(normalMatrix * tangent, 1));
+		vec4 localBitangent = normalize(vec4(normalMatrix * bitangent, 1));
 
 		finalPosition += localPosition * weights[i];
 		finalNormal += localNormal * weights[i];

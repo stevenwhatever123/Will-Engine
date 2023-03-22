@@ -160,7 +160,7 @@ void main()
 
 	// Shadow value
 	float shadow = ShadowCalculation(position, normal);
-
+	
     vec4 result = emissive + (1.0 - shadow) * brdf;
 
 	oColor = result;

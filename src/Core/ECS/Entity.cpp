@@ -68,10 +68,10 @@ Entity* Entity::getRoot()
 
 	while (parentEntity)
 	{
-		if (parentEntity->parent == nullptr)
+		if(!parentEntity->hasParent())
 			return parentEntity;
 
-		parentEntity = parentEntity->parent;
+		parentEntity = parentEntity->getParent();
 	}
 
 	return parentEntity;

@@ -26,7 +26,7 @@ void main()
 	if(tNormal.b * 255 >= 128 && tNormal.b * 255 <= 255)
 	{
 		// Converting the value from [0,1] back to [-1,1]
-		tNormal = tNormal * 2.0 - 1.0;
+		tNormal = normalize(tNormal * 2.0 - 1.0);
 
 		// Convert normal from texture from tangent space to world space
 		vec3 tangent_temp = normalize(tangent.rgb);

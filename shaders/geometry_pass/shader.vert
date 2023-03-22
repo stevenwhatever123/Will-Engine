@@ -30,12 +30,9 @@ void main()
 	mat3 upperMatrix = mat3(modelTransformation);
 	mat3 normalMatrix = transpose(upperMatrix);
 
-	oNormal = normalize(vec4(upperMatrix * normal, 1));
-	//oTangent = normalize(vec4(upperMatrix * tangent, 1));
-	//oBitangent = normalize(vec4(upperMatrix * bitangent, 1));
-	oTangent = normalize(modelTransformation * vec4(tangent, 1));
-	//oBitangent = normalize(modelTransformation * vec4(bitangent, 1));
-	oBitangent = vec4(cross(oTangent.rgb, oNormal.rgb), 1);
+	oNormal = normalize(vec4(normalMatrix * normal, 0));
+	oTangent = normalize(vec4(normalMatrix * tangent, 0));
+	oBitangent = normalize(vec4(cross(oTangent.rgb, oNormal.rgb), 0));
 	oTexCoord = texCoord;
 
 	gl_Position = projectMatrix * cameraMatrix * modelTransformation * vec4(position, 1);

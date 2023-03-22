@@ -79,10 +79,10 @@ namespace WillEngine
 				if (parentEntity->HasComponent<T>())
 					return true;
 
-				if (parentEntity->parent == nullptr)
+				if (!parentEntity->hasParent())
 					return false;
 
-				parentEntity = parentEntity->parent;
+				parentEntity = parentEntity->getParent();
 			}
 
 			return false;
@@ -98,10 +98,10 @@ namespace WillEngine
 				if (parentEntity->HasComponent<T>())
 					return parentEntity->GetComponent<T>();
 
-				if (parentEntity->parent == nullptr)
+				if (!parentEntity->hasParent())
 					return nullptr;
 
-				parentEntity = parentEntity->parent;
+				parentEntity = parentEntity->getParent();
 			}
 
 			return nullptr;
