@@ -20,6 +20,11 @@
 
 class SystemManager
 {
+public:
+
+	// Number of threads this program can use
+	static const u32 MAX_THREAD = 4;
+
 private:
 
 	bool renderWithBRDF = true;
@@ -60,6 +65,7 @@ public:
 
 	// Initialise
 	void init(i32 windowWidth, i32 windowHeight);
+	void initThreads();
 	void initCamera();
 	void initLight();
 	void initPresets();

@@ -55,7 +55,7 @@ public:
 	~VulkanWindow();
 
 	void createWindow(i32 windowWidth, i32 windowHeight);
-	void initVulkan(GameState* gameState);
+	void initVulkan(GameState* gameState, u32 numThreads);
 	void cleanup();
 	void update(bool renderWithBRDF);
 
@@ -71,7 +71,7 @@ public:
 
 	void createSurface();
 
-	void initVulkanEngine(GameState* gameState);
+	void initVulkanEngine(GameState* gameState, u32 numThreads);
 
 	// Return
 	bool shouldCloseWindow() const { return closeWindow; };

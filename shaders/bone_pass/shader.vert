@@ -49,11 +49,16 @@ void main()
 
 		vec4 localPosition = boneMatrices[boneIds[i]] * vec4(position, 1);
 
+		// A optimised way to calculate a transformed normal without using inverse transpose
+		// Reference: https://lxjk.github.io/2017/10/01/Stop-Using-Normal-Matrix.html
 		mat3 upperMatrix = mat3(boneMatrices[boneIds[i]]);
-		mat3 normalMatrix = transpose(upperMatrix);
+		float scaleX = length(upperMatrix[0]);
+		float scaleY = length(upperMatrix[1]);
+		float scaleZ = length(upperMatrix[2]);
+		vec3 scale = vec3(scaleX, scaleY, scaleZ);
 
-		vec4 localNormal = normalize(vec4(normalMatrix * normal, 0));
-		vec4 localTangent = normalize(vec4(normalMatrix * tangent, 0));
+		vec4 localNormal = normalize(vec4(upperMatrix * (normal / scale), 0));
+		vec4 localTangent = normalize(modelTransformation * vec4(tangent, 1));
 		vec4 localBitangent = normalize(vec4(cross(localTangent.rgb, localNormal.rgb), 0));
 
 		finalPosition += localPosition * weights[i];
@@ -62,7 +67,6 @@ void main()
 		finalBitangent += localBitangent * weights[i];
 	}
 
-	//oPosition = modelTransformation * finalPosition;
 	oPosition = finalPosition;
 	oNormal = normalize(finalNormal);
 	oTangent = normalize(finalTangent);

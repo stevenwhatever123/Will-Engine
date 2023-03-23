@@ -103,7 +103,7 @@ void SystemManager::initVulkanWindow()
     inputManager = new InputManager();
     inputManager->init(vulkanWindow->window);
 
-    vulkanWindow->initVulkan(&gameState);
+    vulkanWindow->initVulkan(&gameState, 4);
 }
 
 void SystemManager::update()

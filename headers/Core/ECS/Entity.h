@@ -40,8 +40,8 @@ namespace WillEngine
 
 		Entity* getRoot();
 
-		bool hasParent() { return parent ?  true :  false; };
-		Entity* getParent() const;
+		bool hasParent() const { return parent ?  true :  false; };
+		Entity* getParent() const { return parent; };
 
 	private:
 

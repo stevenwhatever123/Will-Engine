@@ -24,7 +24,7 @@ class VulkanEngine
 private:
 
 	// Max number of threads this vulkan renderer can use
-	static const u32 MAX_THREAD = 4;
+	const u32 MAX_THREADS;
 
 public:
 
@@ -246,7 +246,7 @@ private:
 
 public:
 
-	VulkanEngine();
+	VulkanEngine(u32 numThreads);
 	~VulkanEngine();
 
 	void init(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface, VkQueue& graphicsQueue, 

@@ -4,7 +4,8 @@
 
 using namespace WillEngine;
 
-VulkanEngine::VulkanEngine() :
+VulkanEngine::VulkanEngine(u32 numThreads) :
+	MAX_THREADS(numThreads),
 	camera(nullptr),
 	vmaAllocator(VK_NULL_HANDLE),
 	geometryRenderPass(VK_NULL_HANDLE),
@@ -846,8 +847,8 @@ void VulkanEngine::destroyImageBuffersForPostProcessing(VkDevice& logicalDevice,
 
 void VulkanEngine::createCommandPools(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, std::vector<VkCommandPool>& commandPools)
 {
-	commandPools.resize(MAX_THREAD);
-	for (u32 i = 0; i < MAX_THREAD; i++)
+	commandPools.resize(MAX_THREADS);
+	for (u32 i = 0; i < MAX_THREADS; i++)
 	{
 		commandPools[i] = WillEngine::VulkanUtil::createCommandPool(logicalDevice, physicalDevice, surface);
 	}

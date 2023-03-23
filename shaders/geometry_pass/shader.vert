@@ -26,11 +26,16 @@ void main()
 {
 	oPosition = modelTransformation * vec4(position, 1);
 
+	// A optimised way to calculate a transformed normal without using inverse transpose
+	// Reference: https://lxjk.github.io/2017/10/01/Stop-Using-Normal-Matrix.html
 	mat3 upperMatrix = mat3(modelTransformation);
-	mat3 normalMatrix = transpose(upperMatrix);
+	float scaleX = length(upperMatrix[0]);
+	float scaleY = length(upperMatrix[1]);
+	float scaleZ = length(upperMatrix[2]);
+	vec3 scale = vec3(scaleX, scaleY, scaleZ);
 
-	oNormal = normalize(vec4(normalMatrix * normal, 0));
-	oTangent = normalize(vec4(normalMatrix * tangent, 0));
+	oNormal = normalize(vec4(upperMatrix * (normal / scale), 0));
+	oTangent = normalize(modelTransformation * vec4(tangent, 1));
 	oBitangent = normalize(vec4(cross(oTangent.rgb, oNormal.rgb), 0));
 	oTexCoord = texCoord;
 
