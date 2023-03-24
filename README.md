@@ -1,7 +1,7 @@
 # Will-Engine
 
 This is a hobby game engine created as a personal project with the WILL to make a change (heavily inspired by Xenoblade Chronicles btw). It includes features such as :
-- A Vulkan Renderer
+- A Vulkan Physically Based Renderer
 - A Physically Based Rendering (PBR) Material System
 - Unreal Engine inspired BRDF Shading Model
 - Deferred Rendering
