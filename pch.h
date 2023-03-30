@@ -15,6 +15,7 @@
 #include <thread>
 #include <cstring>
 #include <set>
+#include <queue>
 
 // Windows
 #include <Windows.h>

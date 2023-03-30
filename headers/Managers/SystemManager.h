@@ -1,6 +1,8 @@
 #pragma once
 #include "Managers/FileManager.h"
 #include "Managers/InputManager.h"
+#include "Managers/AnimationManager.h"
+
 #include "Core/Vulkan/VulkanWindow.h"
 #include "Core/Camera.h"
 #include "Core/Mesh.h"
@@ -9,10 +11,12 @@
 #include "Core/ECS/Entity.h"
 #include "Core/Light.h"
 #include "Core/LightComponent.h"
+
 #include "Utils/Logging.h"
 #include "Utils/ModelImporter.h"
 
 #include "Core/ECS/TransformComponent.h"
+#include "Core/ECS/AnimationComponent.h"
 
 #include "Core/GameState.h"
 
@@ -49,6 +53,7 @@ public:
 
 	// Managers
 	InputManager* inputManager;
+	AnimationManager* animationManager;
 
 	// Keyboard / Mouse
 	u32 keys[256];
@@ -70,6 +75,7 @@ public:
 	void initLight();
 	void initPresets();
 	void initECS();
+	void initAnimation();
 
 	// Vulkan init
 	void initVulkanWindow();
@@ -81,6 +87,7 @@ public:
 	void updateCamera();
 	void updateGui();
 	void updateECS();
+	void updateAnimation(float dt);
 
 	// Utils
 	void readFile();

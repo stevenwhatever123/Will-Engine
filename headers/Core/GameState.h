@@ -6,6 +6,7 @@
 #include "Core/Light.h"
 #include "Core/Skeleton.h"
 #include "Core/LightComponent.h"
+#include "Animation.h"
 
 #include "Core/ECS/Entity.h"
 #include "Core/ECS/TransformComponent.h"
@@ -51,6 +52,8 @@ struct GameState
 		std::map<u32, Entity*> rootEntities;
 
 		std::map<u32, Skeleton*> skeletons;
+
+		std::map<u32, Animation*> animations;
 	} gameResources;
 
 	struct UIParams

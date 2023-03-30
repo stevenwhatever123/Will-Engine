@@ -10,6 +10,7 @@ namespace WillEngine
 		MeshType,
 		LightType,
 		SkeletalType,
+		AnimationType,
 		ComponentTypeCount,
 		// Any Type below here is private and should not be visible to the user
 	};

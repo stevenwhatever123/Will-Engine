@@ -15,21 +15,12 @@
 
 using namespace WillEngine;
 
-std::tuple<std::vector<Mesh*>, std::map<u32, Material*>, Skeleton*>
+std::tuple<std::vector<Mesh*>, std::map<u32, Material*>, Skeleton*, std::vector<Animation*>>
 	WillEngine::Utils::readModel(const char* filepath, std::vector<Entity*>* entities)
 {
 	Assimp::Importer importer;
 
-	const aiScene* scene = importer.ReadFile(
-		filepath,
-		aiProcess_Triangulate |
-		aiProcess_FlipUVs |
-		aiProcess_GenNormals |
-		aiProcess_JoinIdenticalVertices |
-		aiProcess_CalcTangentSpace
-	);
-
-	//scene = aiApplyPostProcessing(scene, aiProcess_CalcTangentSpace);
+	const aiScene* scene = importer.ReadFile(filepath, ASSIMP_IMPORTER_SETTINGS);
 
 	// Get filename from path
 	std::string filepath_s(filepath);
@@ -43,11 +34,20 @@ std::tuple<std::vector<Mesh*>, std::map<u32, Material*>, Skeleton*>
 	}
 	else
 	{
-		return { std::vector<Mesh*>() , std::map<u32, Material*>(), nullptr };
+		return { std::vector<Mesh*>() , std::map<u32, Material*>(), nullptr, std::vector<Animation*>()};
 	}
 }
 
-std::tuple<std::vector<Mesh*>, std::map<u32, Material*>, Skeleton*>
+std::vector<Animation*> WillEngine::Utils::readAnimation(const char* filepath)
+{
+	Assimp::Importer importer;
+
+	const aiScene* scene = importer.ReadFile(filepath, ASSIMP_IMPORTER_SETTINGS);
+
+	return extractAnimation(scene);
+}
+
+std::tuple<std::vector<Mesh*>, std::map<u32, Material*>, Skeleton*, std::vector<Animation*>>
 	WillEngine::Utils::extractScene(const char* filename, const aiScene* scene, std::vector<Entity*>* entities)
 {
 	// materials with no unique id labeled
@@ -70,7 +70,7 @@ std::tuple<std::vector<Mesh*>, std::map<u32, Material*>, Skeleton*>
 	}
 
 	// Animation
-	extractAnimation(scene);
+	std::vector<Animation*> animations = extractAnimation(scene);
 
 	Skeleton* skeleton = nullptr;
 
@@ -84,7 +84,7 @@ std::tuple<std::vector<Mesh*>, std::map<u32, Material*>, Skeleton*>
 		extractNodes(filename, scene, meshes, materials, skeleton, entities);
 	}
 
-	return { meshes, materials, skeleton };
+	return { meshes, materials, skeleton, animations };
 }
 
 std::vector<Material*> WillEngine::Utils::extractMaterial(const aiScene* scene)
@@ -448,20 +448,22 @@ void WillEngine::Utils::traverseNodeTree(const aiScene* scene, const aiNode* nod
 	}
 }
 
-void WillEngine::Utils::extractAnimation(const aiScene* scene)
+std::vector<Animation*> WillEngine::Utils::extractAnimation(const aiScene* scene)
 {
+	std::vector<Animation*> animations(scene->mNumAnimations);
+
 	for (u32 i = 0; i < scene->mNumAnimations; i++)
 	{
 		const aiAnimation* assimpAnimation = scene->mAnimations[i];
 
 		// This is bad as we are not return anything, this would cause a memory leak.
 		// But it is fine for now as it is not a fully implemented feature yet
-		Animation* animation = new Animation(assimpAnimation->mName.C_Str(), assimpAnimation->mDuration, assimpAnimation->mTicksPerSecond);
-		animation->setNumChannels(assimpAnimation->mNumChannels);
+		animations[i] = new Animation(assimpAnimation->mName.C_Str(), assimpAnimation->mDuration, assimpAnimation->mTicksPerSecond);
+		animations[i]->setNumChannels(assimpAnimation->mNumChannels);
 
 		for (u32 j = 0; j < assimpAnimation->mNumChannels; j++)
 		{
-			AnimationNode& animationNode = animation->getModifiableAnimationNode(j);
+			AnimationNode& animationNode = animations[i]->getModifiableAnimationNode(j);
 			animationNode.setName(assimpAnimation->mChannels[j]->mNodeName.C_Str());
 
 			const aiVectorKey* positionKey = assimpAnimation->mChannels[j]->mPositionKeys;
@@ -496,9 +498,9 @@ void WillEngine::Utils::extractAnimation(const aiScene* scene)
 				scaleKey++;
 			}
 		}
-
-		printf("Hello");
 	}
+
+	return animations;
 }
 
 bool WillEngine::Utils::checkHasBones(const aiScene* scene)

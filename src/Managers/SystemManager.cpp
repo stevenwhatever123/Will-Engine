@@ -31,6 +31,7 @@ void SystemManager::init(i32 windowWidth, i32 windowHeight)
     this->windowHeight = windowHeight;
 
     initECS();
+    initAnimation();
 
     initCamera();
     initLight();
@@ -94,6 +95,12 @@ void SystemManager::initECS()
     WillEngine::initComponentType();
 }
 
+void SystemManager::initAnimation()
+{
+    animationManager = new AnimationManager();
+    animationManager->init(gameState.gameResources.animations);
+}
+
 void SystemManager::initVulkanWindow()
 {
     vulkanWindow = new VulkanWindow();
@@ -109,6 +116,11 @@ void SystemManager::initVulkanWindow()
 void SystemManager::update()
 {
     updateInputs();
+
+    // Update time
+    currentTime = glfwGetTime();
+    deltaTime = currentTime - lastTime;
+    lastTime = currentTime;
     
     // Process queried tasks
     processQueriedTasks();
@@ -117,10 +129,7 @@ void SystemManager::update()
 
     updateECS();
 
-    // Update time
-    currentTime = glfwGetTime();
-    deltaTime = currentTime - lastTime;
-    lastTime = currentTime;
+    updateAnimation(deltaTime);
 
     if (glfwWindowShouldClose(vulkanWindow->window))
     {
@@ -204,7 +213,25 @@ void SystemManager::updateECS()
             gameState.graphicsResources.lights[lightComp->lightIndex]->updateLightPosition(transform->getPosition());
             gameState.graphicsResources.lights[lightComp->lightIndex]->update();
         }
+
+        // Update Animation
+        if (entity->HasComponent<AnimationComponent>())
+        {
+            AnimationComponent* animationComp = entity->GetComponent<AnimationComponent>();
+            const std::vector<u32>& animationIds = animationComp->getAllAnimationIds();
+
+            // Add the animation id to the animation manager and let it process later
+            for (auto id : animationIds)
+            {
+                animationManager->addToQueue(id);
+            }
+        }
     }
+}
+
+void SystemManager::updateAnimation(float dt)
+{
+    animationManager->update(dt);
 }
 
 void SystemManager::readFile()
@@ -229,7 +256,8 @@ void SystemManager::loadModel()
     std::map<u32, Material*> loadedMaterials;
     Skeleton* loadedSkeleton;
     std::vector<Entity*> entities;
-    std::tie(loadedMeshes, loadedMaterials, loadedSkeleton) = WillEngine::Utils::readModel(filename.c_str(), &entities);
+    std::vector<Animation*> loadedAnimations;
+    std::tie(loadedMeshes, loadedMaterials, loadedSkeleton, loadedAnimations) = WillEngine::Utils::readModel(filename.c_str(), &entities);
 
     for (auto it = loadedMaterials.begin(); it != loadedMaterials.end(); it++)
     {
@@ -251,6 +279,11 @@ void SystemManager::loadModel()
         gameState.graphicsResources.meshes[mesh->id] = mesh;
     }
 
+    for (Animation* animation : loadedAnimations)
+    {
+        gameState.gameResources.animations[animation->id] = animation;
+    }
+
     if (loadedSkeleton)
     {
         gameState.gameResources.skeletons[loadedSkeleton->id] = loadedSkeleton;
@@ -259,6 +292,16 @@ void SystemManager::loadModel()
 
     // Root Entity is usually and always the first element
     gameState.gameResources.rootEntities[entities[0]->id] = entities[0];
+
+    // Attach an Animation Component if animation exists
+    for (u32 i = 0; i < loadedAnimations.size(); i++)
+    {
+        if(!entities[0]->HasComponent<AnimationComponent>())
+            entities[0]->addComponent<AnimationComponent>();
+
+        AnimationComponent* animationComp = entities[0]->GetComponent<AnimationComponent>();
+        animationComp->addAnimation(loadedAnimations[i]->id);
+    }
 
     for (u32 i = 0; i < entities.size(); i++)
     {
@@ -286,7 +329,8 @@ void SystemManager::processMesh()
         std::vector<Mesh*> loadedMeshes;
         std::map<u32, Material*> loadedMaterials;
         Skeleton* loadedSkeleton = nullptr;
-        std::tie(loadedMeshes, loadedMaterials, loadedSkeleton) = WillEngine::Utils::readModel(defaultPreset.c_str());
+        std::vector<Animation*> loadedAnimations;
+        std::tie(loadedMeshes, loadedMaterials, loadedSkeleton, loadedAnimations) = WillEngine::Utils::readModel(defaultPreset.c_str());
 
         Mesh* mesh = loadedMeshes[0];
         mesh->uploadDataToPhysicalDevice(vulkanWindow->logicalDevice, vulkanWindow->physicalDevice, vulkanWindow->vulkanEngine->vmaAllocator, vulkanWindow->surface, vulkanWindow->graphicsQueue);

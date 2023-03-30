@@ -12,8 +12,16 @@ using namespace WillEngine;
 
 namespace WillEngine::Utils
 {
-	std::tuple<std::vector<Mesh*>, std::map<u32, Material*>, Skeleton*> readModel(const char* filepath, std::vector<Entity*>* entities = nullptr);
-	std::tuple<std::vector<Mesh*>, std::map<u32, Material*>, Skeleton*> extractScene(const char* filename, const aiScene* scene, std::vector<Entity*>* entities = nullptr);
+	static unsigned int ASSIMP_IMPORTER_SETTINGS = aiProcess_Triangulate |
+		aiProcess_FlipUVs |
+		aiProcess_GenNormals |
+		aiProcess_JoinIdenticalVertices |
+		aiProcess_CalcTangentSpace;
+
+	std::tuple<std::vector<Mesh*>, std::map<u32, Material*>, Skeleton*, std::vector<Animation*>> readModel(const char* filepath, std::vector<Entity*>* entities = nullptr);
+	std::vector<Animation*> readAnimation(const char* filepath);
+
+	std::tuple<std::vector<Mesh*>, std::map<u32, Material*>, Skeleton*, std::vector<Animation*>> extractScene(const char* filename, const aiScene* scene, std::vector<Entity*>* entities = nullptr);
 
 	std::vector<Material*> extractMaterial(const aiScene* scene);
 	std::vector<Mesh*> extractMesh(const aiScene* scene);
@@ -24,7 +32,7 @@ namespace WillEngine::Utils
 		Skeleton* extractedSkeleton, std::vector<Entity*>* entities);
 	void traverseNodeTree(const aiScene* scene, const aiNode* node, Entity* parent, u8 level, std::vector<Mesh*> extractedMesh, std::map<u32, Material*> extractedMaterial, Skeleton* extractedSkeleton, 
 		std::vector<Entity*>* entities);
-	void extractAnimation(const aiScene* scene);
+	std::vector<Animation*> extractAnimation(const aiScene* scene);
 
 	bool checkHasBones(const aiScene* scene);
 	Skeleton* extractBones(const aiScene* scene);

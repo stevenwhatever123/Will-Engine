@@ -7,6 +7,7 @@
 #include "Core/ECS/SkinnedMeshComponent.h"
 #include "Core/ECS/SkeletalComponent.h"
 #include "Core/LightComponent.h"
+#include "Core/ECS/AnimationComponent.h"
 
 #include "Utils/ModelImporter.h"
 
@@ -100,6 +101,7 @@ template void Entity::addComponent(TransformComponent* comp);
 template void Entity::addComponent(MeshComponent* comp);
 template void Entity::addComponent(SkeletalComponent* comp);
 template void Entity::addComponent(LightComponent* comp);
+template void Entity::addComponent(AnimationComponent* comp);
 
 template<class T>
 void Entity::addComponent()
@@ -114,6 +116,7 @@ template void Entity::addComponent<TransformComponent>();
 template void Entity::addComponent<MeshComponent>();
 template void Entity::addComponent<SkeletalComponent>();
 template void Entity::addComponent<LightComponent>();
+template void Entity::addComponent<AnimationComponent>();
 
 void Entity::addComponent(ComponentType type)
 {
@@ -145,6 +148,12 @@ void Entity::addComponent(ComponentType type)
 		{
 			LightComponent* light = new LightComponent();
 			components[typeid(LightComponent)] = light;
+			break;
+		}
+		case AnimationType:
+		{
+			AnimationComponent* animation = new AnimationComponent();
+			components[typeid(AnimationComponent)] = animation;
 			break;
 		}
 	}

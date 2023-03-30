@@ -7,6 +7,7 @@
 #include "Core/MeshComponent.h"
 #include "Core/ECS/SkinnedMeshComponent.h"
 #include "Core/ECS/SkeletalComponent.h"
+#include "Core/ECS/AnimationComponent.h"
 
 void WillEngine::EngineGui::InspectorPanel::update(GameState* gameState)
 {
@@ -91,13 +92,31 @@ void WillEngine::EngineGui::InspectorPanel::update(GameState* gameState)
 			LightComponent* lightComp = entity->GetComponent<LightComponent>();
 			Light* light = gameState->graphicsResources.lights[lightComp->lightIndex];
 
-			if (ImGui::TreeNode("Light"))
+			if (ImGui::TreeNode("Light Component"))
 			{
 				ImGui::DragFloat3("Color", &light->lightUniform.color.x, 0.001f, 0, 1);
 
 				ImGui::DragFloat("Range", &light->lightUniform.range, 1.0f, 0, 1000000);
 
 				ImGui::DragFloat("Intensity", &light->lightUniform.intensity, 0.1f, 0, 100);
+
+				ImGui::TreePop();
+			}
+		}
+
+		if (entity->HasComponent<AnimationComponent>())
+		{
+			AnimationComponent* animationComp = entity->GetComponent<AnimationComponent>();
+
+			if (ImGui::TreeNode("Animation Component"))
+			{
+				ImGui::Text("Duh I have animation component");
+
+				for (u32 i = 0; i < animationComp->getNumAnimations(); i++)
+				{
+					u32 animationId = animationComp->getAnimationId(i);
+					ImGui::Text("Animation %u name: %s", i, gameState->gameResources.animations[animationId]->getName().c_str());
+				}
 
 				ImGui::TreePop();
 			}
