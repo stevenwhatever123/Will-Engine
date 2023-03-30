@@ -1151,15 +1151,7 @@ void VulkanEngine::initDepthSkeletalPipeline(VkDevice& logicalDevice)
 	VkDescriptorSetLayout depthLayouts[] = { sceneDescriptorSet.layout, skeletalDescriptorSetLayout };
 	u32 depthSkeletalDescriptorSetLayoutSize = sizeof(depthLayouts) / sizeof(depthLayouts[0]);
 
-	VkPushConstantRange pushConstants[1];
-	// Push constant object for model matrix to be used in vertex shader
-	pushConstants[0].offset = 0;
-	pushConstants[0].size = sizeof(mat4);
-	pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-	u32 pushConstantCount = sizeof(pushConstants) / sizeof(pushConstants[0]);
-
-	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, depthSkeletalPipelineLayout, depthSkeletalDescriptorSetLayoutSize, depthLayouts, pushConstantCount, pushConstants);
+	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, depthSkeletalPipelineLayout, depthSkeletalDescriptorSetLayoutSize, depthLayouts, 0, nullptr);
 
 	WillEngine::VulkanUtil::createDepthSkeletalPipeline(logicalDevice, depthSkeletalPipeline, depthSkeletalPipelineLayout, depthRenderPass, depthSkeletalVertShader, 
 		depthSkeletalFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, sceneExtent);
@@ -1174,17 +1166,8 @@ void VulkanEngine::initSkeletalPipeline(VkDevice& logicalDevice)
 	VkDescriptorSetLayout layouts[] = { sceneDescriptorSet.layout, textureDescriptorSetLayout, skeletalDescriptorSetLayout };
 	u32 descriptorSetLayoutSize = sizeof(layouts) / sizeof(layouts[0]);
 
-	VkPushConstantRange pushConstants[1];
-	// Push constant object for model matrix to be used in vertex shader
-	pushConstants[0].offset = 0;
-	pushConstants[0].size = sizeof(mat4);
-	pushConstants[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-	u32 pushConstantCount = sizeof(pushConstants) / sizeof(pushConstants[0]);
-
 	// Create deferred pipeline layout with our just created push constant
-	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, skeletalPipelineLayout,
-		descriptorSetLayoutSize, layouts, pushConstantCount, pushConstants);
+	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, skeletalPipelineLayout, descriptorSetLayoutSize, layouts, 0, nullptr);
 
 	// Create deferred pipeline
 	WillEngine::VulkanUtil::createSkeletalPipeline(logicalDevice, skeletalPipeline, skeletalPipelineLayout,
@@ -2143,7 +2126,7 @@ void VulkanEngine::geometrySkeletalPasses(VkCommandBuffer& commandBuffer, VkExte
 				vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
 				// Bind Texture
-			// Check if the mesh has a material
+				// Check if the mesh has a material
 				if (gameState->graphicsResources.materials[meshComponent->materialIndicies[i]])
 					vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skeletalPipelineLayout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
 

@@ -20,11 +20,6 @@ layout(set = 2, binding = 2) uniform boneMatricesInfo
 	mat4 boneMatrices[MAX_BONES];
 };
 
-layout(push_constant) uniform modelMatrix
-{
-	mat4 modelTransformation;
-};
-
 layout(location = 0) out vec4 oPosition;
 layout(location = 1) out vec4 oNormal;
 layout(location = 2) out vec4 oTangent;
@@ -58,7 +53,7 @@ void main()
 		vec3 scale = vec3(scaleX, scaleY, scaleZ);
 
 		vec4 localNormal = normalize(vec4(upperMatrix * (normal / scale), 0));
-		vec4 localTangent = normalize(modelTransformation * vec4(tangent, 1));
+		vec4 localTangent = normalize(boneMatrices[boneIds[i]] * vec4(tangent, 1));
 		vec4 localBitangent = normalize(vec4(cross(localTangent.rgb, localNormal.rgb), 0));
 
 		finalPosition += localPosition * weights[i];
@@ -73,6 +68,5 @@ void main()
 	oBitangent = normalize(finalBitangent);
 	oTexCoord = texCoord;
 
-	//gl_Position = projectMatrix * cameraMatrix * modelTransformation * finalPosition;
 	gl_Position = projectMatrix * cameraMatrix * finalPosition;
 }

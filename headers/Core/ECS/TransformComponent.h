@@ -39,7 +39,10 @@ namespace WillEngine
 		virtual ComponentType getType() { return id; };
 
 		mat4 getLocalTransformation() const;
+		// getGlobalTransformation is the slowest way to get the global world transformation
+		// It is usually called for updating worldTransformation
 		mat4 getGlobalTransformation() const;
+		// getWorldTransformation is faster than getGlobalTransformation for getting the global world transformation
 		mat4& const getWorldTransformation() { return worldTransformation; };
 
 		void updateWorldTransformation() { worldTransformation = getGlobalTransformation(); };

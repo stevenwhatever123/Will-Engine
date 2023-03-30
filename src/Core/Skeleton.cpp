@@ -53,7 +53,6 @@ void Skeleton::generateBoneUniform()
 void Skeleton::updateBoneUniform(Entity* rootEntity)
 {
 	calculateBoneTransform(rootEntity);
-	boneUniformUpdated();
 }
 
 void Skeleton::calculateBoneTransform(Entity* entity)
@@ -61,7 +60,8 @@ void Skeleton::calculateBoneTransform(Entity* entity)
 	if (boneInfos.find(entity->name.c_str()) != boneInfos.end())
 	{
 		TransformComponent* transComp = entity->GetComponent<TransformComponent>();
-		mat4 transformation = transComp->getGlobalTransformation();
+		//mat4 transformation = transComp->getGlobalTransformation();
+		mat4 transformation = transComp->getWorldTransformation();
 
 		BoneInfo& boneInfo = boneInfos[entity->name.c_str()];
 		boneUniform.boneMatrices[boneInfo.id] = transformation * boneInfo.offsetMatrix;

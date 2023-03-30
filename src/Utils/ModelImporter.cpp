@@ -69,6 +69,9 @@ std::tuple<std::vector<Mesh*>, std::map<u32, Material*>, Skeleton*>
 		materials[material->id] = material;
 	}
 
+	// Animation
+	extractAnimation(scene);
+
 	Skeleton* skeleton = nullptr;
 
 	if (entities)
@@ -442,6 +445,59 @@ void WillEngine::Utils::traverseNodeTree(const aiScene* scene, const aiNode* nod
 		//}
 
 		traverseNodeTree(scene, child, childEntity, level + 1, extractedMesh, extractedMaterial, extractedSkeleton, entities);
+	}
+}
+
+void WillEngine::Utils::extractAnimation(const aiScene* scene)
+{
+	for (u32 i = 0; i < scene->mNumAnimations; i++)
+	{
+		const aiAnimation* assimpAnimation = scene->mAnimations[i];
+
+		// This is bad as we are not return anything, this would cause a memory leak.
+		// But it is fine for now as it is not a fully implemented feature yet
+		Animation* animation = new Animation(assimpAnimation->mName.C_Str(), assimpAnimation->mDuration, assimpAnimation->mTicksPerSecond);
+		animation->setNumChannels(assimpAnimation->mNumChannels);
+
+		for (u32 j = 0; j < assimpAnimation->mNumChannels; j++)
+		{
+			AnimationNode& animationNode = animation->getModifiableAnimationNode(j);
+			animationNode.setName(assimpAnimation->mChannels[j]->mNodeName.C_Str());
+
+			const aiVectorKey* positionKey = assimpAnimation->mChannels[j]->mPositionKeys;
+			const aiQuatKey* rotationKey = assimpAnimation->mChannels[j]->mRotationKeys;
+			const aiVectorKey* scaleKey = assimpAnimation->mChannels[j]->mScalingKeys;
+
+			for (u32 k = 0; k < assimpAnimation->mChannels[j]->mNumPositionKeys; k++)
+			{
+				vec3 position = vec3(positionKey->mValue.x, positionKey->mValue.y, positionKey->mValue.z);
+
+				animationNode.addPosition(position, positionKey->mTime);
+
+				positionKey++;
+			}
+
+			for (u32 k = 0; k < assimpAnimation->mChannels[j]->mNumRotationKeys; k++)
+			{
+				quat rotationQuat = quat(rotationKey->mValue.x, rotationKey->mValue.y, rotationKey->mValue.z, rotationKey->mValue.w);
+				vec3 rotationEuler = glm::eulerAngles(rotationQuat) * glm::pi<float>();
+
+				animationNode.addRotation(rotationEuler, rotationKey->mTime);
+
+				rotationKey++;
+			}
+
+			for (u32 k = 0; k < assimpAnimation->mChannels[j]->mNumScalingKeys; k++)
+			{
+				vec3 scale = vec3(scaleKey->mValue.x, scaleKey->mValue.y, scaleKey->mValue.z);
+
+				animationNode.addScale(scale, scaleKey->mTime);
+
+				scaleKey++;
+			}
+		}
+
+		printf("Hello");
 	}
 }
 

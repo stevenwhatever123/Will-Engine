@@ -20,11 +20,6 @@ layout(set = 1, binding = 2) uniform boneMatricesInfo
 	mat4 boneMatrices[MAX_BONES];
 };
 
-layout(push_constant) uniform modelMatrix
-{
-	mat4 modelTransformation;
-};
-
 void main()
 {
 	vec4 finalPosition = vec4(0);
@@ -44,6 +39,5 @@ void main()
 		finalPosition += localPosition * weights[i];
 	}
 
-	//gl_Position = projectMatrix * cameraMatrix * modelTransformation * finalPosition;
 	gl_Position = projectMatrix * cameraMatrix * finalPosition;
 }

@@ -4,6 +4,7 @@
 #include "Core/SkinnedMesh.h"
 #include "Core/Skeleton.h"
 #include "Core/Material.h"
+#include "Core/Animation.h"
 
 #include "Core/ECS/Entity.h"
 
@@ -23,6 +24,7 @@ namespace WillEngine::Utils
 		Skeleton* extractedSkeleton, std::vector<Entity*>* entities);
 	void traverseNodeTree(const aiScene* scene, const aiNode* node, Entity* parent, u8 level, std::vector<Mesh*> extractedMesh, std::map<u32, Material*> extractedMaterial, Skeleton* extractedSkeleton, 
 		std::vector<Entity*>* entities);
+	void extractAnimation(const aiScene* scene);
 
 	bool checkHasBones(const aiScene* scene);
 	Skeleton* extractBones(const aiScene* scene);
