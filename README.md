@@ -35,6 +35,34 @@ This project requires `premake5` for setting up visual studio project and its su
 
 This project is still work in progress in a slow pace. Planning to work on sky light(skybox) and skeletal animation next.
 
+# References
+
+These are some of the articles/paper that I have been referenced throughout the engine's development if you are curious:  
+
+PBR and BRDF shading:
+- [Real Shading in Unreal Engine 4](https://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_notes_v2.pdf) by Brian Karis, Epic Game
+- [Specular BRDF Reference](http://graphicrants.blogspot.com/2013/08/specular-brdf-reference.html) by Brian Karis
+- [Moving Frostbite to PBR](https://www.ea.com/frostbite/news/moving-frostbite-to-pb)
+
+Game Engine Layout and Rendering Pipeline:
+- [Behind the Pretty Frames: Resident Evil](https://mamoniem.com/behind-the-pretty-frames-resident-evil/) by Muhammad
+- [DOOM Eternal - Graphics Study](https://simoncoenen.com/blog/programming/graphics/DoomEternalStudy.html) by Simon Coenen
+- [DOOM (2016) - Graphics Study](https://www.adriancourreges.com/blog/2016/09/09/doom-2016-graphics-study/) by Adrian Courrèges
+- [Metal Gear Solid V - Graphics Study](https://www.adriancourreges.com/blog/2017/12/15/mgs-v-graphics-study/) by Adrian Courrèges
+
+Animation:
+- [Fix Your Timestep!](https://gafferongames.com/post/fix_your_timestep/)
+
+Post Processing:
+- [Next Generation Post Processing In Call Of Duty: Advanced Warfare](http://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare)
+
+Others:
+- [Stop Using Normal Matrix](https://lxjk.github.io/2017/10/01/Stop-Using-Normal-Matrix.html) by Eric Zhang
+- [https://learnopengl.com/](https://learnopengl.com/)
+- [https://ogldev.org/](https://ogldev.org/)
+- Reddit and StackOverFlow of course
+
+
 # Screenshots
 
 UI Editor and BRDF Shading
