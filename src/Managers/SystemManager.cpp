@@ -218,13 +218,10 @@ void SystemManager::updateECS()
         if (entity->HasComponent<AnimationComponent>())
         {
             AnimationComponent* animationComp = entity->GetComponent<AnimationComponent>();
-            const std::vector<u32>& animationIds = animationComp->getAllAnimationIds();
 
-            // Add the animation id to the animation manager and let it process later
-            for (auto id : animationIds)
-            {
-                animationManager->addToQueue(id);
-            }
+            // Add the animation component to the animation manager for processing later
+            animationManager->addToQueue(animationComp);
+            
         }
     }
 }
@@ -232,6 +229,14 @@ void SystemManager::updateECS()
 void SystemManager::updateAnimation(float dt)
 {
     animationManager->update(dt);
+    
+    while (!animationManager->transformToUpdate.empty())
+    {
+        Entity* entity = animationManager->transformToUpdate.front();
+        gameState.queryTasks.transformToUpdate.push(entity);
+
+        animationManager->transformToUpdate.pop();
+    }
 }
 
 void SystemManager::readFile()
@@ -300,7 +305,7 @@ void SystemManager::loadModel()
             entities[0]->addComponent<AnimationComponent>();
 
         AnimationComponent* animationComp = entities[0]->GetComponent<AnimationComponent>();
-        animationComp->addAnimation(loadedAnimations[i]->id);
+        animationComp->addAnimation(loadedAnimations[i]);
     }
 
     for (u32 i = 0; i < entities.size(); i++)
@@ -359,10 +364,21 @@ void SystemManager::processTransformationCalculations()
     while (!gameState.queryTasks.transformToUpdate.empty())
     {
         Entity* currentEntity = gameState.queryTasks.transformToUpdate.front();
+        Entity* rootEntity = currentEntity->getRoot();
 
         // Update Global Transformation
         TransformComponent* transformComponent = currentEntity->GetComponent<TransformComponent>();
-        transformComponent->updateAllChildWorldTransformation();
+        if (rootEntity->HasComponent<AnimationComponent>())
+        {
+            AnimationComponent* animationComp = rootEntity->GetComponent<AnimationComponent>();
+            Animation* animation = gameState.gameResources.animations[animationComp->getCurrentAnimationId()];
+
+            transformComponent->updateAllChildAnimationWorldTransformation(animation, animationComp);
+        }
+        else
+        {
+            transformComponent->updateAllChildWorldTransformation();
+        }
 
         // Update Skeleton Bone Transformation
         for (auto it = gameState.gameResources.skeletons.begin(); it != gameState.gameResources.skeletons.end(); it++)
@@ -382,7 +398,6 @@ void SystemManager::processTransformationCalculations()
 
                 if (skeleton->hasBone(entity->name))
                 {
-                    Entity* rootEntity = currentEntity->getRoot();
                     skeleton->updateBoneUniform(rootEntity);
                     break;
                 }

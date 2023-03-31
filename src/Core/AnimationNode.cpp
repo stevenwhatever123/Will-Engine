@@ -19,7 +19,7 @@ AnimationNode::AnimationNode(std::string name):
 
 }
 
-AnimationNode::AnimationNode(std::string name, std::vector<KeyData> position, std::vector<KeyData> rotation, std::vector<KeyData> scale):
+AnimationNode::AnimationNode(std::string name, std::vector<KeyData> position, std::vector<QuatData> rotation, std::vector<KeyData> scale):
 	name(name),
 	positions(position),
 	rotations(rotation),

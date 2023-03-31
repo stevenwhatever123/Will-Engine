@@ -106,7 +106,7 @@ template void Entity::addComponent(AnimationComponent* comp);
 template<class T>
 void Entity::addComponent()
 {
-	T* comp = new T();
+	T* comp = new T(this);
 
 	components[typeid(T)] = comp;
 }
@@ -140,19 +140,19 @@ void Entity::addComponent(ComponentType type)
 		//}
 		case SkeletalType:
 		{
-			SkeletalComponent* skeletal = new SkeletalComponent();
+			SkeletalComponent* skeletal = new SkeletalComponent(this);
 			components[typeid(SkeletalComponent)] = skeletal;
 			break;
 		}
 		case LightType:
 		{
-			LightComponent* light = new LightComponent();
+			LightComponent* light = new LightComponent(this);
 			components[typeid(LightComponent)] = light;
 			break;
 		}
 		case AnimationType:
 		{
-			AnimationComponent* animation = new AnimationComponent();
+			AnimationComponent* animation = new AnimationComponent(this);
 			components[typeid(AnimationComponent)] = animation;
 			break;
 		}

@@ -1,6 +1,9 @@
 #pragma once
 #include "Core/ECS/Component.h"
 
+#include "Core/Animation.h"
+#include "Core/ECS/AnimationComponent.h"
+
 namespace WillEngine
 {
 	class TransformComponent : public Component
@@ -15,7 +18,7 @@ namespace WillEngine
 
 	private:
 
-		// A boolean to check if we have to update the world transformation
+		// A copy of world transformation
 		mat4 worldTransformation;
 
 	public:
@@ -45,8 +48,13 @@ namespace WillEngine
 		// getWorldTransformation is faster than getGlobalTransformation for getting the global world transformation
 		mat4& const getWorldTransformation() { return worldTransformation; };
 
+		mat4 getAnimationLocalTransformation(const Animation* animation, const AnimationComponent* animationComp) const;
+		mat4 getAnimationGlobalTransformation(const Animation* animation, const AnimationComponent* animationComp) const;
+
 		void updateWorldTransformation() { worldTransformation = getGlobalTransformation(); };
 		void updateAllChildWorldTransformation();
+		void updateAnimationWorldTransformation(const Animation* animation, const AnimationComponent* animationComp) { worldTransformation = getAnimationGlobalTransformation(animation, animationComp); };
+		void updateAllChildAnimationWorldTransformation(const Animation* animation, const AnimationComponent* animationComp);
 
 	private:
 

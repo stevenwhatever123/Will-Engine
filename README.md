@@ -8,7 +8,7 @@ This is a hobby game engine created as a personal project with the WILL to make 
 - Shadow Mapping (Only point light at the moment)
 - Call of Duty's Compute Shader Bloom Post-Processing
 - Entity Component System (ECS)
-- Skeletal Mesh
+- Skeletal Mesh/Animation
 - Normal Mapping
 - Asset Loading
 
@@ -77,8 +77,8 @@ Shadow Mapping
 Bloom
 ![](./screenshots/bloom.gif)
 
-Skeletal Mesh and Node Hierarchy
-![](./screenshots/Skeletal.PNG)
+Skeletal Mesh/Animation and Node Hierarchy
+![](./screenshots/Skeletal.gif)
 
 Entity Component System
 ![](./screenshots/ecs.gif)

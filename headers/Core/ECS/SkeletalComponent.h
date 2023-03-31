@@ -17,6 +17,7 @@ namespace WillEngine
 	public:
 
 		SkeletalComponent();
+		SkeletalComponent(Entity* entity);
 		SkeletalComponent(Skeleton* skeleton);
 		virtual ~SkeletalComponent();
 

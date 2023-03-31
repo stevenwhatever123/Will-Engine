@@ -10,6 +10,13 @@ LightComponent::LightComponent() :
 
 }
 
+LightComponent::LightComponent(Entity* entity) :
+    Component(entity),
+    lightIndex(0)
+{
+
+}
+
 LightComponent::LightComponent(const Light* light) :
     lightIndex(light->id)
 {

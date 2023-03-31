@@ -118,6 +118,11 @@ void WillEngine::EngineGui::InspectorPanel::update(GameState* gameState)
 					ImGui::Text("Animation %u name: %s", i, gameState->gameResources.animations[animationId]->getName().c_str());
 				}
 
+				ImGui::NewLine();
+
+				ImGui::Text("Duration: %.2f", gameState->gameResources.animations[animationComp->getCurrentAnimationId()]->getDuration());
+				ImGui::Text("Current Time: %.2f", animationComp->getTime());
+
 				ImGui::TreePop();
 			}
 		}

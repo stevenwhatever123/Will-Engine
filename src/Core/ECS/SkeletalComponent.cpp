@@ -10,6 +10,13 @@ SkeletalComponent::SkeletalComponent():
 
 }
 
+SkeletalComponent::SkeletalComponent(Entity* entity) :
+	Component(entity),
+	skeletalId(0)
+{
+
+}
+
 SkeletalComponent::SkeletalComponent(Skeleton* skeleton) :
 	Component(nullptr),
 	skeletalId(skeleton->id)

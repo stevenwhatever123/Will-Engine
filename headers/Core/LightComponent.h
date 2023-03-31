@@ -16,6 +16,7 @@ namespace WillEngine
 	public:
 
 		LightComponent();
+		LightComponent(Entity* entity);
 		LightComponent(const Light* light);
 		virtual ~LightComponent();
 

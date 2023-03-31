@@ -6,23 +6,19 @@ u32 Animation::idCounter = 0;
 Animation::Animation():
 	name(""),
 	id(++idCounter),
-	duration(0),
+	numTicks(0),
 	ticksPerSecond(0),
-	animationNodes(),
-	time(0),
-	accumulator(0)
+	animationNodes()
 {
 
 }
 
-Animation::Animation(std::string name, f64 duration, f64 ticksPerSecond):
+Animation::Animation(std::string name, f64 numTicks, f64 ticksPerSecond):
 	name(name),
 	id(++idCounter),
-	duration(duration),
+	numTicks(numTicks),
 	ticksPerSecond(ticksPerSecond),
-	animationNodes(),
-	time(0),
-	accumulator(0)
+	animationNodes()
 {
 
 }

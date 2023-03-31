@@ -73,3 +73,26 @@ void Skeleton::calculateBoneTransform(Entity* entity)
 		calculateBoneTransform(childEntity);
 	}
 }
+
+void Skeleton::updateAnimationBoneUniform(Entity* rootEntity, const Animation* animation)
+{
+	calculateAnimationBoneTransform(rootEntity, animation);
+}
+
+void Skeleton::calculateAnimationBoneTransform(Entity* entity, const Animation* animation)
+{
+	//if (boneInfos.find(entity->name.c_str()) != boneInfos.end())
+	//{
+	//	TransformComponent* transComp = entity->GetComponent<TransformComponent>();
+	//	mat4 transformation = transComp->();
+
+	//	BoneInfo& boneInfo = boneInfos[entity->name.c_str()];
+	//	boneUniform.boneMatrices[boneInfo.id] = transformation * boneInfo.offsetMatrix;
+	//}
+
+	//for (u32 i = 0; i < entity->children.size(); i++)
+	//{
+	//	Entity* childEntity = entity->children[i];
+	//	calculateBoneTransform(childEntity);
+	//}
+}

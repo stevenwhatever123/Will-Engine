@@ -25,6 +25,7 @@ namespace WillEngine
 	public:
 
 		MeshComponent();
+		MeshComponent(Entity* entity);
 		MeshComponent(const MeshComponent* meshComp);
 		virtual ~MeshComponent();
 

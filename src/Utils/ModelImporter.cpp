@@ -456,8 +456,6 @@ std::vector<Animation*> WillEngine::Utils::extractAnimation(const aiScene* scene
 	{
 		const aiAnimation* assimpAnimation = scene->mAnimations[i];
 
-		// This is bad as we are not return anything, this would cause a memory leak.
-		// But it is fine for now as it is not a fully implemented feature yet
 		animations[i] = new Animation(assimpAnimation->mName.C_Str(), assimpAnimation->mDuration, assimpAnimation->mTicksPerSecond);
 		animations[i]->setNumChannels(assimpAnimation->mNumChannels);
 
@@ -481,8 +479,8 @@ std::vector<Animation*> WillEngine::Utils::extractAnimation(const aiScene* scene
 
 			for (u32 k = 0; k < assimpAnimation->mChannels[j]->mNumRotationKeys; k++)
 			{
-				quat rotationQuat = quat(rotationKey->mValue.x, rotationKey->mValue.y, rotationKey->mValue.z, rotationKey->mValue.w);
-				vec3 rotationEuler = glm::eulerAngles(rotationQuat) * glm::pi<float>();
+				quat rotationQuat = quat(rotationKey->mValue.w, rotationKey->mValue.x, rotationKey->mValue.y, rotationKey->mValue.z);
+				vec3 rotationEuler = glm::eulerAngles(rotationQuat);
 
 				animationNode.addRotation(rotationEuler, rotationKey->mTime);
 

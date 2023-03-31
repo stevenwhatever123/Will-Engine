@@ -1,6 +1,8 @@
 #pragma once
 #include "UniformClass.h"
 
+#include "Core/Animation.h"
+
 #include "Core/Vulkan/VulkanDescriptorSet.h"
 #include "Core/Vulkan/VulkanAllocatedObject.h"
 
@@ -54,8 +56,12 @@ public:
 	void addBone(const BoneInfo bone);
 
 	void generateBoneUniform();
+
 	void updateBoneUniform(Entity* rootEntity);
 	void calculateBoneTransform(Entity* entity);
+
+	void updateAnimationBoneUniform(Entity* rootEntity, const Animation* animation);
+	void calculateAnimationBoneTransform(Entity* entity, const Animation* animation);
 
 	bool hasBones() const { return boneInfos.size(); };
 	bool hasBone(std::string name) const { return boneInfos.find(name) != boneInfos.end(); };

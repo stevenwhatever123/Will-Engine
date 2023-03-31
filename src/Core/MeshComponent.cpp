@@ -12,6 +12,15 @@ MeshComponent::MeshComponent() :
 
 }
 
+MeshComponent::MeshComponent(Entity* entity):
+	Component(entity),
+	name(""),
+	meshIndicies(),
+	materialIndicies()
+{
+
+}
+
 MeshComponent::MeshComponent(const MeshComponent* meshComp) :
 	Component(meshComp->parent),
 	name(meshComp->name),
