@@ -190,7 +190,6 @@ void SystemManager::updateGui()
     VulkanEngine* vulkanEngine = vulkanWindow->vulkanEngine;
     VulkanGui* vulkanGui = vulkanEngine->vulkanGui;
 
-    //vulkanGui->update(gameState.graphicsState.upSampledImage_ImGui[0], vulkanEngine->offscreenFramebuffer, &gameState, vulkanEngine->sceneExtent, vulkanEngine->sceneExtentChanged);
     vulkanGui->update(gameState.graphicsState.renderedImage_ImGui, vulkanEngine->offscreenFramebuffer, &gameState, vulkanEngine->sceneExtent, vulkanEngine->sceneExtentChanged);
 }
 
@@ -221,7 +220,6 @@ void SystemManager::updateECS()
 
             // Add the animation component to the animation manager for processing later
             animationManager->addToQueue(animationComp);
-            
         }
     }
 }
@@ -373,7 +371,7 @@ void SystemManager::processTransformationCalculations()
             AnimationComponent* animationComp = rootEntity->GetComponent<AnimationComponent>();
             Animation* animation = gameState.gameResources.animations[animationComp->getCurrentAnimationId()];
 
-            transformComponent->updateAllChildAnimationWorldTransformation(animation, animationComp);
+            transformComponent->updateAllChildWorldTransformation(animation, animationComp);
         }
         else
         {

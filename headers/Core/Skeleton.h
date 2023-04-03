@@ -39,7 +39,7 @@ class Skeleton
 public:
 
 	const u32 id;
-	std::map<std::string, BoneInfo> boneInfos;
+	std::unordered_map<std::string, BoneInfo> boneInfos;
 	BoneUniform boneUniform;
 
 public:
@@ -60,11 +60,8 @@ public:
 	void updateBoneUniform(Entity* rootEntity);
 	void calculateBoneTransform(Entity* entity);
 
-	void updateAnimationBoneUniform(Entity* rootEntity, const Animation* animation);
-	void calculateAnimationBoneTransform(Entity* entity, const Animation* animation);
-
 	bool hasBones() const { return boneInfos.size(); };
-	bool hasBone(std::string name) const { return boneInfos.find(name) != boneInfos.end(); };
+	bool hasBone(std::string name) const { return boneInfos.contains(name); };
 
 private:
 

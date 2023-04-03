@@ -28,7 +28,7 @@ void AnimationManager::update(float dt)
 		}
 
 		// The animation data
-		Animation* animation = animations->find(animationId)->second;
+		Animation* animation = animations->at(animationId);
 
 		// Get the animation Time step
 		f64 timestep = 1 / animation->getTicksPerSecond();
@@ -44,16 +44,18 @@ void AnimationManager::update(float dt)
 				animationComp->animationReset();
 			}
 
-			// Find out the value of position, rotation and scale at this very moment
-			animationComp->updateCurrentAnimationKeyIndex(animation);
-
 			tickUpdated = true;
 
 			animationComp->decreaseAccumulator(timestep);
 		}
 
-		if(tickUpdated)
+		if (tickUpdated)
+		{
+			// Find out the value of position, rotation and scale after a tick update
+			animationComp->updateCurrentAnimationKeyIndex(animation);
+
 			transformToUpdate.push(animationComp->getParent());
+		}
 
 		animationsToUpdate.pop();
 	}

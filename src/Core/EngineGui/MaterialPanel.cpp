@@ -5,7 +5,7 @@ void WillEngine::EngineGui::MaterialPanel::update(GameState* gameState)
 {
 	ImGui::Begin("Material Viewer");
 
-	std::map<u32, Material*> materials = gameState->graphicsResources.materials;
+	std::unordered_map<u32, Material*> materials = gameState->graphicsResources.materials;
 
 	for(auto it = materials.begin(); it != materials.end(); it++)
 	{

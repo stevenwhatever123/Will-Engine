@@ -37,23 +37,23 @@ struct GameState
 	
 	struct GraphicsResources
 	{
-		std::map<u32, Material*> materials;
-		std::map<u32, Mesh*> meshes;
-		std::map<u32, Light*> lights;
+		std::unordered_map<u32, Material*> materials;
+		std::unordered_map<u32, Mesh*> meshes;
+		std::unordered_map<u32, Light*> lights;
 	} graphicsResources;
 
 	struct GameResources
 	{
 		// This includes ALL entities in the scene (Including Root and child entities)
-		std::map<u32, Entity*> entities;
+		std::unordered_map<u32, Entity*> entities;
 
 		// This inclues ROOT entities in the scene (Excluding child entities)
 		// This is used for simplify the tree hierarchy
-		std::map<u32, Entity*> rootEntities;
+		std::unordered_map<u32, Entity*> rootEntities;
 
-		std::map<u32, Skeleton*> skeletons;
+		std::unordered_map<u32, Skeleton*> skeletons;
 
-		std::map<u32, Animation*> animations;
+		std::unordered_map<u32, Animation*> animations;
 	} gameResources;
 
 	struct UIParams

@@ -9,8 +9,8 @@ using namespace WillEngine::EngineGui;
 
 void EntitiesPanel::update(GameState* gameState)
 {
-	std::map<u32, Entity*>& entities = gameState->gameResources.entities;
-	std::map<u32, Entity*>& rootEntities = gameState->gameResources.rootEntities;
+	std::unordered_map<u32, Entity*>& entities = gameState->gameResources.entities;
+	std::unordered_map<u32, Entity*>& rootEntities = gameState->gameResources.rootEntities;
 
 	ImGui::Begin("Entities");
 

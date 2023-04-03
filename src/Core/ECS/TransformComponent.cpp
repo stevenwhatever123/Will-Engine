@@ -77,56 +77,49 @@ mat4 TransformComponent::getGlobalTransformation() const
 	return resultMatrix;
 }
 
-mat4 TransformComponent::getAnimationLocalTransformation(const Animation* animation, const AnimationComponent* animationComp) const
+mat4 TransformComponent::getLocalTransformation(const Animation* animation, const AnimationComponent* animationComp) const
 {
 	Entity* currentEntity = parent;
 
-	vec3 animationPosition(0);
-	quat animationRotation(0, 0, 0, 0);
-	vec3 animationScale(0);
-	for (u32 i = 0; i < animation->getNumAnimationNode(); i++)
+	if (animation->animationNodes.contains(currentEntity->name))
 	{
-		const AnimationNode& animationNode = animation->animationNodes[i];
+		const AnimationNode& animationNode = animation->animationNodes.find(currentEntity->name)->second;
 
-		if (currentEntity->name == animationNode.name)
-		{
-			u32 positionKey = animationComp->getPositionKeyIndex(i);
-			animationPosition = animationNode.getPosition(positionKey).value;
+		u32 positionKey = animationComp->getPositionKeyIndex(currentEntity->name);
+		const vec3& animationPosition = animationNode.getPosition(positionKey).value;
 
-			u32 rotationKey = animationComp->getRotationKeyIndex(i);
-			animationRotation = animationNode.getRotation(rotationKey).value;
+		u32 rotationKey = animationComp->getRotationKeyIndex(currentEntity->name);
+		const quat& animationRotation = animationNode.getRotation(rotationKey).value;
 
-			u32 scaleKey = animationComp->getScaleKeyIndex(i);
-			animationScale = animationNode.getScale(scaleKey).value;
+		u32 scaleKey = animationComp->getScaleKeyIndex(currentEntity->name);
+		const vec3& animationScale = animationNode.getScale(scaleKey).value;
 
-			// Translate
-			mat4 translation = glm::translate(mat4(1), animationPosition);
+		// Translate
+		mat4 translation = glm::translate(mat4(1), animationPosition);
 
-			// Rotation
-			mat4 rotate = glm::mat4(animationRotation);
+		// Rotation
+		mat4 rotate = glm::mat4(animationRotation);
 
-			// Scaling
-			return glm::scale(translation * rotate, animationScale);
-		}
+		// Scaling
+		return glm::scale(translation * rotate, animationScale);
 	}
 
 	return getLocalTransformation();
 }
 
-mat4 TransformComponent::getAnimationGlobalTransformation(const Animation* animation, const AnimationComponent* animationComp) const
+mat4 TransformComponent::getGlobalTransformation(const Animation* animation, const AnimationComponent* animationComp) const
 {
-	mat4 resultMatrix = getAnimationLocalTransformation(animation, animationComp);
+	mat4 resultMatrix = getLocalTransformation(animation, animationComp);
 
 	if (!parent->hasParent())
 		return resultMatrix;
 
 	Entity* parentEntity = parent->getParent();
-	while (parentEntity)
+
+	if (parentEntity)
 	{
 		TransformComponent* transformComp = parentEntity->GetComponent<TransformComponent>();
-		resultMatrix = transformComp->getAnimationLocalTransformation(animation, animationComp) * resultMatrix;
-
-		parentEntity = parentEntity->getParent();
+		resultMatrix = transformComp->getWorldTransformation() * resultMatrix;
 	}
 
 	return resultMatrix;
@@ -143,13 +136,13 @@ void TransformComponent::updateAllChildWorldTransformation()
 	}
 }
 
-void TransformComponent::updateAllChildAnimationWorldTransformation(const Animation* animation, const AnimationComponent* animationComp)
+void TransformComponent::updateAllChildWorldTransformation(const Animation* animation, const AnimationComponent* animationComp)
 {
-	updateAnimationWorldTransformation(animation, animationComp);
+	updateWorldTransformation(animation, animationComp);
 
 	for (auto child : getParent()->children)
 	{
 		TransformComponent* childTransform = child->GetComponent<TransformComponent>();
-		childTransform->updateAllChildAnimationWorldTransformation(animation, animationComp);
+		childTransform->updateAllChildWorldTransformation(animation, animationComp);
 	}
 }

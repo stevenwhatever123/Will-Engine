@@ -13,7 +13,7 @@ public:
 
 private:
 
-	std::map<u32, Animation*>* animations;
+	std::unordered_map<u32, Animation*>* animations;
 
 	std::queue<AnimationComponent*> animationsToUpdate;
 
@@ -23,7 +23,7 @@ public:
 	~AnimationManager();
 
 	// Functions that the Animation Manager is being used
-	void init(std::map<u32, Animation*>& animations) { this->animations = &animations; };
+	void init(std::unordered_map<u32, Animation*>& animations) { this->animations = &animations; };
 	void addToQueue(AnimationComponent* animationComp) { animationsToUpdate.push(animationComp); };
 	void update(float dt);
 

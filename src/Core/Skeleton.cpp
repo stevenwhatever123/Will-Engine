@@ -57,11 +57,10 @@ void Skeleton::updateBoneUniform(Entity* rootEntity)
 
 void Skeleton::calculateBoneTransform(Entity* entity)
 {
-	if (boneInfos.find(entity->name.c_str()) != boneInfos.end())
+	if(boneInfos.contains(entity->name.c_str()))
 	{
 		TransformComponent* transComp = entity->GetComponent<TransformComponent>();
-		//mat4 transformation = transComp->getGlobalTransformation();
-		mat4 transformation = transComp->getWorldTransformation();
+		const mat4& transformation = transComp->getWorldTransformation();
 
 		BoneInfo& boneInfo = boneInfos[entity->name.c_str()];
 		boneUniform.boneMatrices[boneInfo.id] = transformation * boneInfo.offsetMatrix;
@@ -72,27 +71,4 @@ void Skeleton::calculateBoneTransform(Entity* entity)
 		Entity* childEntity = entity->children[i];
 		calculateBoneTransform(childEntity);
 	}
-}
-
-void Skeleton::updateAnimationBoneUniform(Entity* rootEntity, const Animation* animation)
-{
-	calculateAnimationBoneTransform(rootEntity, animation);
-}
-
-void Skeleton::calculateAnimationBoneTransform(Entity* entity, const Animation* animation)
-{
-	//if (boneInfos.find(entity->name.c_str()) != boneInfos.end())
-	//{
-	//	TransformComponent* transComp = entity->GetComponent<TransformComponent>();
-	//	mat4 transformation = transComp->();
-
-	//	BoneInfo& boneInfo = boneInfos[entity->name.c_str()];
-	//	boneUniform.boneMatrices[boneInfo.id] = transformation * boneInfo.offsetMatrix;
-	//}
-
-	//for (u32 i = 0; i < entity->children.size(); i++)
-	//{
-	//	Entity* childEntity = entity->children[i];
-	//	calculateBoneTransform(childEntity);
-	//}
 }

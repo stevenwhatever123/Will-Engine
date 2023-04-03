@@ -34,15 +34,15 @@ void AnimationComponent::addAnimation(Animation* animation)
 {
 	animationIds.push_back(animation->id);
 
-	std::vector<u32> animationNodePositionIndex;
-	std::vector<u32> animationNodeRotationIndex;
-	std::vector<u32> animationNodeScaleIndex;
+	std::unordered_map<std::string, u32> animationNodePositionIndex;
+	std::unordered_map<std::string, u32> animationNodeRotationIndex;
+	std::unordered_map<std::string, u32> animationNodeScaleIndex;
 
 	for (auto animationNode : animation->animationNodes)
 	{
-		animationNodePositionIndex.push_back(0);
-		animationNodeRotationIndex.push_back(0);
-		animationNodeScaleIndex.push_back(0);
+		animationNodePositionIndex[animationNode.first] = 0;
+		animationNodeRotationIndex[animationNode.first] = 0;
+		animationNodeScaleIndex[animationNode.first] = 0;
 	}
 
 	positionIndicies.push_back(animationNodePositionIndex);
@@ -52,9 +52,11 @@ void AnimationComponent::addAnimation(Animation* animation)
 
 u32 AnimationComponent::getPositionIndex(const Animation* animation, const AnimationNode* animationNode, u32 currentIndex) const
 {
+	f64 ticksPerSecond = animation->getTicksPerSecond();
+
 	for (u32 i = currentIndex; i < animationNode->getNumPosition(); i++)
 	{
-		if (time < animationNode->positions[i].time / animation->getTicksPerSecond())
+		if (time < animationNode->positions[i].time / ticksPerSecond)
 			return i;
 	}
 
@@ -64,9 +66,11 @@ u32 AnimationComponent::getPositionIndex(const Animation* animation, const Anima
 
 u32 AnimationComponent::getRotationIndex(const Animation* animation, const AnimationNode* animationNode, u32 currentIndex) const
 {
+	f64 ticksPerSecond = animation->getTicksPerSecond();
+
 	for (u32 i = currentIndex; i < animationNode->getNumRotation(); i++)
 	{
-		if (time < animationNode->rotations[i].time / animation->getTicksPerSecond())
+		if (time < animationNode->rotations[i].time / ticksPerSecond)
 			return i;
 	}
 
@@ -76,9 +80,11 @@ u32 AnimationComponent::getRotationIndex(const Animation* animation, const Anima
 
 u32 AnimationComponent::getScaleIndex(const Animation* animation, const AnimationNode* animationNode, u32 currentIndex) const
 {
+	f64 ticksPerSecond = animation->getTicksPerSecond();
+
 	for (u32 i = currentIndex; i < animationNode->getNumScale(); i++)
 	{
-		if (time < animationNode->scales[i].time / animation->getTicksPerSecond())
+		if (time < animationNode->scales[i].time / ticksPerSecond)
 			return i;
 	}
 
@@ -88,11 +94,18 @@ u32 AnimationComponent::getScaleIndex(const Animation* animation, const Animatio
 
 void AnimationComponent::updateCurrentAnimationKeyIndex(const Animation* animation)
 {
-	for (u32 i = 0; i < animation->getNumAnimationNode(); i++)
+	for (auto it = animation->animationNodes.begin(); it != animation->animationNodes.end(); it++)
 	{
-		positionIndicies[selectedAnimationIndex][i] = getPositionIndex(animation, &animation->animationNodes[i], positionIndicies[selectedAnimationIndex][i]);
-		rotationIndicies[selectedAnimationIndex][i] = getRotationIndex(animation, &animation->animationNodes[i], rotationIndicies[selectedAnimationIndex][i]);
-		scaleIndicies[selectedAnimationIndex][i] = getScaleIndex(animation, &animation->animationNodes[i], scaleIndicies[selectedAnimationIndex][i]);
+		const std::string& nodeName = it->first;
+		const AnimationNode& animationNode = it->second;
+
+		u32 currentPositionIndex = positionIndicies[selectedAnimationIndex].at(nodeName);
+		u32 currentRotationIndex = rotationIndicies[selectedAnimationIndex].at(nodeName);
+		u32 currentScaleIndex = scaleIndicies[selectedAnimationIndex].at(nodeName);
+
+		positionIndicies[selectedAnimationIndex][nodeName] = getPositionIndex(animation, &animationNode, currentPositionIndex);
+		rotationIndicies[selectedAnimationIndex][nodeName] = getRotationIndex(animation, &animationNode, currentRotationIndex);
+		scaleIndicies[selectedAnimationIndex][nodeName] = getScaleIndex(animation, &animationNode, currentScaleIndex);
 	}
 }
 
@@ -106,10 +119,12 @@ void AnimationComponent::animationReset()
 	accumulator = 0;
 	time = 0;
 
-	for (u32 i = 0; i < positionIndicies[selectedAnimationIndex].size(); i++)
+	for (auto it = positionIndicies[selectedAnimationIndex].begin(); it != positionIndicies[selectedAnimationIndex].end(); it++)
 	{
-		positionIndicies[selectedAnimationIndex][i] = 0;
-		rotationIndicies[selectedAnimationIndex][i] = 0;
-		scaleIndicies[selectedAnimationIndex][i] = 0;
+		std::string nodeName = it->first;
+
+		positionIndicies[selectedAnimationIndex][nodeName] = 0;
+		rotationIndicies[selectedAnimationIndex][nodeName] = 0;
+		scaleIndicies[selectedAnimationIndex][nodeName] = 0;
 	}
 }

@@ -457,11 +457,17 @@ std::vector<Animation*> WillEngine::Utils::extractAnimation(const aiScene* scene
 		const aiAnimation* assimpAnimation = scene->mAnimations[i];
 
 		animations[i] = new Animation(assimpAnimation->mName.C_Str(), assimpAnimation->mDuration, assimpAnimation->mTicksPerSecond);
-		animations[i]->setNumChannels(assimpAnimation->mNumChannels);
 
 		for (u32 j = 0; j < assimpAnimation->mNumChannels; j++)
 		{
-			AnimationNode& animationNode = animations[i]->getModifiableAnimationNode(j);
+			std::string nodeName = assimpAnimation->mChannels[j]->mNodeName.C_Str();
+
+			// Initialise the element in the map first
+			animations[i]->animationNodes[nodeName] = AnimationNode();
+
+			// Grab that element that we've just initialise and modify it
+			AnimationNode& animationNode = animations[i]->animationNodes[nodeName];
+
 			animationNode.setName(assimpAnimation->mChannels[j]->mNodeName.C_Str());
 
 			const aiVectorKey* positionKey = assimpAnimation->mChannels[j]->mPositionKeys;

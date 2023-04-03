@@ -28,10 +28,10 @@ namespace WillEngine
 
 	private:
 
-		// Order: #Animation->AnimationNode->index
-		std::vector<std::vector<u32>> positionIndicies;
-		std::vector<std::vector<u32>> rotationIndicies;
-		std::vector<std::vector<u32>> scaleIndicies;
+		// Order: #Animation->AnimationNode(By Name)->index
+		std::vector<std::unordered_map<std::string, u32>> positionIndicies;
+		std::vector<std::unordered_map<std::string, u32>> rotationIndicies;
+		std::vector<std::unordered_map<std::string, u32>> scaleIndicies;
 
 	private:
 
@@ -64,13 +64,13 @@ namespace WillEngine
 
 		bool isPlayingAnimation() const { return playAnimation; }
 
-		u32 getPositionKeyIndex(u32 animationIndex, u32 animationNodeIndex) const { return positionIndicies[animationIndex][animationNodeIndex]; }
-		u32 getRotationKeyIndex(u32 animationIndex, u32 animationNodeIndex) const { return rotationIndicies[animationIndex][animationNodeIndex]; }
-		u32 getScaleKeyIndex(u32 animationIndex, u32 animationNodeIndex) const { return scaleIndicies[animationIndex][animationNodeIndex]; }
+		u32 getPositionKeyIndex(u32 animationIndex, std::string nodeName) const { return positionIndicies[animationIndex].at(nodeName); }
+		u32 getRotationKeyIndex(u32 animationIndex, std::string nodeName) const { return rotationIndicies[animationIndex].at(nodeName); }
+		u32 getScaleKeyIndex(u32 animationIndex, std::string nodeName) const { return scaleIndicies[animationIndex].at(nodeName); }
 
-		u32 getPositionKeyIndex(u32 animationNodeIndex) const { return positionIndicies[selectedAnimationIndex][animationNodeIndex]; }
-		u32 getRotationKeyIndex(u32 animationNodeIndex) const { return rotationIndicies[selectedAnimationIndex][animationNodeIndex]; }
-		u32 getScaleKeyIndex(u32 animationNodeIndex) const { return scaleIndicies[selectedAnimationIndex][animationNodeIndex]; }
+		u32 getPositionKeyIndex(std::string nodeName) const { return positionIndicies[selectedAnimationIndex].at(nodeName); }
+		u32 getRotationKeyIndex(std::string nodeName) const { return rotationIndicies[selectedAnimationIndex].at(nodeName); }
+		u32 getScaleKeyIndex(std::string nodeName) const { return scaleIndicies[selectedAnimationIndex].at(nodeName); }
 
 		virtual ComponentType getType() { return id; };
 

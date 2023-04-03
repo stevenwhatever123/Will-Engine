@@ -41,20 +41,23 @@ namespace WillEngine
 
 		virtual ComponentType getType() { return id; };
 
+		// getLocalTransformation will rebuild the local transform whenever it's called
 		mat4 getLocalTransformation() const;
 		// getGlobalTransformation is the slowest way to get the global world transformation
-		// It is usually called for updating worldTransformation
+		// It is calculated by transvering the tree back to the root entity
+		// Usually called for updating worldTransformation
 		mat4 getGlobalTransformation() const;
 		// getWorldTransformation is faster than getGlobalTransformation for getting the global world transformation
 		mat4& const getWorldTransformation() { return worldTransformation; };
 
-		mat4 getAnimationLocalTransformation(const Animation* animation, const AnimationComponent* animationComp) const;
-		mat4 getAnimationGlobalTransformation(const Animation* animation, const AnimationComponent* animationComp) const;
+		mat4 getLocalTransformation(const Animation* animation, const AnimationComponent* animationComp) const;
+		mat4 getGlobalTransformation(const Animation* animation, const AnimationComponent* animationComp) const;
 
 		void updateWorldTransformation() { worldTransformation = getGlobalTransformation(); };
+		void updateWorldTransformation(const Animation* animation, const AnimationComponent* animationComp) { worldTransformation = getGlobalTransformation(animation, animationComp); };
+
 		void updateAllChildWorldTransformation();
-		void updateAnimationWorldTransformation(const Animation* animation, const AnimationComponent* animationComp) { worldTransformation = getAnimationGlobalTransformation(animation, animationComp); };
-		void updateAllChildAnimationWorldTransformation(const Animation* animation, const AnimationComponent* animationComp);
+		void updateAllChildWorldTransformation(const Animation* animation, const AnimationComponent* animationComp);
 
 	private:
 

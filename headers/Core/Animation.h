@@ -18,7 +18,8 @@ public:
 	f64 ticksPerSecond;
 
 	// The actual animation data
-	std::vector<AnimationNode> animationNodes;
+	//std::vector<AnimationNode> animationNodes;
+	std::unordered_map<std::string, AnimationNode> animationNodes;
 
 public:
 
@@ -33,14 +34,14 @@ public:
 	Animation(std::string name, f64 numTicks, f64 ticksPerSecond);
 	~Animation();
 
-	void setNumChannels(u32 size) { animationNodes.resize(size); };
+	//void setNumChannels(u32 size) { animationNodes.resize(size); };
 
 	std::string getName() const { return name; }
 	f64 getNumTicks() const { return numTicks; }
 	f64 getTicksPerSecond() const { return ticksPerSecond; }
 	f64 getDuration() const { return numTicks / ticksPerSecond; }
 
-	AnimationNode& getModifiableAnimationNode(u32 index) { return animationNodes[index]; };
-	const AnimationNode& getAnimationNode(u32 index) const { return animationNodes[index]; };
+	//AnimationNode& getModifiableAnimationNode(u32 index) { return animationNodes[index]; };
+	//const AnimationNode& getAnimationNode(u32 index) const { return animationNodes[index]; };
 	u32 getNumAnimationNode() const { return animationNodes.size(); }
 };
