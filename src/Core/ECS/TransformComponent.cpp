@@ -125,24 +125,38 @@ mat4 TransformComponent::getGlobalTransformation(const Animation* animation, con
 	return resultMatrix;
 }
 
-void TransformComponent::updateAllChildWorldTransformation()
+void TransformComponent::updateAllChildWorldTransformation(const std::unordered_map<std::string, bool>* necessityMap)
 {
+	// Don't update transformation if all of the following is met:
+	// 1. We have a necessity map included
+	// 2. It does not appear in the necessity map / The node appears in the necessity map but has not been visited before
+	// More details (Bone Section): https://assimp.sourceforge.net/lib_html/data.html
+	if (necessityMap && (!necessityMap->contains(parent->name) || necessityMap->at(parent->name) == false))
+		return;
+
 	updateWorldTransformation();
 
-	for (auto child : getParent()->children)
+	for (auto* child : getParent()->children)
 	{
 		TransformComponent* childTransform = child->GetComponent<TransformComponent>();
 		childTransform->updateAllChildWorldTransformation();
 	}
 }
 
-void TransformComponent::updateAllChildWorldTransformation(const Animation* animation, const AnimationComponent* animationComp)
+void TransformComponent::updateAllChildWorldTransformation(const Animation* animation, const AnimationComponent* animationComp, const std::unordered_map<std::string, bool>* necessityMap)
 {
+	// Don't update transformation if all of the following is met:
+	// 1. We have a necessity map included
+	// 2. It does not appear in the necessity map / The node appears in the necessity map but has not been visited before
+	// More details (Bone Section): https://assimp.sourceforge.net/lib_html/data.html
+	if (necessityMap && (!necessityMap->contains(parent->name) || necessityMap->at(parent->name) == false))
+		return;
+
 	updateWorldTransformation(animation, animationComp);
 
-	for (auto child : getParent()->children)
+	for (auto* child : getParent()->children)
 	{
 		TransformComponent* childTransform = child->GetComponent<TransformComponent>();
-		childTransform->updateAllChildWorldTransformation(animation, animationComp);
+		childTransform->updateAllChildWorldTransformation(animation, animationComp, necessityMap);
 	}
 }

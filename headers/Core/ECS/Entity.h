@@ -70,6 +70,19 @@ namespace WillEngine
 			return components[typeid(T)] != nullptr;
 		}
 
+		template<class T> inline bool ChildHasComponent()
+		{
+			Entity* parentEntity = this;
+
+			for (auto& child : children)
+			{
+				if (child->HasComponent<T>())
+					return true;
+			}
+
+			return false;
+		}
+
 		template<class T> inline bool AnyParentHasComponent()
 		{
 			Entity* parentEntity = this;

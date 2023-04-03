@@ -39,14 +39,24 @@ class Skeleton
 public:
 
 	const u32 id;
+	// Order: Entity(By Name)->Bone Info
 	std::unordered_map<std::string, BoneInfo> boneInfos;
 	BoneUniform boneUniform;
+
+	// Order: Entity(By Name)->Update Transform
+	// A map to record whether which entity should recalculate its global world transformation
+	// For more details see (Bones section): https://assimp.sourceforge.net/lib_html/data.html
+	std::unordered_map<std::string, bool> necessityMap;
 
 public:
 
 	// For Vulkan Uniform Buffer
 	VulkanDescriptorSet boneDescriptorSet;
 	VulkanAllocatedMemory boneUniformBuffer;
+
+private:
+
+	static u32 idCounter;
 
 public:
 
@@ -63,7 +73,15 @@ public:
 	bool hasBones() const { return boneInfos.size(); };
 	bool hasBone(std::string name) const { return boneInfos.contains(name); };
 
-private:
+	void generateNecessityMap(Entity* rootEntity);
+	void resetNecessityMap();
+	void addToNecessityMap(Entity* entity);
+	void buildNecessityMap(Entity* entity);
+	const std::unordered_map<std::string, bool>& getNecessityMap() const { return necessityMap; }
 
-	static u32 idCounter;
+private:
+	// This traverse all the way back to the root node
+	void traverseRootNecessityMapUpdate(Entity* entity);
+	// This traverse all child node
+	void traverseChildNecessityMapUpdate(Entity* entity);
 };

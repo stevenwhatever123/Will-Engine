@@ -289,6 +289,7 @@ void SystemManager::loadModel()
 
     if (loadedSkeleton)
     {
+        loadedSkeleton->generateNecessityMap(entities[0]);
         gameState.gameResources.skeletons[loadedSkeleton->id] = loadedSkeleton;
         vulkanWindow->vulkanEngine->skeletonToInitialise.push(loadedSkeleton);
     }
@@ -364,6 +365,38 @@ void SystemManager::processTransformationCalculations()
         Entity* currentEntity = gameState.queryTasks.transformToUpdate.front();
         Entity* rootEntity = currentEntity->getRoot();
 
+        bool hasSkeleton = false;
+        u32 skeletonId = 0;
+        const std::unordered_map<std::string, bool>* necessityMap = nullptr;
+
+        // Check if this entity or its child is associated to any skeleton
+        // NOTE: This is a horrible way of doing it, but it will work for now.
+        for (auto& it : gameState.gameResources.skeletons)
+        {
+            Skeleton* skeleton = it.second;
+
+            skeleton->resetNecessityMap();
+
+            for (auto& jt : gameState.gameResources.entities)
+            {
+                Entity* entity = jt.second;
+
+                // Check if they're from the same root entity
+                if (entity->getRoot() != rootEntity)
+                    continue;
+
+                if (skeleton->hasBone(entity->name))
+                {
+                    hasSkeleton = true;
+                    skeletonId = it.first;
+                    
+                    skeleton->buildNecessityMap(entity);
+                }
+            }
+
+            necessityMap = &skeleton->getNecessityMap();
+        }
+
         // Update Global Transformation
         TransformComponent* transformComponent = currentEntity->GetComponent<TransformComponent>();
         if (rootEntity->HasComponent<AnimationComponent>())
@@ -371,35 +404,19 @@ void SystemManager::processTransformationCalculations()
             AnimationComponent* animationComp = rootEntity->GetComponent<AnimationComponent>();
             Animation* animation = gameState.gameResources.animations[animationComp->getCurrentAnimationId()];
 
-            transformComponent->updateAllChildWorldTransformation(animation, animationComp);
+            transformComponent->updateAllChildWorldTransformation(animation, animationComp, necessityMap);
         }
         else
         {
-            transformComponent->updateAllChildWorldTransformation();
+            transformComponent->updateAllChildWorldTransformation(necessityMap);
         }
 
-        // Update Skeleton Bone Transformation
-        for (auto it = gameState.gameResources.skeletons.begin(); it != gameState.gameResources.skeletons.end(); it++)
+        // Update Skeleton Bone Uniform if it is has a skeleton
+        if (hasSkeleton)
         {
-            u32 skeletonId = it->first;
-            Skeleton* skeleton = it->second;
+            Skeleton* skeleton = gameState.gameResources.skeletons.at(skeletonId);
 
-            // This is a horrible way to match if the current entity (or it's child) has a skeleton or not but it will work for now
-            for (auto jt = gameState.gameResources.entities.begin(); jt != gameState.gameResources.entities.end(); jt++)
-            {
-                u32 entityId = jt->first;
-                Entity* entity = jt->second;
-
-                // Check if they're from the same root entity
-                if (entity->getRoot() != currentEntity->getRoot())
-                    continue;
-
-                if (skeleton->hasBone(entity->name))
-                {
-                    skeleton->updateBoneUniform(rootEntity);
-                    break;
-                }
-            }
+            skeleton->updateBoneUniform(rootEntity);
         }
 
         // Remove the current entity from the queue
