@@ -34,7 +34,8 @@ This project requires `premake5` for setting up visual studio project and its su
 # Project Status
 
 This project is still work in progress in a slow pace. Planning to work on sky light(skybox) and skeletal animation next.
-
+  
+Since I recently got a job, any progress in this project will stop and halt.
 # References
 
 These are some of the articles/paper that I have been referenced throughout the engine's development if you are curious:  
