@@ -164,10 +164,10 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	vkDestroyDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, nullptr);
 
 	// Destroy pipeline and pipeline layout
-	for (auto it = pipelines.begin(); it != pipelines.end(); it++)
+	for (auto pipeline : pipelines)
 	{
-		vkDestroyPipeline(logicalDevice, it->second.pipeline, nullptr);
-		vkDestroyPipelineLayout(logicalDevice, it->second.layout, nullptr);
+		vkDestroyPipeline(logicalDevice, pipeline.pipeline, nullptr);
+		vkDestroyPipelineLayout(logicalDevice, pipeline.layout, nullptr);
 	}
 
 	// Destroy default shader modules
@@ -1151,7 +1151,12 @@ void VulkanEngine::initDepthSkeletalPipeline(VkDevice& logicalDevice)
 	VkDescriptorSetLayout depthLayouts[] = { sceneDescriptorSet.layout, skeletalDescriptorSetLayout };
 	u32 depthSkeletalDescriptorSetLayoutSize = sizeof(depthLayouts) / sizeof(depthLayouts[0]);
 
-	VulkanPipeline& pipeline = pipelines["depthSkeletalPipeline"];
+	u32& idx = pipelineIndexLookup["depthSkeletalPipeline"];
+	idx = pipelines.size();
+
+	pipelines.push_back(VulkanPipeline{});
+
+	VulkanPipeline& pipeline = pipelines[idx];
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout, depthSkeletalDescriptorSetLayoutSize, depthLayouts, 0, nullptr);
 
@@ -1168,7 +1173,12 @@ void VulkanEngine::initSkeletalPipeline(VkDevice& logicalDevice)
 	VkDescriptorSetLayout layouts[] = { sceneDescriptorSet.layout, textureDescriptorSetLayout, skeletalDescriptorSetLayout };
 	u32 descriptorSetLayoutSize = sizeof(layouts) / sizeof(layouts[0]);
 
-	VulkanPipeline& pipeline = pipelines["skeletalPipeline"];
+	u32& idx = pipelineIndexLookup["skeletalPipeline"];
+	idx = pipelines.size();
+
+	pipelines.push_back(VulkanPipeline{});
+
+	VulkanPipeline& pipeline = pipelines[idx];
 
 	// Create deferred pipeline layout with our just created push constant
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout, descriptorSetLayoutSize, layouts, 0, nullptr);
@@ -1195,7 +1205,12 @@ void VulkanEngine::initGeometryPipeline(VkDevice& logicalDevice)
 
 	u32 pushConstantCount = sizeof(pushConstants) / sizeof(pushConstants[0]);
 
-	VulkanPipeline& pipeline = pipelines["geometryPipeline"];
+	u32& idx = pipelineIndexLookup["geometryPipeline"];
+	idx = pipelines.size();
+
+	pipelines.push_back(VulkanPipeline{});
+
+	VulkanPipeline& pipeline = pipelines[idx];
 
 	// Create deferred pipeline layout with our just created push constant
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout,
@@ -1223,7 +1238,12 @@ void VulkanEngine::initDepthPipeline(VkDevice& logicalDevice)
 
 	u32 pushConstantCount = sizeof(pushConstants) / sizeof(pushConstants[0]);
 
-	VulkanPipeline& pipeline = pipelines["depthPipeline"];
+	u32& idx = pipelineIndexLookup["depthPipeline"];
+	idx = pipelines.size();
+
+	pipelines.push_back(VulkanPipeline{});
+
+	VulkanPipeline& pipeline = pipelines[idx];
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout, depthDescriptorSetLayoutSize, depthLayouts, pushConstantCount, pushConstants);
 
@@ -1256,7 +1276,12 @@ void VulkanEngine::initShadowPipeline(VkDevice& logicalDevice)
 
 	WillEngine::VulkanUtil::initShadowShaderModule(logicalDevice, shadowVertShader, shadowGeomShader, shadowFragShader);
 
-	VulkanPipeline& pipeline = pipelines["shadowPipeline"];
+	u32& idx = pipelineIndexLookup["shadowPipeline"];
+	idx = pipelines.size();
+
+	pipelines.push_back(VulkanPipeline{});
+
+	VulkanPipeline& pipeline = pipelines[idx];
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout, layoutSize, layout, pushConstantCount, pushConstant);
 
@@ -1276,7 +1301,12 @@ void VulkanEngine::initShadingPipeline(VkDevice& logicalDevice)
 	VkDescriptorSetLayout layout[] = { lightDescriptorSet.layout, cameraDescriptorSet.layout, attachmentDescriptorSet.layout, shadowMapDescriptorSet.layout };
 	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
 
-	VulkanPipeline& pipeline = pipelines["shadingPipeline"];
+	u32& idx = pipelineIndexLookup["shadingPipeline"];
+	idx = pipelines.size();
+
+	pipelines.push_back(VulkanPipeline{});
+
+	VulkanPipeline& pipeline = pipelines[idx];
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout, layoutSize, layout, 0, nullptr);
 
@@ -1291,7 +1321,12 @@ void VulkanEngine::initFilterBrightPipeline(VkDevice& logicalDevice)
 	VkDescriptorSetLayout layout[] = { gameState->graphicsState.renderedImage.layout, gameState->graphicsState.downSampledImageDescriptorSetOutput[0].layout };
 	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
 
-	VulkanPipeline& pipeline = pipelines["filterBrightPipeline"];
+	u32& idx = pipelineIndexLookup["filterBrightPipeline"];
+	idx = pipelines.size();
+
+	pipelines.push_back(VulkanPipeline{});
+
+	VulkanPipeline& pipeline = pipelines[idx];
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout, layoutSize, layout, 0, nullptr);
 
@@ -1305,7 +1340,12 @@ void VulkanEngine::initDownscalePipeline(VkDevice& logicalDevice)
 	VkDescriptorSetLayout layout[] = { gameState->graphicsState.downSampledImageDescriptorSetInput[0].layout, gameState->graphicsState.downSampledImageDescriptorSetOutput[1].layout };
 	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
 
-	VulkanPipeline& pipeline = pipelines["downscalePipeline"];
+	u32& idx = pipelineIndexLookup["downscalePipeline"];
+	idx = pipelines.size();
+
+	pipelines.push_back(VulkanPipeline{});
+
+	VulkanPipeline& pipeline = pipelines[idx];
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout, layoutSize, layout, 0, nullptr);
 
@@ -1319,7 +1359,12 @@ void VulkanEngine::initUpscalePipeline(VkDevice& logicalDevice)
 	VkDescriptorSetLayout layout[]{ gameState->graphicsState.upSampledImageDescriptorSetInput[0].layout, gameState->graphicsState.upSampledImageDescriptorSetOutput[0].layout };
 	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
 
-	VulkanPipeline& pipeline = pipelines["upscalePipeline"];
+	u32& idx = pipelineIndexLookup["upscalePipeline"];
+	idx = pipelines.size();
+
+	pipelines.push_back(VulkanPipeline{});
+
+	VulkanPipeline& pipeline = pipelines[idx];
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout, layoutSize, layout, 0, nullptr);
 	WillEngine::VulkanUtil::createComputePipeline(logicalDevice, pipeline.pipeline, pipeline.layout, upscaleCompShader);
@@ -1332,7 +1377,12 @@ void VulkanEngine::initBlendColorPipeline(VkDevice& logicalDevice)
 	VkDescriptorSetLayout layout[]{ gameState->graphicsState.renderedImage.layout, gameState->graphicsState.upSampledImageDescriptorSetOutput[0].layout };
 	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
 
-	VulkanPipeline& pipeline = pipelines["blendColorPipeline"];
+	u32& idx = pipelineIndexLookup["blendColorPipeline"];
+	idx = pipelines.size();
+
+	pipelines.push_back(VulkanPipeline{});
+
+	VulkanPipeline& pipeline = pipelines[idx];
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout, layoutSize, layout, 0, nullptr);
 	WillEngine::VulkanUtil::createComputePipeline(logicalDevice, pipeline.pipeline, pipeline.layout, blendColorCompShader);
@@ -1606,6 +1656,10 @@ void VulkanEngine::recordMeshSecondaryCommandBuffer(VkCommandBuffer& commandBuff
 
 		TransformComponent* transformComponent = entity->components[typeid(TransformComponent)]->GetComponent<TransformComponent>();
 
+		u32 geometryPipelineIdx = pipelineIndexLookup["geometryPipeline"];
+
+		VulkanPipeline& geometryPipeline = pipelines[geometryPipelineIdx];
+
 		for (u32 i = 0; i < meshComponent->getNumMesh(); i++)
 		{
 			if (!gameState->graphicsResources.meshes[meshComponent->meshIndicies[i]]->isReadyToDraw())
@@ -1632,7 +1686,6 @@ void VulkanEngine::recordMeshSecondaryCommandBuffer(VkCommandBuffer& commandBuff
 			// Check if the mesh has a material
 			if (gameState->graphicsResources.materials[meshComponent->materialIndicies[i]])
 			{
-				VulkanPipeline& geometryPipeline = pipelines["geometryPipeline"];
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipeline.layout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
 			}
 
@@ -1678,6 +1731,9 @@ void VulkanEngine::recordSkeletalSecondaryCommandBuffer(VkCommandBuffer& command
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 	}
 
+	u32 skeletalPipelineIdx = pipelineIndexLookup["skeletalPipeline"];
+	VulkanPipeline& skeletalPipeline = pipelines[skeletalPipelineIdx];
+
 	// Bind pipeline
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
@@ -1710,7 +1766,6 @@ void VulkanEngine::recordSkeletalSecondaryCommandBuffer(VkCommandBuffer& command
 		Skeleton* skeleton = gameState->gameResources.skeletons[skeletalComp->skeletalId];
 
 		// Bind bone uniform buffer
-		VulkanPipeline& skeletalPipeline = pipelines["skeletalPipeline"];
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skeletalPipeline.layout, 2, 1, &skeleton->boneDescriptorSet.descriptorSet, 0, nullptr);
 
 		for (u32 i = 0; i < meshComponent->getNumMesh(); i++)
@@ -1735,7 +1790,6 @@ void VulkanEngine::recordSkeletalSecondaryCommandBuffer(VkCommandBuffer& command
 			// Check if the mesh has a material
 			if (gameState->graphicsResources.materials[meshComponent->materialIndicies[i]])
 			{
-				VulkanPipeline& skeletalPipeline = pipelines["skeletalPipeline"];
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skeletalPipeline.layout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
 			}
 
@@ -1922,11 +1976,13 @@ void VulkanEngine::recordShadingPass(VkCommandBuffer& commandBuffer)
 
 void VulkanEngine::depthSkeletalPrePasses(VkCommandBuffer& commandBuffer)
 {
+	u32 depthSkeletalPipelineIdx = pipelineIndexLookup["depthSkeletalPipeline"];
+
 	// Bind pipeline
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["depthSkeletalPipeline"].pipeline);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[depthSkeletalPipelineIdx].pipeline);
 
 	// Bind Scene Uniform Buffer
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["depthSkeletalPipeline"].layout, 0, 1, &sceneDescriptorSet.descriptorSet, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[depthSkeletalPipelineIdx].layout, 0, 1, &sceneDescriptorSet.descriptorSet, 0, nullptr);
 
 	//=======================================================
 	for (auto it = gameState->gameResources.skeletons.begin(); it != gameState->gameResources.skeletons.end(); it++)
@@ -1935,7 +1991,7 @@ void VulkanEngine::depthSkeletalPrePasses(VkCommandBuffer& commandBuffer)
 		Skeleton* skeleton = it->second;
 
 		// Bind bone uniform buffer
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["depthSkeletalPipeline"].layout, 1, 1, &skeleton->boneDescriptorSet.descriptorSet, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[depthSkeletalPipelineIdx].layout, 1, 1, &skeleton->boneDescriptorSet.descriptorSet, 0, nullptr);
 
 		for (auto jt = gameState->gameResources.entities.begin(); jt != gameState->gameResources.entities.end(); jt++)
 		{
@@ -2034,11 +2090,15 @@ void VulkanEngine::depthSkeletalPrePasses(VkCommandBuffer& commandBuffer)
 
 void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer)
 {
+	u32 depthPipelineIdx = pipelineIndexLookup["depthPipeline"];
+
+	u32 geometryPipelineIdx = pipelineIndexLookup["geometryPipeline"];
+
 	// Bind pipeline
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["depthPipeline"].pipeline);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[depthPipelineIdx].pipeline);
 
 	// Bind Scene Uniform Buffer
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["depthPipeline"].layout, 0, 1, &sceneDescriptorSet.descriptorSet, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[depthPipelineIdx].layout, 0, 1, &sceneDescriptorSet.descriptorSet, 0, nullptr);
 
 	for (auto it = gameState->gameResources.entities.begin(); it != gameState->gameResources.entities.end(); it++)
 	{
@@ -2082,14 +2142,14 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer)
 			// Check if the mesh has a material
 			if (gameState->graphicsResources.materials[meshComponent->materialIndicies[i]])
 			{
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["geometryPipeline"].layout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[geometryPipelineIdx].layout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
 			}
 
 			// Push constant for model matrix
 			// Copying the reference is faster than copying the actual mat4 value
 			mat4& transformation = transformComponent->getWorldTransformation();
 
-			vkCmdPushConstants(commandBuffer, pipelines["geometryPipeline"].layout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+			vkCmdPushConstants(commandBuffer, pipelines[geometryPipelineIdx].layout, VK_SHADER_STAGE_VERTEX_BIT, 0,
 				sizeof(transformation), &transformation);
 
 			vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
@@ -2099,11 +2159,13 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer)
 
 void VulkanEngine::geometrySkeletalPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent)
 {
+	PipelineId skeletalPipelineIdx = pipelineIndexLookup["skeletalPipeline"];
+
 	// Bind default pipeline
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["skeletalPipeline"].pipeline);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[skeletalPipelineIdx].pipeline);
 
 	// Bind Scene Uniform Buffer
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["skeletalPipeline"].layout, 0, 1, &sceneDescriptorSet.descriptorSet, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[skeletalPipelineIdx].layout, 0, 1, &sceneDescriptorSet.descriptorSet, 0, nullptr);
 
 	//================================
 	for (auto it = gameState->gameResources.skeletons.begin(); it != gameState->gameResources.skeletons.end(); it++)
@@ -2112,7 +2174,7 @@ void VulkanEngine::geometrySkeletalPasses(VkCommandBuffer& commandBuffer, VkExte
 		Skeleton* skeleton = it->second;
 
 		// Bind bone uniform buffer
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["skeletalPipeline"].layout, 2, 1, &skeleton->boneDescriptorSet.descriptorSet, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[skeletalPipelineIdx].layout, 2, 1, &skeleton->boneDescriptorSet.descriptorSet, 0, nullptr);
 
 		for (auto jt = gameState->gameResources.entities.begin(); jt != gameState->gameResources.entities.end(); jt++)
 		{
@@ -2157,7 +2219,7 @@ void VulkanEngine::geometrySkeletalPasses(VkCommandBuffer& commandBuffer, VkExte
 				// Bind Texture
 				// Check if the mesh has a material
 				if (gameState->graphicsResources.materials[meshComponent->materialIndicies[i]])
-					vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["skeletalPipeline"].layout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
+					vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[skeletalPipelineIdx].layout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
 
 				vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 			}
@@ -2225,11 +2287,13 @@ void VulkanEngine::geometrySkeletalPasses(VkCommandBuffer& commandBuffer, VkExte
 
 void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent)
 {
+	u32 geometryPipelineIdx = pipelineIndexLookup["geometryPipeline"];
+
 	// Bind default pipeline
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["geometryPipeline"].pipeline);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[geometryPipelineIdx].pipeline);
 
 	// Bind Scene Uniform Buffer
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["geometryPipeline"].layout, 0, 1, &sceneDescriptorSet.descriptorSet, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[geometryPipelineIdx].layout, 0, 1, &sceneDescriptorSet.descriptorSet, 0, nullptr);
 
 	for(auto it = gameState->gameResources.entities.begin(); it != gameState->gameResources.entities.end(); it++)
 	{
@@ -2272,13 +2336,13 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 			// Bind Texture
 			// Check if the mesh has a material
 			if (gameState->graphicsResources.materials[meshComponent->materialIndicies[i]])
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["geometryPipeline"].layout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[geometryPipelineIdx].layout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
 
 			// Push constant for model matrix
 			// Copying the reference is faster than copying the actual mat4 value
 			mat4& transformation = transformComponent->getWorldTransformation();
 
-			vkCmdPushConstants(commandBuffer, pipelines["geometryPipeline"].layout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+			vkCmdPushConstants(commandBuffer, pipelines[geometryPipelineIdx].layout, VK_SHADER_STAGE_VERTEX_BIT, 0,
 				sizeof(transformation), &transformation);
 
 			vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
@@ -2288,6 +2352,8 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 
 void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 {
+	u32 shadowPipelineIdx = pipelineIndexLookup["shadowPipeline"];
+
 	// Update light matrices buffer
 	vkCmdUpdateBuffer(commandBuffer, lightMatrixUniformBuffer.buffer, 0, sizeof(mat4) * 6, &gameState->graphicsResources.lights[1]->matrices);
 
@@ -2308,13 +2374,13 @@ void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 	vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 	// Bind shadow pipeline
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["shadowPipeline"].pipeline);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[shadowPipelineIdx].pipeline);
 
 	// Bind Light Uniform Buffer
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["shadowPipeline"].layout, 1, 1, &lightDescriptorSet.descriptorSet, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[shadowPipelineIdx].layout, 1, 1, &lightDescriptorSet.descriptorSet, 0, nullptr);
 
 	// Bind light matrices
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["shadowPipeline"].layout, 0, 1, &lightMatrixDescriptorSet.descriptorSet, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[shadowPipelineIdx].layout, 0, 1, &lightMatrixDescriptorSet.descriptorSet, 0, nullptr);
 
 	for(auto it = gameState->gameResources.entities.begin(); it != gameState->gameResources.entities.end(); it++)
 	{
@@ -2354,7 +2420,7 @@ void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 			TransformComponent* transformComponent = entity->GetComponent<TransformComponent>();
 			// Copying the reference is faster than copying the actual mat4 value
 			mat4& transformation = transformComponent->getWorldTransformation();
-			vkCmdPushConstants(commandBuffer, pipelines["geometryPipeline"].layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(transformation), &transformation);
+			vkCmdPushConstants(commandBuffer, pipelines[shadowPipelineIdx].layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(transformation), &transformation);
 
 			vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
 		}
@@ -2383,19 +2449,21 @@ void VulkanEngine::shadingPasses(VkCommandBuffer& commandBuffer, VkRenderPass& r
 	passBeginInfo.clearValueCount = static_cast<u32>(sizeof(clearValue) / sizeof(clearValue[0]));
 	passBeginInfo.pClearValues = clearValue;
 
+	u32 shadingPipelineIdx = pipelineIndexLookup["shadingPipeline"];
+
 	vkCmdBeginRenderPass(commandBuffer, &passBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["shadingPipeline"].pipeline);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[shadingPipelineIdx].pipeline);
 
 	// Bind Light Uniform Buffer
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["shadingPipeline"].layout, 0, 1, &lightDescriptorSet.descriptorSet, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[shadingPipelineIdx].layout, 0, 1, &lightDescriptorSet.descriptorSet, 0, nullptr);
 
 	// Bind Camera Uniform Buffer
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["shadingPipeline"].layout, 1, 1, &cameraDescriptorSet.descriptorSet, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[shadingPipelineIdx].layout, 1, 1, &cameraDescriptorSet.descriptorSet, 0, nullptr);
 
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["shadingPipeline"].layout, 2, 1, &attachmentDescriptorSet.descriptorSet, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[shadingPipelineIdx].layout, 2, 1, &attachmentDescriptorSet.descriptorSet, 0, nullptr);
 
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines["shadingPipeline"].layout, 3, 1, &shadowMapDescriptorSet.descriptorSet, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[shadingPipelineIdx].layout, 3, 1, &shadowMapDescriptorSet.descriptorSet, 0, nullptr);
 
 	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 
@@ -2435,41 +2503,45 @@ void VulkanEngine::recordDownscaleComputeCommands(VkCommandBuffer& commandBuffer
 	commandBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	commandBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
+	u32 filterBrightPipelineIdx = pipelineIndexLookup["filterBrightPipeline"];
+	u32 downscalePipelineIdx = pipelineIndexLookup["downscalePipeline"];
+
+
 	if (vkBeginCommandBuffer(commandBuffer, &commandBeginInfo) != VK_SUCCESS)
 		throw std::runtime_error("Failed to begin command buffer");
 
 	// Bind Pipeline for filtering bright color
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines["filterBrightPipeline"].pipeline);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines[filterBrightPipelineIdx].pipeline);
 
 	// Bind Descriptor sets
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines["filterBrightPipeline"].layout, 0, 1, &gameState->graphicsState.renderedImage.descriptorSet, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines[filterBrightPipelineIdx].layout, 0, 1, &gameState->graphicsState.renderedImage.descriptorSet, 0, nullptr);
 
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines["filterBrightPipeline"].layout, 1, 1,
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines[filterBrightPipelineIdx].layout, 1, 1,
 		&gameState->graphicsState.downSampledImageDescriptorSetOutput[0].descriptorSet, 0, nullptr);
 
 	// Dispatch compute job.
 	vkCmdDispatch(commandBuffer, sceneExtent.width / 16, sceneExtent.height / 16, 1);
 
 	// Bind Pipeline for downscaling
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines["downscalePipeline"].pipeline);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines[downscalePipelineIdx].pipeline);
 
 	// Downscaling from mip 0 to mip 5
 	for (u32 i = 1; i < gameState->graphicsState.downSampledImageDescriptorSetOutput.size(); i++)
 	{
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines["downscalePipeline"].layout, 0, 1,
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines[downscalePipelineIdx].layout, 0, 1,
 			&gameState->graphicsState.downSampledImageDescriptorSetInput[i-1].descriptorSet, 0, nullptr);
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines["downscalePipeline"].layout, 1, 1,
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines[downscalePipelineIdx].layout, 1, 1,
 			&gameState->graphicsState.downSampledImageDescriptorSetOutput[i].descriptorSet, 0, nullptr);
 
 		vkCmdDispatch(commandBuffer, sceneExtent.width / 16, sceneExtent.height / 16, 1);
 	}
 
 	// We downscale the last image to the last mip level of upSampled instead of downSampled
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines["downscalePipeline"].layout, 0, 1,
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines[downscalePipelineIdx].layout, 0, 1,
 		&gameState->graphicsState.downSampledImageDescriptorSetInput[gameState->graphicsState.downSampledImageDescriptorSetOutput.size() - 1].descriptorSet, 0, nullptr);
 
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines["downscalePipeline"].layout, 1, 1,
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines[downscalePipelineIdx].layout, 1, 1,
 		&gameState->graphicsState.upSampledImageDescriptorSetOutput[gameState->graphicsState.upSampledImageDescriptorSetOutput.size() - 1].descriptorSet, 0, nullptr);
 
 	vkCmdDispatch(commandBuffer, sceneExtent.width / 16, sceneExtent.height / 16, 1);
@@ -2479,6 +2551,8 @@ void VulkanEngine::recordDownscaleComputeCommands(VkCommandBuffer& commandBuffer
 
 void VulkanEngine::recordUpscaleComputeCommands(VkCommandBuffer& commandBuffer)
 {
+	u32 upscalePipelineIdx = pipelineIndexLookup["upscalePipeline"];
+
 	// Begin command buffer
 	VkCommandBufferBeginInfo commandBeginInfo{};
 	commandBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -2488,17 +2562,17 @@ void VulkanEngine::recordUpscaleComputeCommands(VkCommandBuffer& commandBuffer)
 		throw std::runtime_error("Failed to begin command buffer");
 
 	// Upscaling the image
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines["upscalePipeline"].pipeline);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines[upscalePipelineIdx].pipeline);
 
 	// Upscaling from mip 6 to mip 0
 	for (u32 i = gameState->graphicsState.upSampledImageDescriptorSetInput.size() - 1; i > 0; i--)
 	{
 		// Result Image
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines["upscalePipeline"].layout, 0, 1,
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines[upscalePipelineIdx].layout, 0, 1,
 			&gameState->graphicsState.upSampledImageDescriptorSetInput[i-1].descriptorSet, 0, nullptr);
 
 		// Input Image
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines["upscalePipeline"].layout, 1, 1,
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines[upscalePipelineIdx].layout, 1, 1,
 			&gameState->graphicsState.upSampledImageDescriptorSetOutput[i].descriptorSet, 0, nullptr);
 
 		vkCmdDispatch(commandBuffer, sceneExtent.width / 16, sceneExtent.height / 16, 1);
@@ -2509,6 +2583,8 @@ void VulkanEngine::recordUpscaleComputeCommands(VkCommandBuffer& commandBuffer)
 
 void VulkanEngine::recordBlendColorComputeCommands(VkCommandBuffer& commandBuffer)
 {
+	u32 blendColorPipelineIdx = pipelineIndexLookup["blendColorPipeline"];
+
 	// Begin command buffer
 	VkCommandBufferBeginInfo commandBeginInfo{};
 	commandBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -2517,12 +2593,12 @@ void VulkanEngine::recordBlendColorComputeCommands(VkCommandBuffer& commandBuffe
 	if (vkBeginCommandBuffer(commandBuffer, &commandBeginInfo) != VK_SUCCESS)
 		throw std::runtime_error("Failed to begin command buffer");
 
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines["blendColorPipeline"].pipeline);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines[blendColorPipelineIdx].pipeline);
 
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines["blendColorPipeline"].layout, 0, 1,
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines[blendColorPipelineIdx].layout, 0, 1,
 		&gameState->graphicsState.renderedImage.descriptorSet, 0, nullptr);
 
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines["blendColorPipeline"].layout, 1, 1,
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelines[blendColorPipelineIdx].layout, 1, 1,
 		&gameState->graphicsState.upSampledImageDescriptorSetOutput[0].descriptorSet, 0, nullptr);
 
 	vkCmdDispatch(commandBuffer, sceneExtent.width / 16, sceneExtent.height / 16, 1);

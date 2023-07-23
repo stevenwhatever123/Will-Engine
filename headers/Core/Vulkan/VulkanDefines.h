@@ -1,5 +1,7 @@
 #pragma once
 
+typedef u32 PipelineId;
+
 struct VulkanAllocatedMemory
 {
 	VkBuffer buffer;
