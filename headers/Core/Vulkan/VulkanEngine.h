@@ -147,32 +147,7 @@ public:
 	VkDescriptorPool descriptorPool;
 
 	// Pipeline and pipeline layout (Blinn Phong Shader)
-	// Pipeline for Skeletal
-	VkPipelineLayout skeletalPipelineLayout;
-	VkPipeline skeletalPipeline;
-	// Pipeline for Geometry
-	VkPipelineLayout geometryPipelineLayout;
-	VkPipeline geometryPipeline;
-	// Pipeline for Shading
-	VkPipelineLayout shadingPipelineLayout;
-	VkPipeline shadingPipeline;
-	// Pipeline for shadow
-	VkPipelineLayout shadowPipelineLayout;
-	VkPipeline shadowPipeline;
-	// Pipeline for depth pre pass
-	VkPipelineLayout depthPipelineLayout;
-	VkPipeline depthPipeline;
-	VkPipelineLayout depthSkeletalPipelineLayout;
-	VkPipeline depthSkeletalPipeline;
-	// Pipeline for bloom post-processing
-	VkPipelineLayout filterBrightPipelineLayout;
-	VkPipeline filterBrightPipeline;
-	VkPipelineLayout downscalePipelineLayout;
-	VkPipeline downscalePipeline;
-	VkPipelineLayout upscalePipelineLayout;
-	VkPipeline upscalePipeline;
-	VkPipelineLayout blendColorPipelineLayout;
-	VkPipeline blendColorPipeline;
+	std::unordered_map<String, VulkanPipeline> pipelines;
 
 	// Bone Descriptor sets
 	VkDescriptorSetLayout depthSkeletalDescriptorSetLayout;

@@ -19,6 +19,12 @@ struct VulkanDescriptorSet
 	VkDescriptorSetLayout layout;
 };
 
+struct VulkanPipeline
+{
+	VkPipeline pipeline;
+	VkPipelineLayout layout;
+};
+
 class VulkanFramebufferAttachment
 {
 public:
