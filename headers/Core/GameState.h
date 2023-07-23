@@ -11,8 +11,7 @@
 #include "Core/ECS/Entity.h"
 #include "Core/ECS/TransformComponent.h"
 
-#include "Core/Vulkan/VulkanDescriptorSet.h"
-#include "Core/Vulkan/VulkanFramebuffer.h"
+#include "Core/Vulkan/VulkanDefines.h"
 
 using namespace WillEngine;
 

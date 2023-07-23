@@ -5,7 +5,7 @@
 
 #include "Core/GameState.h"
 
-#include "Core/Vulkan/VulkanFramebuffer.h"
+#include "Core/Vulkan/VulkanDefines.h"
 
 // Panels
 #include "Core/EngineGui/ScenePanel.h"

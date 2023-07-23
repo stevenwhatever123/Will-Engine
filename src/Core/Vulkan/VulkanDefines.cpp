@@ -1,7 +1,8 @@
 #include "pch.h"
-#include "Core/Vulkan/VulkanFramebuffer.h"
+#include "Core/Vulkan/VulkanDefines.h"
 
-VulkanFramebufferAttachment::VulkanFramebufferAttachment():
+// VulkanFramebufferAttachment
+VulkanFramebufferAttachment::VulkanFramebufferAttachment() :
 	vulkanImage({ VK_NULL_HANDLE, VK_NULL_HANDLE }),
 	imageView(VK_NULL_HANDLE),
 	imguiTextureDescriptorSet(VK_NULL_HANDLE)
@@ -14,7 +15,8 @@ VulkanFramebufferAttachment::~VulkanFramebufferAttachment()
 
 }
 
-VulkanFramebuffer::VulkanFramebuffer():
+// VulkanFramebuffer
+VulkanFramebuffer::VulkanFramebuffer() :
 	framebuffer(VK_NULL_HANDLE)
 {
 

@@ -9,8 +9,7 @@
 #include "Core/Camera.h"
 #include "Core/UniformClass.h"
 
-#include "Core/Vulkan/VulkanFramebuffer.h"
-#include "Core/Vulkan/VulkanDescriptorSet.h"
+#include "Core/Vulkan/VulkanDefines.h"
 #include "Core/Vulkan/VulkanGui.h"
 
 #include "Core/ECS/TransformComponent.h"

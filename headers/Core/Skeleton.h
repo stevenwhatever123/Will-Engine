@@ -3,8 +3,7 @@
 
 #include "Core/Animation.h"
 
-#include "Core/Vulkan/VulkanDescriptorSet.h"
-#include "Core/Vulkan/VulkanAllocatedObject.h"
+#include "Core/Vulkan/VulkanDefines.h"
 
 #include "Core/ECS/Entity.h"
 

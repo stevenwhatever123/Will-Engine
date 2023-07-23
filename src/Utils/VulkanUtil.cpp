@@ -874,12 +874,8 @@ void WillEngine::VulkanUtil::createPipelineLayout(VkDevice& logicalDevice, VkPip
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = size;
     pipelineLayoutInfo.pSetLayouts = descriptorSetLayout;
-
-    if (pushConstantCount)
-    {
-        pipelineLayoutInfo.pPushConstantRanges = pushConstant;
-        pipelineLayoutInfo.pushConstantRangeCount = pushConstantCount;
-    }
+    pipelineLayoutInfo.pPushConstantRanges = pushConstant;
+    pipelineLayoutInfo.pushConstantRangeCount = pushConstantCount;
     
     if (vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
         throw std::runtime_error("Failed to create pipeline layout");

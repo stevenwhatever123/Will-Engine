@@ -1,5 +1,22 @@
 #pragma once
-#include "Core/Vulkan/VulkanAllocatedObject.h"
+struct VulkanAllocatedMemory
+{
+	VkBuffer buffer;
+	VmaAllocation allocation;
+};
+
+struct VulkanAllocatedImage
+{
+	VkImage image;
+	VkImageView imageView;
+	VmaAllocation allocation;
+};
+
+struct VulkanDescriptorSet
+{
+	VkDescriptorSet descriptorSet;
+	VkDescriptorSetLayout layout;
+};
 
 class VulkanFramebufferAttachment
 {

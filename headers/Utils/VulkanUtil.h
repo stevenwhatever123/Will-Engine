@@ -1,6 +1,5 @@
 #pragma once
-#include "Core/Vulkan/VulkanAllocatedObject.h"
-#include "Core/Vulkan/VulkanFramebuffer.h"
+#include "Core/Vulkan/VulkanDefines.h"
 
 #include "Core/Material.h"
 
