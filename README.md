@@ -21,15 +21,16 @@ Start by cloning the repository with `git clone --recursive https://github.com/s
 
 <ins>2.Setting up the project</ins>
 
-This project requires `premake5` for setting up visual studio project and its submodules. If you do not have premake5 installed you could download here: `https://premake.github.io/`.
+This project requires `premake5` for setting up visual studio project and its submodules. If you do not have premake5 installed you could download here: `https://premake.github.io/`.  
 
-`glslc` is also required as all shaders code included is compiled targed to my current working machine. You can download it from `https://github.com/google/shaderc` or from the `Vulkan SDK`
+`cmake` is also required as some submodules' solution are generated using cmake.
+  
+`glslc` is also required to compile shaders. This project assumes you have `Vulkan SDK` installed in the default directory.
 
 1. Run `git submodule update --init --recursive` to download and update all submodules required.
-2. Modify the `imconfig.h` file in `libs/imgui` by adding the line `#define VK_NO_PROTOTYPES` in the end of the file.
-3. Compile all shader code in `/shaders` folder using the command `glslc.exe [file_name].vert -o [file_name].vert.spv`
-4. All file directory is currently hard-coded in the source file, changes on the file path have to be made.
-5. Run premake5 with the command `./premake5.exe vs2022` to generate a Visual Studio solution and you should be good to go.
+2. Modify the `imconfig.h` file in `libs/imgui` by adding the line `#define VK_NO_PROTOTYPES` at the end of the file.
+3. Compile all shaders in `/shaders` folder using `compileShaders.bat`. You need to first modify `vulkan_version.txt` and state which vulkan version that is in your machine, e.g. '1.3.250.1'
+4. Run premake5 with the command `./premake5.exe vs2022` to generate a Visual Studio solution and you should be good to go.
 
 # Project Status
 
