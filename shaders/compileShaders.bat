@@ -17,4 +17,6 @@ for /r %%f in (.\*.vert, .\*.frag, .\*.geom, .\*.comp) do (
     C:/VulkanSDK/!VULKAN_VERSION!/Bin/glslc.exe !FILE_NAME! -o !TARGET_FILE_NAME!
 )
 
+echo Complete
+
 pause

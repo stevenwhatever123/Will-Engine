@@ -1,5 +1,4 @@
 #pragma once
-#include <queue>
 
 #include "Core/Mesh.h"
 #include "Core/Material.h"

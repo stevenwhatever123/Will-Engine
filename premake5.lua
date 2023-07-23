@@ -25,7 +25,6 @@ include "premake/premake_glad.lua"
 
 include "premake/premake_volk.lua"
 include "premake/premake_vma.lua"
-include "premake/premake_glslang.lua"
 
 include "premake/premake_imgui.lua"
 
@@ -55,7 +54,6 @@ project "WillEngine"
 		"libs/volk/",
 		"libs/vulkan/include/",
 		"libs/vma/include/",
-		"libs/glslang/"
 	}
 
 	dependson
@@ -68,7 +66,6 @@ project "WillEngine"
 		"volk",
 		"vulkan",
 		"vma",
-		"glslang",
 	}
 
 	links
@@ -83,7 +80,6 @@ project "WillEngine"
 		"volk",
 		"vulkan",
 		"vma",
-		"glslang",
 	}
 
 	vpaths

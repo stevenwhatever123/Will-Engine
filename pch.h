@@ -16,6 +16,7 @@
 #include <cstring>
 #include <set>
 #include <queue>
+#include <array>
 
 // Windows
 #include <Windows.h>
@@ -28,9 +29,6 @@
 
 // Vma
 #include <vk_mem_alloc.h>
-
-// Glslang
-#include <SPIRV/GlslangToSpv.h>
 
 // Glad
 #include <glad/glad.h>
