@@ -55,6 +55,13 @@ struct VulkanShaderModule
 	std::unordered_map<VulkanShaderType, VkShaderModule> shaders;
 };
 
+enum class VulkanSamplerType : u8
+{
+	Default,
+	Attachment,
+	Shadow
+};
+
 class VulkanFramebufferAttachment
 {
 public:

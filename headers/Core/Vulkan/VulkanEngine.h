@@ -94,8 +94,7 @@ public:
 	VulkanFramebuffer offscreenFramebuffer;
 
 	// Sampler to sample framebuffer's color attachment
-	VkSampler attachmentSampler;
-	VkSampler defaultSampler;
+	std::unordered_map<VulkanSamplerType, VkSampler> samplers;
 
 	// Command pool and buffer
 	// The first command pools are used for allocation/initialisation, the rests is used for recording command buffers for rendering commands
@@ -183,7 +182,6 @@ public:
 
 	// ======================================
 	VulkanAllocatedImage shadowCubeMap;
-	VkSampler shadowSampler;
 
 	VulkanDescriptorSet lightMatrixDescriptorSet;
 	VulkanAllocatedMemory lightMatrixUniformBuffer;

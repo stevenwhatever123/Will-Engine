@@ -15,7 +15,7 @@ VulkanEngine::VulkanEngine(u32 numThreads) :
 	depthImage({ VK_NULL_HANDLE, VK_NULL_HANDLE }),
 	framebuffers(),
 	offscreenFramebuffer(),
-	attachmentSampler(VK_NULL_HANDLE),
+	samplers(),
 	commandPools(),
 	geometryBuffers(),
 	imageAvailable(VK_NULL_HANDLE),
@@ -59,6 +59,8 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	createFence(logicalDevice, fences, VK_FENCE_CREATE_SIGNALED_BIT);
 	createDescriptionPool(logicalDevice);
 
+	VkSampler& defaultSampler = samplers[VulkanSamplerType::Default];
+	VkSampler& attachmentSampler = samplers[VulkanSamplerType::Attachment];
 	WillEngine::VulkanUtil::createDefaultSampler(logicalDevice, defaultSampler);
 	WillEngine::VulkanUtil::createAttachmentSampler(logicalDevice, attachmentSampler);
 
@@ -1010,12 +1012,16 @@ void VulkanEngine::initShadowMapDescriptors(VkDevice& logicalDevice, VkDescripto
 
 	std::vector<VkImageView> imageViews = { shadowCubeMap.imageView };
 
+	VkSampler& shadowSampler = samplers[VulkanSamplerType::Shadow];
+
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, shadowMapDescriptorSet.descriptorSet, &shadowSampler, imageViews.data(),
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, imageViews.size());
 }
 
 void VulkanEngine::initAttachmentDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool)
 {
+	VkSampler& attachmentSampler = samplers[VulkanSamplerType::Attachment];
+
 	// Descriptor sets for ImGui UI
 	{
 		offscreenFramebuffer.GBuffer0.imguiTextureDescriptorSet = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, offscreenFramebuffer.GBuffer0.imageView,
@@ -1043,6 +1049,7 @@ void VulkanEngine::initAttachmentDescriptors(VkDevice& logicalDevice, VkDescript
 void VulkanEngine::initRenderedDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool)
 {
 	// Descriptor sets for ImGui
+	VkSampler& attachmentSampler = samplers[VulkanSamplerType::Attachment];
 	gameState->graphicsState.renderedImage_ImGui = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(attachmentSampler, shadingImage.imageView, VK_IMAGE_LAYOUT_GENERAL);
 
 	WillEngine::VulkanUtil::createDescriptorSetLayout(logicalDevice, gameState->graphicsState.renderedImage.layout, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
@@ -1052,6 +1059,7 @@ void VulkanEngine::initRenderedDescriptors(VkDevice& logicalDevice, VkDescriptor
 
 	std::vector<VkImageView> imageViews = { shadingImage.imageView };
 
+	VkSampler& defaultSampler = samplers[VulkanSamplerType::Default];
 	WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, gameState->graphicsState.renderedImage.descriptorSet, &defaultSampler, imageViews.data(),
 		VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 0, 1);
 }
@@ -1075,6 +1083,8 @@ void VulkanEngine::initComputedImageDescriptors(VkDevice& logicalDevice, VkDescr
 
 		std::vector<VkImageView> imageViews = { downSampleImages[i].imageView };
 
+		VkSampler& defaultSampler = samplers[VulkanSamplerType::Default];
+
 		WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, downSampledImageDescriptorSetOutput[i].descriptorSet, &defaultSampler, imageViews.data(), VK_IMAGE_LAYOUT_GENERAL,
 			VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, 1);
 
@@ -1088,6 +1098,8 @@ void VulkanEngine::initComputedImageDescriptors(VkDevice& logicalDevice, VkDescr
 		WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, downSampledImageDescriptorSetInput[i].layout, downSampledImageDescriptorSetInput[i].descriptorSet);
 
 		std::vector<VkImageView> imageViews = { downSampleImages[i].imageView };
+
+		VkSampler& defaultSampler = samplers[VulkanSamplerType::Default];
 
 		WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, downSampledImageDescriptorSetInput[i].descriptorSet, &defaultSampler, imageViews.data(), VK_IMAGE_LAYOUT_GENERAL,
 			VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 0, 1);
@@ -1103,6 +1115,8 @@ void VulkanEngine::initComputedImageDescriptors(VkDevice& logicalDevice, VkDescr
 	
 		std::vector<VkImageView> imageViews = { upSampleImages[i].imageView };
 
+		VkSampler& defaultSampler = samplers[VulkanSamplerType::Default];
+
 		WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, upSampledImageDescriptorSetOutput[i].descriptorSet, &defaultSampler, imageViews.data(), VK_IMAGE_LAYOUT_GENERAL,
 			VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, 1);
 
@@ -1116,6 +1130,8 @@ void VulkanEngine::initComputedImageDescriptors(VkDevice& logicalDevice, VkDescr
 		WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, upSampledImageDescriptorSetInput[i].layout, upSampledImageDescriptorSetInput[i].descriptorSet);
 
 		std::vector<VkImageView> imageViews = { upSampleImages[i].imageView };
+
+		VkSampler& defaultSampler = samplers[VulkanSamplerType::Default];
 
 		WillEngine::VulkanUtil::writeDescriptorSetImage(logicalDevice, upSampledImageDescriptorSetInput[i].descriptorSet, &defaultSampler, imageViews.data(), VK_IMAGE_LAYOUT_GENERAL,
 			VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 0, 1);
@@ -1280,6 +1296,7 @@ void VulkanEngine::initShadowPipeline(VkDevice& logicalDevice)
 
 	WillEngine::VulkanUtil::createDepthImageView(logicalDevice, shadowCubeMap.image, shadowCubeMap.imageView, 6, shadowDepthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 
+	VkSampler& shadowSampler = samplers[VulkanSamplerType::Shadow];
 	WillEngine::VulkanUtil::createDepthSampler(logicalDevice, shadowSampler);
 
 	// Shadow Framebuffer
