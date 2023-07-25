@@ -33,10 +33,7 @@ VulkanEngine::VulkanEngine(u32 numThreads) :
 	textureDescriptorSetLayout(VK_NULL_HANDLE),
 	attachmentDescriptorSet({ VK_NULL_HANDLE, VK_NULL_HANDLE }),
 	shadowMapDescriptorSet({ VK_NULL_HANDLE, VK_NULL_HANDLE }),
-	geometryVertShader(VK_NULL_HANDLE),
-	geometryFragShader(VK_NULL_HANDLE),
-	shadingVertShader(VK_NULL_HANDLE),
-	shadingFragShader(VK_NULL_HANDLE),
+	pipelineShaders(),
 	vulkanGui(nullptr),
 	sceneMatrix()
 {
@@ -164,15 +161,21 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	vkDestroyDescriptorSetLayout(logicalDevice, textureDescriptorSetLayout, nullptr);
 
 	// Destroy pipeline and pipeline layout
-	for (auto pipeline : pipelines)
+	for (auto& pipeline : pipelines)
 	{
 		vkDestroyPipeline(logicalDevice, pipeline.pipeline, nullptr);
 		vkDestroyPipelineLayout(logicalDevice, pipeline.layout, nullptr);
 	}
 
-	// Destroy default shader modules
-	vkDestroyShaderModule(logicalDevice, geometryVertShader, nullptr);
-	vkDestroyShaderModule(logicalDevice, geometryFragShader, nullptr);
+	// Destroy shader modules
+	for (auto it : pipelineShaders)
+	{
+		VulkanShaderModule& shaderModule = it.second;
+		for (auto shader : shaderModule.shaders)
+		{
+			vkDestroyShaderModule(logicalDevice, shader.second, nullptr);
+		}
+	}
 
 	// Destroy all data from a material
 	for (auto it = gameState->graphicsResources.materials.begin(); it != gameState->graphicsResources.materials.end(); it++)
@@ -1146,7 +1149,12 @@ void VulkanEngine::freeComputedImageDescriptors(VkDevice& logicalDevice, VkDescr
 
 void VulkanEngine::initDepthSkeletalPipeline(VkDevice& logicalDevice)
 {
-	WillEngine::VulkanUtil::initDepthSkeletonShaderModule(logicalDevice, depthSkeletalVertShader, depthSkeletalFragShader);
+	// Set up shader modules
+	VulkanShaderModule& shaderModule = pipelineShaders[VulkanPipelineType::DepthSkeletal];
+	VkShaderModule& vertShader = shaderModule.shaders[VulkanShaderType::Vert];
+	VkShaderModule& fragShader = shaderModule.shaders[VulkanShaderType::Frag];
+
+	WillEngine::VulkanUtil::initDepthSkeletonShaderModule(logicalDevice, vertShader, fragShader);
 
 	VkDescriptorSetLayout depthLayouts[] = { sceneDescriptorSet.layout, skeletalDescriptorSetLayout };
 	u32 depthSkeletalDescriptorSetLayoutSize = sizeof(depthLayouts) / sizeof(depthLayouts[0]);
@@ -1160,14 +1168,18 @@ void VulkanEngine::initDepthSkeletalPipeline(VkDevice& logicalDevice)
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout, depthSkeletalDescriptorSetLayoutSize, depthLayouts, 0, nullptr);
 
-	WillEngine::VulkanUtil::createDepthSkeletalPipeline(logicalDevice, pipeline.pipeline, pipeline.layout, depthRenderPass, depthSkeletalVertShader,
-		depthSkeletalFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, sceneExtent);
+	WillEngine::VulkanUtil::createDepthSkeletalPipeline(logicalDevice, pipeline.pipeline, pipeline.layout, depthRenderPass, vertShader,
+		fragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, sceneExtent);
 }
 
 void VulkanEngine::initSkeletalPipeline(VkDevice& logicalDevice)
 {
 	// Set up shader modules
-	WillEngine::VulkanUtil::initSkeletalShaderModule(logicalDevice, skeletalVertShader, skeletalFragShader);
+	VulkanShaderModule& shaderModule = pipelineShaders[VulkanPipelineType::Skeletal];
+	VkShaderModule& vertShader = shaderModule.shaders[VulkanShaderType::Vert];
+	VkShaderModule& fragShader = shaderModule.shaders[VulkanShaderType::Frag];
+
+	WillEngine::VulkanUtil::initSkeletalShaderModule(logicalDevice, vertShader, fragShader);
 	
 	// Create pipeline and pipeline layout
 	VkDescriptorSetLayout layouts[] = { sceneDescriptorSet.layout, textureDescriptorSetLayout, skeletalDescriptorSetLayout };
@@ -1185,13 +1197,17 @@ void VulkanEngine::initSkeletalPipeline(VkDevice& logicalDevice)
 
 	// Create deferred pipeline
 	WillEngine::VulkanUtil::createSkeletalPipeline(logicalDevice, pipeline.pipeline, pipeline.layout,
-		geometryRenderPass, skeletalVertShader, skeletalFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, sceneExtent);
+		geometryRenderPass, vertShader, fragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, sceneExtent);
 }
 
 void VulkanEngine::initGeometryPipeline(VkDevice& logicalDevice)
 {
 	// Set up shader modules
-	WillEngine::VulkanUtil::initGeometryShaderModule(logicalDevice, geometryVertShader, geometryFragShader);
+	VulkanShaderModule& shaderModule = pipelineShaders[VulkanPipelineType::Geometry];
+	VkShaderModule& vertShader = shaderModule.shaders[VulkanShaderType::Vert];
+	VkShaderModule& fragShader = shaderModule.shaders[VulkanShaderType::Frag];
+
+	WillEngine::VulkanUtil::initGeometryShaderModule(logicalDevice, vertShader, fragShader);
 
 	// Create pipeline and pipeline layout
 	VkDescriptorSetLayout layouts[] = { sceneDescriptorSet.layout, textureDescriptorSetLayout };
@@ -1218,17 +1234,21 @@ void VulkanEngine::initGeometryPipeline(VkDevice& logicalDevice)
 
 	// Create deferred pipeline
 	WillEngine::VulkanUtil::createGeometryPipeline(logicalDevice, pipeline.pipeline, pipeline.layout,
-		geometryRenderPass, geometryVertShader, geometryFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, sceneExtent);
+		geometryRenderPass, vertShader, fragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, sceneExtent);
 }
 
 void VulkanEngine::initDepthPipeline(VkDevice& logicalDevice)
 {
 	createDepthFramebuffer(logicalDevice, depthFramebuffer, depthRenderPass, sceneExtent);
 
+	VulkanShaderModule& shaderModule = pipelineShaders[VulkanPipelineType::Depth];
+	VkShaderModule& vertShader = shaderModule.shaders[VulkanShaderType::Vert];
+	VkShaderModule& fragShader = shaderModule.shaders[VulkanShaderType::Frag];
+
 	VkDescriptorSetLayout depthLayouts[] = { sceneDescriptorSet.layout };
 	u32 depthDescriptorSetLayoutSize = sizeof(depthLayouts) / sizeof(depthLayouts[0]);
 
-	WillEngine::VulkanUtil::initDepthShaderModule(logicalDevice, depthVertShader, depthFragShader);
+	WillEngine::VulkanUtil::initDepthShaderModule(logicalDevice, vertShader, fragShader);
 
 	VkPushConstantRange pushConstants[1];
 	// Push constant object for model matrix to be used in vertex shader
@@ -1247,7 +1267,7 @@ void VulkanEngine::initDepthPipeline(VkDevice& logicalDevice)
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout, depthDescriptorSetLayoutSize, depthLayouts, pushConstantCount, pushConstants);
 
-	WillEngine::VulkanUtil::createDepthPipeline(logicalDevice, pipeline.pipeline , pipeline.layout, depthRenderPass, depthVertShader, depthFragShader,
+	WillEngine::VulkanUtil::createDepthPipeline(logicalDevice, pipeline.pipeline , pipeline.layout, depthRenderPass, vertShader, fragShader,
 		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, sceneExtent);
 }
 
@@ -1274,7 +1294,12 @@ void VulkanEngine::initShadowPipeline(VkDevice& logicalDevice)
 	pushConstant[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 	u32 pushConstantCount = sizeof(pushConstant) / sizeof(pushConstant[0]);
 
-	WillEngine::VulkanUtil::initShadowShaderModule(logicalDevice, shadowVertShader, shadowGeomShader, shadowFragShader);
+	VulkanShaderModule& shaderModule = pipelineShaders[VulkanPipelineType::Shadow];
+	VkShaderModule& vertShader = shaderModule.shaders[VulkanShaderType::Vert];
+	VkShaderModule& geomShader = shaderModule.shaders[VulkanShaderType::Geom];
+	VkShaderModule& fragShader = shaderModule.shaders[VulkanShaderType::Frag];
+
+	WillEngine::VulkanUtil::initShadowShaderModule(logicalDevice, vertShader, geomShader, fragShader);
 
 	u32& idx = pipelineIndexLookup[VulkanPipelineType::Shadow];
 	idx = pipelines.size();
@@ -1285,8 +1310,8 @@ void VulkanEngine::initShadowPipeline(VkDevice& logicalDevice)
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout, layoutSize, layout, pushConstantCount, pushConstant);
 
-	WillEngine::VulkanUtil::createShadowPipeline(logicalDevice, pipeline.pipeline, pipeline.layout, shadowRenderPass, shadowVertShader, shadowGeomShader,
-		shadowFragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 1024, 1024);
+	WillEngine::VulkanUtil::createShadowPipeline(logicalDevice, pipeline.pipeline, pipeline.layout, shadowRenderPass, vertShader, geomShader,
+		fragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 1024, 1024);
 }
 
 void VulkanEngine::initShadingPipeline(VkDevice& logicalDevice)
@@ -1296,7 +1321,11 @@ void VulkanEngine::initShadingPipeline(VkDevice& logicalDevice)
 
 	initShadowMapDescriptors(logicalDevice, descriptorPool);
 
-	WillEngine::VulkanUtil::initShadingShaderModule(logicalDevice, shadingVertShader, shadingFragShader);
+	VulkanShaderModule& shaderModule = pipelineShaders[VulkanPipelineType::Shading];
+	VkShaderModule& vertShader = shaderModule.shaders[VulkanShaderType::Vert];
+	VkShaderModule& fragShader = shaderModule.shaders[VulkanShaderType::Frag];
+
+	WillEngine::VulkanUtil::initShadingShaderModule(logicalDevice, vertShader, fragShader);
 
 	VkDescriptorSetLayout layout[] = { lightDescriptorSet.layout, cameraDescriptorSet.layout, attachmentDescriptorSet.layout, shadowMapDescriptorSet.layout };
 	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
@@ -1310,13 +1339,16 @@ void VulkanEngine::initShadingPipeline(VkDevice& logicalDevice)
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout, layoutSize, layout, 0, nullptr);
 
-	WillEngine::VulkanUtil::createShadingPipeline(logicalDevice, pipeline.pipeline, pipeline.layout, shadingRenderPass, shadingVertShader, shadingFragShader,
+	WillEngine::VulkanUtil::createShadingPipeline(logicalDevice, pipeline.pipeline, pipeline.layout, shadingRenderPass, vertShader, fragShader,
 		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, sceneExtent);
 }
 
 void VulkanEngine::initFilterBrightPipeline(VkDevice& logicalDevice)
 {
-	WillEngine::VulkanUtil::initFilterBrightShaderModule(logicalDevice, filterBrightCompShader);
+	VulkanShaderModule& shaderModule = pipelineShaders[VulkanPipelineType::FilterBright];
+	VkShaderModule& compShader = shaderModule.shaders[VulkanShaderType::Comp];
+
+	WillEngine::VulkanUtil::initFilterBrightShaderModule(logicalDevice, compShader);
 	
 	VkDescriptorSetLayout layout[] = { gameState->graphicsState.renderedImage.layout, gameState->graphicsState.downSampledImageDescriptorSetOutput[0].layout };
 	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
@@ -1330,12 +1362,15 @@ void VulkanEngine::initFilterBrightPipeline(VkDevice& logicalDevice)
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout, layoutSize, layout, 0, nullptr);
 
-	WillEngine::VulkanUtil::createComputePipeline(logicalDevice, pipeline.pipeline, pipeline.layout, filterBrightCompShader);
+	WillEngine::VulkanUtil::createComputePipeline(logicalDevice, pipeline.pipeline, pipeline.layout, compShader);
 }
 
 void VulkanEngine::initDownscalePipeline(VkDevice& logicalDevice)
 {
-	WillEngine::VulkanUtil::initDownscaleShaderModule(logicalDevice, downscaleCompShader);
+	VulkanShaderModule& shaderModule = pipelineShaders[VulkanPipelineType::Downscale];
+	VkShaderModule& compShader = shaderModule.shaders[VulkanShaderType::Comp];
+
+	WillEngine::VulkanUtil::initDownscaleShaderModule(logicalDevice, compShader);
 
 	VkDescriptorSetLayout layout[] = { gameState->graphicsState.downSampledImageDescriptorSetInput[0].layout, gameState->graphicsState.downSampledImageDescriptorSetOutput[1].layout };
 	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
@@ -1349,12 +1384,15 @@ void VulkanEngine::initDownscalePipeline(VkDevice& logicalDevice)
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout, layoutSize, layout, 0, nullptr);
 
-	WillEngine::VulkanUtil::createComputePipeline(logicalDevice, pipeline.pipeline, pipeline.layout, downscaleCompShader);
+	WillEngine::VulkanUtil::createComputePipeline(logicalDevice, pipeline.pipeline, pipeline.layout, compShader);
 }
 
 void VulkanEngine::initUpscalePipeline(VkDevice& logicalDevice)
 {
-	WillEngine::VulkanUtil::initUpscaleShaderModule(logicalDevice, upscaleCompShader);
+	VulkanShaderModule& shaderModule = pipelineShaders[VulkanPipelineType::Upscale];
+	VkShaderModule& compShader = shaderModule.shaders[VulkanShaderType::Comp];
+
+	WillEngine::VulkanUtil::initUpscaleShaderModule(logicalDevice, compShader);
 
 	VkDescriptorSetLayout layout[]{ gameState->graphicsState.upSampledImageDescriptorSetInput[0].layout, gameState->graphicsState.upSampledImageDescriptorSetOutput[0].layout };
 	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
@@ -1367,12 +1405,15 @@ void VulkanEngine::initUpscalePipeline(VkDevice& logicalDevice)
 	VulkanPipeline& pipeline = pipelines[idx];
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout, layoutSize, layout, 0, nullptr);
-	WillEngine::VulkanUtil::createComputePipeline(logicalDevice, pipeline.pipeline, pipeline.layout, upscaleCompShader);
+	WillEngine::VulkanUtil::createComputePipeline(logicalDevice, pipeline.pipeline, pipeline.layout, compShader);
 }
 
 void VulkanEngine::initBlendColorPipeline(VkDevice& logicalDevice)
 {
-	WillEngine::VulkanUtil::initBlendColorShaderModule(logicalDevice, blendColorCompShader);
+	VulkanShaderModule& shaderModule = pipelineShaders[VulkanPipelineType::BlendColor];
+	VkShaderModule& compShader = shaderModule.shaders[VulkanShaderType::Comp];
+
+	WillEngine::VulkanUtil::initBlendColorShaderModule(logicalDevice, compShader);
 
 	VkDescriptorSetLayout layout[]{ gameState->graphicsState.renderedImage.layout, gameState->graphicsState.upSampledImageDescriptorSetOutput[0].layout };
 	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
@@ -1385,7 +1426,7 @@ void VulkanEngine::initBlendColorPipeline(VkDevice& logicalDevice)
 	VulkanPipeline& pipeline = pipelines[idx];
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout, layoutSize, layout, 0, nullptr);
-	WillEngine::VulkanUtil::createComputePipeline(logicalDevice, pipeline.pipeline, pipeline.layout, blendColorCompShader);
+	WillEngine::VulkanUtil::createComputePipeline(logicalDevice, pipeline.pipeline, pipeline.layout, compShader);
 }
 
 void VulkanEngine::initGui(GLFWwindow* window, VkInstance& instance, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkQueue& queue,

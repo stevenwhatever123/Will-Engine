@@ -42,6 +42,19 @@ struct VulkanPipeline
 	VkPipelineLayout layout;
 };
 
+enum class VulkanShaderType : u8
+{
+	Vert,
+	Frag,
+	Geom,
+	Comp
+};
+
+struct VulkanShaderModule
+{
+	std::unordered_map<VulkanShaderType, VkShaderModule> shaders;
+};
+
 class VulkanFramebufferAttachment
 {
 public:

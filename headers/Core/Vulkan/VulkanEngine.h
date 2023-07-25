@@ -179,29 +179,7 @@ public:
 	VulkanDescriptorSet shadowMapDescriptorSet;
 
 	// Shader modules
-	VkShaderModule depthSkeletalVertShader;
-	VkShaderModule depthSkeletalFragShader;
-
-	VkShaderModule skeletalVertShader;
-	VkShaderModule skeletalFragShader;
-
-	VkShaderModule geometryVertShader;
-	VkShaderModule geometryFragShader;
-
-	VkShaderModule shadingVertShader;
-	VkShaderModule shadingFragShader;
-
-	VkShaderModule shadowVertShader;
-	VkShaderModule shadowGeomShader;
-	VkShaderModule shadowFragShader;
-
-	VkShaderModule depthVertShader;
-	VkShaderModule depthFragShader;
-
-	VkShaderModule filterBrightCompShader;
-	VkShaderModule downscaleCompShader;
-	VkShaderModule upscaleCompShader;
-	VkShaderModule blendColorCompShader;
+	std::unordered_map<VulkanPipelineType, VulkanShaderModule> pipelineShaders;
 
 	// ======================================
 	VulkanAllocatedImage shadowCubeMap;
