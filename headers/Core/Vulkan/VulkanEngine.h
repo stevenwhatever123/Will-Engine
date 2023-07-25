@@ -50,11 +50,6 @@ public:
 
 	VmaAllocator vmaAllocator;
 
-	//VkRenderPass depthRenderPass;
-	//VkRenderPass geometryRenderPass;
-	//VkRenderPass shadowRenderPass;
-	//VkRenderPass shadingRenderPass;
-	//VkRenderPass presentRenderPass;
 	std::unordered_map<VulkanRenderPassType, VkRenderPass> renderPasses;
 
 	// Swapchain
@@ -125,20 +120,21 @@ public:
 
 	// Semaphore for waiting and signaling
 	// Used for GPU - GPU sync
-	VkSemaphore imageAvailable;
-	VkSemaphore uniformUpdated;
-	VkSemaphore renderFinished;
+	//VkSemaphore imageAvailable;
+	//VkSemaphore uniformUpdated;
+	//VkSemaphore renderFinished;
 
-	VkSemaphore preDepthFinished;
-	VkSemaphore shadowFinished;
-	VkSemaphore geometryFinished;
+	//VkSemaphore preDepthFinished;
+	//VkSemaphore shadowFinished;
+	//VkSemaphore geometryFinished;
 
-	VkSemaphore downscaleFinished;
-	VkSemaphore upscaleFinished;
+	//VkSemaphore downscaleFinished;
+	//VkSemaphore upscaleFinished;
 
-	VkSemaphore colorBlendFinished;
+	//VkSemaphore colorBlendFinished;
 
-	VkSemaphore readyToPresent;
+	//VkSemaphore readyToPresent;
+	std::unordered_map<VulkanSemaphoreType, VkSemaphore> semaphores;
 
 	// Fence 
 	// Used for CPU - GPU symc

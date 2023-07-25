@@ -17,9 +17,7 @@ VulkanEngine::VulkanEngine(u32 numThreads) :
 	samplers(),
 	commandPools(),
 	geometryBuffers(),
-	imageAvailable(VK_NULL_HANDLE),
-	uniformUpdated(VK_NULL_HANDLE),
-	renderFinished(VK_NULL_HANDLE),
+	semaphores(),
 	fences(),
 	descriptorPool(VK_NULL_HANDLE),
 	pipelines(),
@@ -219,9 +217,11 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	}
 
 	// Destroy Semaphore
-	vkDestroySemaphore(logicalDevice, imageAvailable, nullptr);
-	vkDestroySemaphore(logicalDevice, uniformUpdated, nullptr);
-	vkDestroySemaphore(logicalDevice, renderFinished, nullptr);
+	for (auto it : semaphores)
+	{
+		VkSemaphore& semaphore = it.second;
+		vkDestroySemaphore(logicalDevice, semaphore, nullptr);
+	}
 
 	// Free Command Buffer and Destroy Command Pool
 	for (auto& commandPool : commandPools)
@@ -931,36 +931,16 @@ void VulkanEngine::createSemaphore(VkDevice& logicalDevice)
 	VkSemaphoreCreateInfo semaphoreInfo{};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &imageAvailable) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create wait image availabe semaphore");
+	for (u32 i = 0; i <= static_cast<u32>(VulkanSemaphoreType::End); i++)
+	{
+		VulkanSemaphoreType type = static_cast<VulkanSemaphoreType>(i);
+		VkSemaphore& semaphore = semaphores[type];
 
-	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &uniformUpdated) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create uniform updated semaphore");
-
-	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &renderFinished) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create signal render finish semaphore");
-
-	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &preDepthFinished) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create signal pre depth finish semaphore");
-
-	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &shadowFinished) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create signal shadow finish semaphore");
-
-	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &geometryFinished) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create signal geometry render finish semaphore");
-
-	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &downscaleFinished) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create signal downscale finished semaphore");
-
-	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &upscaleFinished) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create signal upscale finished semaphore");
-
-	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &colorBlendFinished) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create signal colorBlendFinished semaphore");
-
-
-	if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &readyToPresent) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create signal ready to present semaphore");
+		if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &semaphore) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Failed to create semaphore with type: " + std::to_string(static_cast<u32>(type)));
+		}
+	}
 }
 
 void VulkanEngine::createFence(VkDevice& logicalDevice, std::vector<VkFence>& fences, VkFenceCreateFlagBits flag)
@@ -1490,6 +1470,7 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 {
 	// Acquire next image of the swapchain
 	u32 imageIndex = 0;
+	VkSemaphore& imageAvailable = semaphores[VulkanSemaphoreType::ImageAvailable];
 	const VkResult res = vkAcquireNextImageKHR(logicalDevice, swapchain, std::numeric_limits<u64>::max(), imageAvailable, VK_NULL_HANDLE, &imageIndex);
 
 	if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR || sceneExtentChanged)
@@ -1537,6 +1518,7 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	processTodoSkeleton(logicalDevice);
 
 	// Updating uniform buffer
+	VkSemaphore& uniformUpdated = semaphores[VulkanSemaphoreType::UniformUpdate];
 	recordUniformUpdate(uniformUpdateBuffers[imageIndex]);
 	submitCommands(1, &uniformUpdateBuffers[imageIndex], 1, &imageAvailable, 1, &uniformUpdated, graphicsQueue, nullptr);
 
@@ -1570,16 +1552,20 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	t1.join();
 
 	// Submit Depth rendering command
+	VkSemaphore& preDepthFinished = semaphores[VulkanSemaphoreType::PreDepthFinished];
 	submitCommands(1, &preDepthBuffers[imageIndex], 1, &uniformUpdated, 1, &preDepthFinished, graphicsQueue, nullptr);
 
 	// Check if thread 2 has done recording
 	t2.join();
+
+	VkSemaphore& geometryFinished = semaphores[VulkanSemaphoreType::GeometryFinished];
 
 	// If we need to render shadows, submit shadow rendering command
 	// Otherwise, submit geometry rendering commands with a different set of semaphores
 	if (renderShadow)
 	{
 		// Shadow
+		VkSemaphore& shadowFinished = semaphores[VulkanSemaphoreType::ShadowFinished];
 		submitCommands(1, &shadowBuffers[imageIndex], 1, &preDepthFinished, 1, &shadowFinished, graphicsQueue, nullptr);
 
 		// Check if thread 3 has done recording
@@ -1594,18 +1580,24 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	}
 
 	// Record Shading and other commands on the main thread
+	VkSemaphore& renderFinished = semaphores[VulkanSemaphoreType::RenderFinished];
 	recordShadingPass(shadingBuffers[imageIndex]);
 	submitCommands(1, &shadingBuffers[imageIndex], 1, &geometryFinished, 1, &renderFinished, graphicsQueue, nullptr);
+
+	VkSemaphore& readyToPresent = semaphores[VulkanSemaphoreType::ReadyToPresent];
 
 	if (gameState->gameSettings.enableBloom)
 	{
 		// Record bloom commands if enabled
+		VkSemaphore& downscaleFinished = semaphores[VulkanSemaphoreType::DownscaleFinished];
 		recordDownscaleComputeCommands(downscaleComputeCommandBuffers[imageIndex]);
 		submitCommands(1, &downscaleComputeCommandBuffers[imageIndex], 1, &renderFinished, 1, &downscaleFinished, graphicsQueue, nullptr);
 
+		VkSemaphore& upscaleFinished = semaphores[VulkanSemaphoreType::UpscaleFinished];
 		recordUpscaleComputeCommands(upscaleComputeCommandBuffers[imageIndex]);
 		submitCommands(1, &upscaleComputeCommandBuffers[imageIndex], 1, &downscaleFinished, 1, &upscaleFinished, graphicsQueue, nullptr);
 
+		VkSemaphore& colorBlendFinished = semaphores[VulkanSemaphoreType::ColorBlendFinished];
 		recordBlendColorComputeCommands(blendColorCommandBuffers[imageIndex]);
 		submitCommands(1, &blendColorCommandBuffers[imageIndex], 1, &upscaleFinished, 1, &colorBlendFinished, graphicsQueue, nullptr);
 

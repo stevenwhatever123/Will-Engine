@@ -71,6 +71,26 @@ enum class VulkanRenderPassType : u8
 	Present
 };
 
+enum class VulkanSemaphoreType : u8
+{
+	ImageAvailable,
+	UniformUpdate,
+	RenderFinished,
+
+	PreDepthFinished,
+	ShadowFinished,
+	GeometryFinished,
+
+	DownscaleFinished,
+	UpscaleFinished,
+
+	ColorBlendFinished,
+
+	ReadyToPresent,
+
+	End
+};
+
 class VulkanFramebufferAttachment
 {
 public:
