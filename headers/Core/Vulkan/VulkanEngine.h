@@ -148,7 +148,7 @@ public:
 
 	// Pipeline and pipeline layout (Blinn Phong Shader)
 	std::vector<VulkanPipeline> pipelines;
-	std::unordered_map<String, u32> pipelineIndexLookup;
+	std::unordered_map<VulkanPipelineType, u32> pipelineIndexLookup;
 
 	// Bone Descriptor sets
 	VkDescriptorSetLayout depthSkeletalDescriptorSetLayout;

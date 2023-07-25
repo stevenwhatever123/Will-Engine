@@ -21,6 +21,21 @@ struct VulkanDescriptorSet
 	VkDescriptorSetLayout layout;
 };
 
+enum class VulkanPipelineType : u8
+{
+	Depth,
+	Geometry,
+	Shading,
+	Shadow,
+	DepthSkeletal,
+	Skeletal,
+
+	FilterBright,
+	Downscale,
+	Upscale,
+	BlendColor
+};
+
 struct VulkanPipeline
 {
 	VkPipeline pipeline;

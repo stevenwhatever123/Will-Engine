@@ -1151,7 +1151,7 @@ void VulkanEngine::initDepthSkeletalPipeline(VkDevice& logicalDevice)
 	VkDescriptorSetLayout depthLayouts[] = { sceneDescriptorSet.layout, skeletalDescriptorSetLayout };
 	u32 depthSkeletalDescriptorSetLayoutSize = sizeof(depthLayouts) / sizeof(depthLayouts[0]);
 
-	u32& idx = pipelineIndexLookup["depthSkeletalPipeline"];
+	u32& idx = pipelineIndexLookup[VulkanPipelineType::DepthSkeletal];
 	idx = pipelines.size();
 
 	pipelines.push_back(VulkanPipeline{});
@@ -1173,7 +1173,7 @@ void VulkanEngine::initSkeletalPipeline(VkDevice& logicalDevice)
 	VkDescriptorSetLayout layouts[] = { sceneDescriptorSet.layout, textureDescriptorSetLayout, skeletalDescriptorSetLayout };
 	u32 descriptorSetLayoutSize = sizeof(layouts) / sizeof(layouts[0]);
 
-	u32& idx = pipelineIndexLookup["skeletalPipeline"];
+	u32& idx = pipelineIndexLookup[VulkanPipelineType::Skeletal];
 	idx = pipelines.size();
 
 	pipelines.push_back(VulkanPipeline{});
@@ -1205,7 +1205,7 @@ void VulkanEngine::initGeometryPipeline(VkDevice& logicalDevice)
 
 	u32 pushConstantCount = sizeof(pushConstants) / sizeof(pushConstants[0]);
 
-	u32& idx = pipelineIndexLookup["geometryPipeline"];
+	u32& idx = pipelineIndexLookup[VulkanPipelineType::Geometry];
 	idx = pipelines.size();
 
 	pipelines.push_back(VulkanPipeline{});
@@ -1238,7 +1238,7 @@ void VulkanEngine::initDepthPipeline(VkDevice& logicalDevice)
 
 	u32 pushConstantCount = sizeof(pushConstants) / sizeof(pushConstants[0]);
 
-	u32& idx = pipelineIndexLookup["depthPipeline"];
+	u32& idx = pipelineIndexLookup[VulkanPipelineType::Depth];
 	idx = pipelines.size();
 
 	pipelines.push_back(VulkanPipeline{});
@@ -1276,7 +1276,7 @@ void VulkanEngine::initShadowPipeline(VkDevice& logicalDevice)
 
 	WillEngine::VulkanUtil::initShadowShaderModule(logicalDevice, shadowVertShader, shadowGeomShader, shadowFragShader);
 
-	u32& idx = pipelineIndexLookup["shadowPipeline"];
+	u32& idx = pipelineIndexLookup[VulkanPipelineType::Shadow];
 	idx = pipelines.size();
 
 	pipelines.push_back(VulkanPipeline{});
@@ -1301,7 +1301,7 @@ void VulkanEngine::initShadingPipeline(VkDevice& logicalDevice)
 	VkDescriptorSetLayout layout[] = { lightDescriptorSet.layout, cameraDescriptorSet.layout, attachmentDescriptorSet.layout, shadowMapDescriptorSet.layout };
 	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
 
-	u32& idx = pipelineIndexLookup["shadingPipeline"];
+	u32& idx = pipelineIndexLookup[VulkanPipelineType::Shading];
 	idx = pipelines.size();
 
 	pipelines.push_back(VulkanPipeline{});
@@ -1321,7 +1321,7 @@ void VulkanEngine::initFilterBrightPipeline(VkDevice& logicalDevice)
 	VkDescriptorSetLayout layout[] = { gameState->graphicsState.renderedImage.layout, gameState->graphicsState.downSampledImageDescriptorSetOutput[0].layout };
 	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
 
-	u32& idx = pipelineIndexLookup["filterBrightPipeline"];
+	u32& idx = pipelineIndexLookup[VulkanPipelineType::FilterBright];
 	idx = pipelines.size();
 
 	pipelines.push_back(VulkanPipeline{});
@@ -1340,7 +1340,7 @@ void VulkanEngine::initDownscalePipeline(VkDevice& logicalDevice)
 	VkDescriptorSetLayout layout[] = { gameState->graphicsState.downSampledImageDescriptorSetInput[0].layout, gameState->graphicsState.downSampledImageDescriptorSetOutput[1].layout };
 	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
 
-	u32& idx = pipelineIndexLookup["downscalePipeline"];
+	u32& idx = pipelineIndexLookup[VulkanPipelineType::Downscale];
 	idx = pipelines.size();
 
 	pipelines.push_back(VulkanPipeline{});
@@ -1359,7 +1359,7 @@ void VulkanEngine::initUpscalePipeline(VkDevice& logicalDevice)
 	VkDescriptorSetLayout layout[]{ gameState->graphicsState.upSampledImageDescriptorSetInput[0].layout, gameState->graphicsState.upSampledImageDescriptorSetOutput[0].layout };
 	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
 
-	u32& idx = pipelineIndexLookup["upscalePipeline"];
+	u32& idx = pipelineIndexLookup[VulkanPipelineType::Upscale];
 	idx = pipelines.size();
 
 	pipelines.push_back(VulkanPipeline{});
@@ -1377,7 +1377,7 @@ void VulkanEngine::initBlendColorPipeline(VkDevice& logicalDevice)
 	VkDescriptorSetLayout layout[]{ gameState->graphicsState.renderedImage.layout, gameState->graphicsState.upSampledImageDescriptorSetOutput[0].layout };
 	u32 layoutSize = sizeof(layout) / sizeof(layout[0]);
 
-	u32& idx = pipelineIndexLookup["blendColorPipeline"];
+	u32& idx = pipelineIndexLookup[VulkanPipelineType::BlendColor];
 	idx = pipelines.size();
 
 	pipelines.push_back(VulkanPipeline{});
@@ -1656,7 +1656,7 @@ void VulkanEngine::recordMeshSecondaryCommandBuffer(VkCommandBuffer& commandBuff
 
 		TransformComponent* transformComponent = entity->components[typeid(TransformComponent)]->GetComponent<TransformComponent>();
 
-		u32 geometryPipelineIdx = pipelineIndexLookup["geometryPipeline"];
+		u32 geometryPipelineIdx = pipelineIndexLookup[VulkanPipelineType::Geometry];
 
 		VulkanPipeline& geometryPipeline = pipelines[geometryPipelineIdx];
 
@@ -1731,7 +1731,7 @@ void VulkanEngine::recordSkeletalSecondaryCommandBuffer(VkCommandBuffer& command
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 	}
 
-	u32 skeletalPipelineIdx = pipelineIndexLookup["skeletalPipeline"];
+	u32 skeletalPipelineIdx = pipelineIndexLookup[VulkanPipelineType::Skeletal];
 	VulkanPipeline& skeletalPipeline = pipelines[skeletalPipelineIdx];
 
 	// Bind pipeline
@@ -1976,7 +1976,7 @@ void VulkanEngine::recordShadingPass(VkCommandBuffer& commandBuffer)
 
 void VulkanEngine::depthSkeletalPrePasses(VkCommandBuffer& commandBuffer)
 {
-	u32 depthSkeletalPipelineIdx = pipelineIndexLookup["depthSkeletalPipeline"];
+	u32 depthSkeletalPipelineIdx = pipelineIndexLookup[VulkanPipelineType::DepthSkeletal];
 
 	// Bind pipeline
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[depthSkeletalPipelineIdx].pipeline);
@@ -2090,9 +2090,9 @@ void VulkanEngine::depthSkeletalPrePasses(VkCommandBuffer& commandBuffer)
 
 void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer)
 {
-	u32 depthPipelineIdx = pipelineIndexLookup["depthPipeline"];
+	u32 depthPipelineIdx = pipelineIndexLookup[VulkanPipelineType::Depth];
 
-	u32 geometryPipelineIdx = pipelineIndexLookup["geometryPipeline"];
+	u32 geometryPipelineIdx = pipelineIndexLookup[VulkanPipelineType::Geometry];
 
 	// Bind pipeline
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[depthPipelineIdx].pipeline);
@@ -2159,7 +2159,7 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer)
 
 void VulkanEngine::geometrySkeletalPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent)
 {
-	PipelineId skeletalPipelineIdx = pipelineIndexLookup["skeletalPipeline"];
+	PipelineId skeletalPipelineIdx = pipelineIndexLookup[VulkanPipelineType::Skeletal];
 
 	// Bind default pipeline
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[skeletalPipelineIdx].pipeline);
@@ -2287,7 +2287,7 @@ void VulkanEngine::geometrySkeletalPasses(VkCommandBuffer& commandBuffer, VkExte
 
 void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D extent)
 {
-	u32 geometryPipelineIdx = pipelineIndexLookup["geometryPipeline"];
+	u32 geometryPipelineIdx = pipelineIndexLookup[VulkanPipelineType::Geometry];
 
 	// Bind default pipeline
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[geometryPipelineIdx].pipeline);
@@ -2352,7 +2352,7 @@ void VulkanEngine::geometryPasses(VkCommandBuffer& commandBuffer, VkExtent2D ext
 
 void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 {
-	u32 shadowPipelineIdx = pipelineIndexLookup["shadowPipeline"];
+	u32 shadowPipelineIdx = pipelineIndexLookup[VulkanPipelineType::Shadow];
 
 	// Update light matrices buffer
 	vkCmdUpdateBuffer(commandBuffer, lightMatrixUniformBuffer.buffer, 0, sizeof(mat4) * 6, &gameState->graphicsResources.lights[1]->matrices);
@@ -2449,7 +2449,7 @@ void VulkanEngine::shadingPasses(VkCommandBuffer& commandBuffer, VkRenderPass& r
 	passBeginInfo.clearValueCount = static_cast<u32>(sizeof(clearValue) / sizeof(clearValue[0]));
 	passBeginInfo.pClearValues = clearValue;
 
-	u32 shadingPipelineIdx = pipelineIndexLookup["shadingPipeline"];
+	u32 shadingPipelineIdx = pipelineIndexLookup[VulkanPipelineType::Shading];
 
 	vkCmdBeginRenderPass(commandBuffer, &passBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -2503,8 +2503,8 @@ void VulkanEngine::recordDownscaleComputeCommands(VkCommandBuffer& commandBuffer
 	commandBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	commandBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-	u32 filterBrightPipelineIdx = pipelineIndexLookup["filterBrightPipeline"];
-	u32 downscalePipelineIdx = pipelineIndexLookup["downscalePipeline"];
+	u32 filterBrightPipelineIdx = pipelineIndexLookup[VulkanPipelineType::FilterBright];
+	u32 downscalePipelineIdx = pipelineIndexLookup[VulkanPipelineType::Downscale];
 
 
 	if (vkBeginCommandBuffer(commandBuffer, &commandBeginInfo) != VK_SUCCESS)
@@ -2551,7 +2551,7 @@ void VulkanEngine::recordDownscaleComputeCommands(VkCommandBuffer& commandBuffer
 
 void VulkanEngine::recordUpscaleComputeCommands(VkCommandBuffer& commandBuffer)
 {
-	u32 upscalePipelineIdx = pipelineIndexLookup["upscalePipeline"];
+	u32 upscalePipelineIdx = pipelineIndexLookup[VulkanPipelineType::Upscale];
 
 	// Begin command buffer
 	VkCommandBufferBeginInfo commandBeginInfo{};
@@ -2583,7 +2583,7 @@ void VulkanEngine::recordUpscaleComputeCommands(VkCommandBuffer& commandBuffer)
 
 void VulkanEngine::recordBlendColorComputeCommands(VkCommandBuffer& commandBuffer)
 {
-	u32 blendColorPipelineIdx = pipelineIndexLookup["blendColorPipeline"];
+	u32 blendColorPipelineIdx = pipelineIndexLookup[VulkanPipelineType::BlendColor];
 
 	// Begin command buffer
 	VkCommandBufferBeginInfo commandBeginInfo{};
