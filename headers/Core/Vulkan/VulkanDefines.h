@@ -62,6 +62,15 @@ enum class VulkanSamplerType : u8
 	Shadow
 };
 
+enum class VulkanRenderPassType : u8
+{
+	Depth,
+	Geometry,
+	Shadow,
+	Shading,
+	Present
+};
+
 class VulkanFramebufferAttachment
 {
 public:

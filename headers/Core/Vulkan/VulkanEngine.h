@@ -50,11 +50,12 @@ public:
 
 	VmaAllocator vmaAllocator;
 
-	VkRenderPass depthRenderPass;
-	VkRenderPass geometryRenderPass;
-	VkRenderPass shadowRenderPass;
-	VkRenderPass shadingRenderPass;
-	VkRenderPass presentRenderPass;
+	//VkRenderPass depthRenderPass;
+	//VkRenderPass geometryRenderPass;
+	//VkRenderPass shadowRenderPass;
+	//VkRenderPass shadingRenderPass;
+	//VkRenderPass presentRenderPass;
+	std::unordered_map<VulkanRenderPassType, VkRenderPass> renderPasses;
 
 	// Swapchain
 	VkSwapchainKHR swapchain;

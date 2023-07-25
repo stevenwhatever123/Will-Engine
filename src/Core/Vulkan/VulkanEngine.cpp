@@ -8,8 +8,7 @@ VulkanEngine::VulkanEngine(u32 numThreads) :
 	MAX_THREADS(numThreads),
 	camera(nullptr),
 	vmaAllocator(VK_NULL_HANDLE),
-	geometryRenderPass(VK_NULL_HANDLE),
-	shadingRenderPass(VK_NULL_HANDLE),
+	renderPasses(),
 	swapchain(VK_NULL_HANDLE),
 	swapchainImageFormat(),
 	depthImage({ VK_NULL_HANDLE, VK_NULL_HANDLE }),
@@ -70,6 +69,11 @@ void VulkanEngine::init(GLFWwindow* window, VkInstance& instance, VkDevice& logi
 	createSwapchainImageViews(logicalDevice);
 
 	// Create Render Pass
+	VkRenderPass& depthRenderPass = renderPasses[VulkanRenderPassType::Depth];
+	VkRenderPass& shadowRenderPass = renderPasses[VulkanRenderPassType::Shadow];
+	VkRenderPass& geometryRenderPass = renderPasses[VulkanRenderPassType::Geometry];
+	VkRenderPass& shadingRenderPass = renderPasses[VulkanRenderPassType::Shading];
+	VkRenderPass& presentRenderPass = renderPasses[VulkanRenderPassType::Present];
 	createDepthPrePass(logicalDevice, depthRenderPass, depthFormat);
 	createShadowRenderPass(logicalDevice, shadowRenderPass, shadowDepthFormat);
 	createGeometryRenderPass(logicalDevice, geometryRenderPass, VK_FORMAT_R16G16B16A16_SFLOAT, depthFormat);
@@ -250,7 +254,11 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 	vkDestroySwapchainKHR(logicalDevice, swapchain, nullptr);
 
 	// Destroy Render Pass
-	vkDestroyRenderPass(logicalDevice, shadingRenderPass, nullptr);
+	for (auto it : renderPasses)
+	{
+		VkRenderPass& renderPass = it.second;
+		vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
+	}
 }
 
 void VulkanEngine::createVmaAllocator(VkInstance& instance, VkPhysicalDevice& physicalDevice, VkDevice& logicalDevice)
@@ -603,6 +611,8 @@ void VulkanEngine::createGBuffers(VkDevice& logicalDevice, const VkExtent2D& ext
 	attachments[3] = offscreenFramebuffer.GBuffer3.imageView;
 	attachments[4] = depthImage.imageView;
 
+	VkRenderPass& geometryRenderPass = renderPasses[VulkanRenderPassType::Geometry];
+
 	VkFramebufferCreateInfo framebufferInfo{};
 	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 	framebufferInfo.renderPass = geometryRenderPass;
@@ -682,6 +692,10 @@ void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& lo
 
 	if (formatChanged)
 	{
+		VkRenderPass& depthRenderPass = renderPasses[VulkanRenderPassType::Depth];
+		VkRenderPass& geometryRenderPass = renderPasses[VulkanRenderPassType::Geometry];
+		VkRenderPass& shadingRenderPass = renderPasses[VulkanRenderPassType::Shading];
+		VkRenderPass& presentRenderPass = renderPasses[VulkanRenderPassType::Present];
 		createDepthPrePass(logicalDevice, depthRenderPass, depthFormat);
 		createGeometryRenderPass(logicalDevice, geometryRenderPass, swapchainImageFormat, depthFormat);
 		createShadingRenderPass(logicalDevice, shadingRenderPass, swapchainImageFormat, depthFormat);
@@ -732,12 +746,14 @@ void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& lo
 			createDepthBuffer(logicalDevice, vmaAllocator, sceneExtent);
 
 		// Recreate framebuffers
+		VkRenderPass& depthRenderPass = renderPasses[VulkanRenderPassType::Depth];
 		createDepthFramebuffer(logicalDevice, depthFramebuffer, depthRenderPass, sceneExtent);
 
 		// Recreate G-Buffers
 		createGBuffers(logicalDevice, sceneExtent);
 
 		// Recreate framebuffer for shading
+		VkRenderPass& shadingRenderPass = renderPasses[VulkanRenderPassType::Shading];
 		WillEngine::VulkanUtil::createShadingImage(logicalDevice, vmaAllocator, swapchainImageFormat, sceneExtent, shadingImage);
 		createShadingFramebuffer(logicalDevice, shadingFramebuffer, shadingRenderPass, sceneExtent);
 
@@ -745,6 +761,7 @@ void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& lo
 		createImageBuffersForPostProcessing(logicalDevice, graphicsQueue);
 
 		// Recreate swapchainFramebuffer
+		VkRenderPass& geometryRenderPass = renderPasses[VulkanRenderPassType::Geometry];
 		createSwapchainFramebuffer(logicalDevice, swapchainImageViews, framebuffers, offscreenFramebuffer, geometryRenderPass, shadingRenderPass, depthImage.imageView, swapchainExtent);
 	}
 
@@ -1184,6 +1201,7 @@ void VulkanEngine::initDepthSkeletalPipeline(VkDevice& logicalDevice)
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout, depthSkeletalDescriptorSetLayoutSize, depthLayouts, 0, nullptr);
 
+	VkRenderPass& depthRenderPass = renderPasses[VulkanRenderPassType::Depth];
 	WillEngine::VulkanUtil::createDepthSkeletalPipeline(logicalDevice, pipeline.pipeline, pipeline.layout, depthRenderPass, vertShader,
 		fragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, sceneExtent);
 }
@@ -1212,6 +1230,7 @@ void VulkanEngine::initSkeletalPipeline(VkDevice& logicalDevice)
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout, descriptorSetLayoutSize, layouts, 0, nullptr);
 
 	// Create deferred pipeline
+	VkRenderPass& geometryRenderPass = renderPasses[VulkanRenderPassType::Geometry];
 	WillEngine::VulkanUtil::createSkeletalPipeline(logicalDevice, pipeline.pipeline, pipeline.layout,
 		geometryRenderPass, vertShader, fragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, sceneExtent);
 }
@@ -1249,12 +1268,14 @@ void VulkanEngine::initGeometryPipeline(VkDevice& logicalDevice)
 		descriptorSetLayoutSize, layouts, pushConstantCount, pushConstants);
 
 	// Create deferred pipeline
+	VkRenderPass& geometryRenderPass = renderPasses[VulkanRenderPassType::Geometry];
 	WillEngine::VulkanUtil::createGeometryPipeline(logicalDevice, pipeline.pipeline, pipeline.layout,
 		geometryRenderPass, vertShader, fragShader, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, sceneExtent);
 }
 
 void VulkanEngine::initDepthPipeline(VkDevice& logicalDevice)
 {
+	VkRenderPass& depthRenderPass = renderPasses[VulkanRenderPassType::Depth];
 	createDepthFramebuffer(logicalDevice, depthFramebuffer, depthRenderPass, sceneExtent);
 
 	VulkanShaderModule& shaderModule = pipelineShaders[VulkanPipelineType::Depth];
@@ -1300,6 +1321,7 @@ void VulkanEngine::initShadowPipeline(VkDevice& logicalDevice)
 	WillEngine::VulkanUtil::createDepthSampler(logicalDevice, shadowSampler);
 
 	// Shadow Framebuffer
+	VkRenderPass& shadowRenderPass = renderPasses[VulkanRenderPassType::Shadow];
 	createShadowFramebuffer(logicalDevice, shadowFramebuffer, shadowRenderPass, 1024, 1024);
 
 	VkDescriptorSetLayout layout[] = { lightMatrixDescriptorSet.layout, lightDescriptorSet.layout };
@@ -1355,7 +1377,8 @@ void VulkanEngine::initShadingPipeline(VkDevice& logicalDevice)
 	VulkanPipeline& pipeline = pipelines[idx];
 
 	WillEngine::VulkanUtil::createPipelineLayout(logicalDevice, pipeline.layout, layoutSize, layout, 0, nullptr);
-
+	
+	VkRenderPass& shadingRenderPass = renderPasses[VulkanRenderPassType::Shading];
 	WillEngine::VulkanUtil::createShadingPipeline(logicalDevice, pipeline.pipeline, pipeline.layout, shadingRenderPass, vertShader, fragShader,
 		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, sceneExtent);
 }
@@ -1455,6 +1478,8 @@ void VulkanEngine::initGui(GLFWwindow* window, VkInstance& instance, VkDevice& l
 
 	if (!graphicsFamilyIndicies.has_value())
 		throw std::runtime_error("Failed to get graphics queue family index");
+
+	VkRenderPass& shadingRenderPass = renderPasses[VulkanRenderPassType::Shading];
 
 	vulkanGui->init(window, instance, logicalDevice, physicalDevice, surface, graphicsFamilyIndicies.value(), commandPools[0], descriptorPool, NUM_SWAPCHAIN, shadingRenderPass,
 		swapchainExtent);
@@ -1889,6 +1914,8 @@ void VulkanEngine::recordDepthPrePass(VkCommandBuffer& commandBuffer, VkCommandB
 	VkClearValue clearValue[1];
 	clearValue[0].depthStencil.depth = 1.0f;
 
+	VkRenderPass& depthRenderPass = renderPasses[VulkanRenderPassType::Depth];
+
 	VkRenderPassBeginInfo renderPassBeginInfo{};
 	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassBeginInfo.renderPass = depthRenderPass;
@@ -1979,6 +2006,8 @@ void VulkanEngine::recordGeometryPass(VkCommandBuffer& commandBuffer, VkCommandB
 		clearValue[i].color.float32[3] = 1.0f;
 	}
 
+	VkRenderPass& geometryRenderPass = renderPasses[VulkanRenderPassType::Geometry];
+
 	// Begin Render Pass
 	VkRenderPassBeginInfo renderPassBeginInfo{};
 	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -2024,6 +2053,8 @@ void VulkanEngine::recordShadingPass(VkCommandBuffer& commandBuffer)
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 	}
+
+	VkRenderPass& shadingRenderPass = renderPasses[VulkanRenderPassType::Shading];
 
 	// Shading
 	shadingPasses(commandBuffer, shadingRenderPass, shadingFramebuffer, sceneExtent);
@@ -2419,6 +2450,8 @@ void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 	// Clear Depth
 	clearValue[0].depthStencil.depth = 1.0f;
 
+	VkRenderPass& shadowRenderPass = renderPasses[VulkanRenderPassType::Shadow];
+
 	// Begin Render Pass
 	VkRenderPassBeginInfo renderPassBeginInfo{};
 	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -2673,6 +2706,8 @@ void VulkanEngine::recordUICommands(VkCommandBuffer& commandBuffer, VkFramebuffe
 
 	if (vkBeginCommandBuffer(commandBuffer, &commandBeginInfo) != VK_SUCCESS)
 		throw std::runtime_error("Failed to begin command buffer");
+
+	VkRenderPass& presentRenderPass = renderPasses[VulkanRenderPassType::Present];
 
 	UIPasses(commandBuffer, presentRenderPass, framebuffer, extent);
 
