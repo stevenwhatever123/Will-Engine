@@ -30,9 +30,6 @@
 // Vma
 #include <vk_mem_alloc.h>
 
-// Glad
-#include <glad/glad.h>
-
 // GLFW
 #define GLFW_INCLUDE_VULKAN
 #include <glfw/glfw3.h>

@@ -120,20 +120,6 @@ public:
 
 	// Semaphore for waiting and signaling
 	// Used for GPU - GPU sync
-	//VkSemaphore imageAvailable;
-	//VkSemaphore uniformUpdated;
-	//VkSemaphore renderFinished;
-
-	//VkSemaphore preDepthFinished;
-	//VkSemaphore shadowFinished;
-	//VkSemaphore geometryFinished;
-
-	//VkSemaphore downscaleFinished;
-	//VkSemaphore upscaleFinished;
-
-	//VkSemaphore colorBlendFinished;
-
-	//VkSemaphore readyToPresent;
 	std::unordered_map<VulkanSemaphoreType, VkSemaphore> semaphores;
 
 	// Fence 

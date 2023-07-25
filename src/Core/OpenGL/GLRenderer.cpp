@@ -15,7 +15,6 @@ void GLRenderer::init()
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
 	glDepthMask(GL_TRUE);
-	glEnable(GL_PROGRAM_POINT_SIZE);
 
 	glDepthFunc(GL_LEQUAL);
 

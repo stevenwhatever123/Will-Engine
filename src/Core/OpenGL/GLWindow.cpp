@@ -32,8 +32,6 @@ void GLWindow::init()
     glfwMakeContextCurrent(window);
 
     glfwSetWindowUserPointer(window, this);
-
-    gladLoadGL();
 }
 
 void GLWindow::update()

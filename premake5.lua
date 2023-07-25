@@ -21,7 +21,6 @@ workspace "WillEngine"
 include "premake/premake_glfw.lua"
 include "premake/premake_assimp.lua"
 include "premake/premake_glm.lua"
-include "premake/premake_glad.lua"
 
 include "premake/premake_volk.lua"
 include "premake/premake_vma.lua"
@@ -48,7 +47,6 @@ project "WillEngine"
 		"libs/glfw/include/",
 		"libs/assimp/include/",
 		"libs/glm/",
-		"libs/glad/include/",
 		"libs/stb/",
 		"libs/imgui/",
 		"libs/volk/",
@@ -61,7 +59,6 @@ project "WillEngine"
 		"glfw",
 		"assimp",
 		"glm",
-		"glad",
 		"imgui",
 		"volk",
 		"vulkan",
@@ -75,7 +72,6 @@ project "WillEngine"
 		"glfw",
 		"assimp",
 		"glm",
-		"glad",
 		"imgui",
 		"volk",
 		"vulkan",
