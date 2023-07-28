@@ -19,6 +19,21 @@ struct VulkanDescriptorSet
 {
 	VkDescriptorSet descriptorSet;
 	VkDescriptorSetLayout layout;
+	VulkanAllocatedMemory buffer;
+};
+
+enum class VulkanDescriptorSetType : u8
+{
+	DepthSkeletal,
+	Skeletal,
+	Scene, 
+	Light,
+	LightMatrix,
+	Camera,
+	Texture,
+	Attachment,
+	ShadowMap,
+
 };
 
 enum class VulkanPipelineType : u8
@@ -34,6 +49,25 @@ enum class VulkanPipelineType : u8
 	Downscale,
 	Upscale,
 	BlendColor
+};
+
+enum class VulkanCommandBufferType : u8
+{
+	Depth,
+	Geometry,
+	Shading,
+	Shadow,
+	DepthSkeletal,
+	Skeletal,
+
+	FilterBright,
+	Downscale,
+	Upscale,
+	BlendColor,
+
+	Upload,
+	UniformUpdate,
+	Present
 };
 
 struct VulkanPipeline

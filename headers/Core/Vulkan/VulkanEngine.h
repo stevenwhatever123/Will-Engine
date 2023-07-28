@@ -79,8 +79,6 @@ public:
 	VulkanAllocatedImage shadingImage;
 	VkFramebuffer shadingFramebuffer;
 
-	//VulkanAllocatedImage postProcessedImage;
-
 	std::array<VulkanAllocatedImage, 6> downSampleImages;
 	std::array<VulkanAllocatedImage, 7> upSampleImages;
 
@@ -95,7 +93,6 @@ public:
 	// Command pool and buffer
 	// The first command pools are used for allocation/initialisation, the rests is used for recording command buffers for rendering commands
 	std::vector<VkCommandPool> commandPools;
-	std::vector<VkCommandBuffer> uniformUpdateBuffers;
 
 	// Secondary Command buffers that store the rendering command that will be used several times in a rendering loop
 	std::vector<VkCommandBuffer> depthMeshBuffers;
@@ -109,9 +106,7 @@ public:
 
 
 	// Primary Command Buffers
-	std::vector<VkCommandBuffer> presentCommandBuffers;
-
-	std::unordered_map<VulkanPipelineType, std::vector<VkCommandBuffer>> pipelineCommandBuffers;
+	std::unordered_map<VulkanCommandBufferType, std::vector<VkCommandBuffer>> pipelineCommandBuffers;
 
 	// Semaphore for waiting and signaling
 	// Used for GPU - GPU sync
@@ -127,33 +122,35 @@ public:
 	std::vector<VulkanPipeline> pipelines;
 	std::unordered_map<VulkanPipelineType, u32> pipelineIndexLookup;
 
-	// Bone Descriptor sets
-	VkDescriptorSetLayout depthSkeletalDescriptorSetLayout;
-	VkDescriptorSetLayout skeletalDescriptorSetLayout;
+	std::unordered_map<VulkanDescriptorSetType, VulkanDescriptorSet> descriptorSets;
 
-	// Scene Descriptor sets
-	VulkanDescriptorSet sceneDescriptorSet;
-	// Scene Uniform buffer
-	VulkanAllocatedMemory sceneUniformBuffer;
+	//// Bone Descriptor sets
+	//VkDescriptorSetLayout depthSkeletalDescriptorSetLayout;
+	//VkDescriptorSetLayout skeletalDescriptorSetLayout;
 
-	// Light Descriptor sets
-	VulkanDescriptorSet lightDescriptorSet;
-	// Lights Uniform buffer
-	VulkanAllocatedMemory lightUniformBuffer;
+	//// Scene Descriptor sets
+	//VulkanDescriptorSet sceneDescriptorSet;
+	//// Scene Uniform buffer
+	//VulkanAllocatedMemory sceneUniformBuffer;
 
-	// Camera Descriptor sets
-	VulkanDescriptorSet cameraDescriptorSet;
-	// Camera Uniform buffer
-	VulkanAllocatedMemory cameraUniformBuffer;
+	//// Light Descriptor sets
+	//VulkanDescriptorSet lightDescriptorSet;
+	//// Lights Uniform buffer
+	//VulkanAllocatedMemory lightUniformBuffer;
 
-	// Texture Descriptor sets
-	VkDescriptorSetLayout textureDescriptorSetLayout;
+	//// Camera Descriptor sets
+	//VulkanDescriptorSet cameraDescriptorSet;
+	//// Camera Uniform buffer
+	//VulkanAllocatedMemory cameraUniformBuffer;
 
-	// Descriptor sets for shading from deferred rendering
-	VulkanDescriptorSet attachmentDescriptorSet;
+	//// Texture Descriptor sets
+	//VkDescriptorSetLayout textureDescriptorSetLayout;
 
-	// Descriptor sets for shadow mapping
-	VulkanDescriptorSet shadowMapDescriptorSet;
+	//// Descriptor sets for shading from deferred rendering
+	//VulkanDescriptorSet attachmentDescriptorSet;
+
+	//// Descriptor sets for shadow mapping
+	//VulkanDescriptorSet shadowMapDescriptorSet;
 
 	// Shader modules
 	std::unordered_map<VulkanPipelineType, VulkanShaderModule> pipelineShaders;
@@ -161,8 +158,8 @@ public:
 	// ======================================
 	VulkanAllocatedImage shadowCubeMap;
 
-	VulkanDescriptorSet lightMatrixDescriptorSet;
-	VulkanAllocatedMemory lightMatrixUniformBuffer;
+	//VulkanDescriptorSet lightMatrixDescriptorSet;
+	//VulkanAllocatedMemory lightMatrixUniformBuffer;
 
 	// ======================================
 
@@ -230,14 +227,13 @@ public:
 		VkDescriptorSetLayout& descriptorSetLayout, u32 binding, u32 bufferSize, VkShaderStageFlagBits shaderStage);
 	void createUniformBuffer(VkDevice& logicalDevice, VulkanAllocatedMemory& uniformBuffer, u32 bufferSize);
 
-	// Initialise descriptor set layout for skeletal rendering
-	void initSkeletalDescriptorSetLayout(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
+	void initDescriptorSets(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
 
 	// Initialise descriptor sets for shadow mapping
-	void initShadowMapDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
+	void initShadowMapDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool, VulkanDescriptorSet& descriptorSet);
 
 	// Initialise descriptor sets for deferred rendering
-	void initAttachmentDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
+	void initAttachmentDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool, VulkanDescriptorSet& descriptorSet);
 
 	void initRenderedDescriptors(VkDevice& logicalDevice, VkDescriptorPool& descriptorPool);
 
