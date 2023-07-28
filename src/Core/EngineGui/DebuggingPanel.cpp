@@ -29,16 +29,16 @@ void WillEngine::EngineGui::DebuggingPanel::update(GameState* gameState, VulkanF
 	if (ImGui::TreeNode("GBuffer Viewer"))
 	{
 		ImGui::Text("GBuffer0");
-		ImGui::Image((ImTextureID)attachments.GBuffer0.imguiTextureDescriptorSet, ImVec2(352, 240));
+		ImGui::Image((ImTextureID)attachments.attachments[0].imguiTextureDescriptorSet, ImVec2(352, 240));
 
 		ImGui::Text("GBuffer1");
-		ImGui::Image((ImTextureID)attachments.GBuffer1.imguiTextureDescriptorSet, ImVec2(352, 240));
+		ImGui::Image((ImTextureID)attachments.attachments[1].imguiTextureDescriptorSet, ImVec2(352, 240));
 
 		ImGui::Text("GBuffer2");
-		ImGui::Image((ImTextureID)attachments.GBuffer2.imguiTextureDescriptorSet, ImVec2(352, 240));
+		ImGui::Image((ImTextureID)attachments.attachments[2].imguiTextureDescriptorSet, ImVec2(352, 240));
 
 		ImGui::Text("GBuffer3");
-		ImGui::Image((ImTextureID)attachments.GBuffer3.imguiTextureDescriptorSet, ImVec2(352, 240));
+		ImGui::Image((ImTextureID)attachments.attachments[3].imguiTextureDescriptorSet, ImVec2(352, 240));
 
 		ImGui::TreePop();
 	}

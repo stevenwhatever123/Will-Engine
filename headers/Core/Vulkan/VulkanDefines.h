@@ -32,8 +32,7 @@ enum class VulkanDescriptorSetType : u8
 	Camera,
 	Texture,
 	Attachment,
-	ShadowMap,
-
+	ShadowMap
 };
 
 enum class VulkanPipelineType : u8
@@ -125,6 +124,19 @@ enum class VulkanSemaphoreType : u8
 	End
 };
 
+enum VulkanFramebufferType : u8
+{
+	Depth,
+	ShadowMap,
+	Geometry,
+	Shading
+};
+
+enum VulkanAllocatedImageType : u8
+{
+
+};
+
 class VulkanFramebufferAttachment
 {
 public:
@@ -146,15 +158,12 @@ class VulkanFramebuffer
 {
 public:
 
-	static const u32 attachmentSize = 4;
+	static const u32 ATTACHMENT_SIZE = 4;
 
 public:
 
 	VkFramebuffer framebuffer;
-	VulkanFramebufferAttachment GBuffer0;
-	VulkanFramebufferAttachment GBuffer1;
-	VulkanFramebufferAttachment GBuffer2;
-	VulkanFramebufferAttachment GBuffer3;
+	std::vector<VulkanFramebufferAttachment> attachments;
 
 public:
 

@@ -67,25 +67,20 @@ public:
 	VkExtent2D sceneExtent = {100, 100};
 	bool sceneExtentChanged = true;
 
+
+	std::unordered_map<VulkanFramebufferType, VulkanFramebuffer> framebuffers;
+	std::vector<VkFramebuffer> presentFramebuffers;
+
 	// Depth buffer
 	VulkanAllocatedImage depthImage;
 
 	// Shadow map framebuffer
 	VkFramebuffer shadowFramebuffer;
 
-	// Framebuffer for depth pre-pass
-	VkFramebuffer depthFramebuffer;
-
 	VulkanAllocatedImage shadingImage;
-	VkFramebuffer shadingFramebuffer;
 
 	std::array<VulkanAllocatedImage, 6> downSampleImages;
 	std::array<VulkanAllocatedImage, 7> upSampleImages;
-
-	// Framebuffer
-	std::vector<VkFramebuffer> framebuffers;
-	// Stored as a vector as there are multiple framebuffers in a swapchain
-	VulkanFramebuffer offscreenFramebuffer;
 
 	// Sampler to sample framebuffer's color attachment
 	std::unordered_map<VulkanSamplerType, VkSampler> samplers;
@@ -124,42 +119,11 @@ public:
 
 	std::unordered_map<VulkanDescriptorSetType, VulkanDescriptorSet> descriptorSets;
 
-	//// Bone Descriptor sets
-	//VkDescriptorSetLayout depthSkeletalDescriptorSetLayout;
-	//VkDescriptorSetLayout skeletalDescriptorSetLayout;
-
-	//// Scene Descriptor sets
-	//VulkanDescriptorSet sceneDescriptorSet;
-	//// Scene Uniform buffer
-	//VulkanAllocatedMemory sceneUniformBuffer;
-
-	//// Light Descriptor sets
-	//VulkanDescriptorSet lightDescriptorSet;
-	//// Lights Uniform buffer
-	//VulkanAllocatedMemory lightUniformBuffer;
-
-	//// Camera Descriptor sets
-	//VulkanDescriptorSet cameraDescriptorSet;
-	//// Camera Uniform buffer
-	//VulkanAllocatedMemory cameraUniformBuffer;
-
-	//// Texture Descriptor sets
-	//VkDescriptorSetLayout textureDescriptorSetLayout;
-
-	//// Descriptor sets for shading from deferred rendering
-	//VulkanDescriptorSet attachmentDescriptorSet;
-
-	//// Descriptor sets for shadow mapping
-	//VulkanDescriptorSet shadowMapDescriptorSet;
-
 	// Shader modules
 	std::unordered_map<VulkanPipelineType, VulkanShaderModule> pipelineShaders;
 
 	// ======================================
 	VulkanAllocatedImage shadowCubeMap;
-
-	//VulkanDescriptorSet lightMatrixDescriptorSet;
-	//VulkanAllocatedMemory lightMatrixUniformBuffer;
 
 	// ======================================
 

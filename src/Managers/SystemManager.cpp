@@ -190,7 +190,9 @@ void SystemManager::updateGui()
     VulkanEngine* vulkanEngine = vulkanWindow->vulkanEngine;
     VulkanGui* vulkanGui = vulkanEngine->vulkanGui;
 
-    vulkanGui->update(gameState.graphicsState.renderedImage_ImGui, vulkanEngine->offscreenFramebuffer, &gameState, vulkanEngine->sceneExtent, vulkanEngine->sceneExtentChanged);
+    VulkanFramebuffer& offscreenFramebuffer = vulkanEngine->framebuffers[VulkanFramebufferType::Geometry];
+
+    vulkanGui->update(gameState.graphicsState.renderedImage_ImGui, offscreenFramebuffer, &gameState, vulkanEngine->sceneExtent, vulkanEngine->sceneExtentChanged);
 }
 
 void SystemManager::updateECS()
