@@ -16,7 +16,7 @@ VulkanEngine::VulkanEngine(u32 numThreads) :
 	offscreenFramebuffer(),
 	samplers(),
 	commandPools(),
-	geometryBuffers(),
+	pipelineCommandBuffers(),
 	semaphores(),
 	fences(),
 	descriptorPool(VK_NULL_HANDLE),
@@ -223,6 +223,7 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 		vkDestroySemaphore(logicalDevice, semaphore, nullptr);
 	}
 
+	// TODO: Fix this god damn it
 	// Free Command Buffer and Destroy Command Pool
 	for (auto& commandPool : commandPools)
 	{
@@ -878,25 +879,33 @@ void VulkanEngine::createCommandPools(VkDevice& logicalDevice, VkPhysicalDevice&
 
 void VulkanEngine::createCommandBuffers(VkDevice& logicalDevice)
 {
+	std::vector<VkCommandBuffer>& depthBuffers = pipelineCommandBuffers[VulkanPipelineType::Depth];
+	std::vector<VkCommandBuffer>& shadowBuffers = pipelineCommandBuffers[VulkanPipelineType::Shadow];
+	std::vector<VkCommandBuffer>& geometryBuffers = pipelineCommandBuffers[VulkanPipelineType::Geometry];
+	std::vector<VkCommandBuffer>& shadingBuffers = pipelineCommandBuffers[VulkanPipelineType::Shading];
+	std::vector<VkCommandBuffer>& downscaleCommandBuffers = pipelineCommandBuffers[VulkanPipelineType::Downscale];
+	std::vector<VkCommandBuffer>& upscaleCommandBuffers = pipelineCommandBuffers[VulkanPipelineType::Upscale];
+	std::vector<VkCommandBuffer>& blendColorCommandBuffers = pipelineCommandBuffers[VulkanPipelineType::BlendColor];
+
 	uniformUpdateBuffers.resize(NUM_SWAPCHAIN);
-	preDepthBuffers.resize(NUM_SWAPCHAIN);
+	depthBuffers.resize(NUM_SWAPCHAIN);
 	shadowBuffers.resize(NUM_SWAPCHAIN);
 	geometryBuffers.resize(NUM_SWAPCHAIN);
 	shadingBuffers.resize(NUM_SWAPCHAIN);
-	downscaleComputeCommandBuffers.resize(NUM_SWAPCHAIN);
-	upscaleComputeCommandBuffers.resize(NUM_SWAPCHAIN);
+	downscaleCommandBuffers.resize(NUM_SWAPCHAIN);
+	upscaleCommandBuffers.resize(NUM_SWAPCHAIN);
 	blendColorCommandBuffers.resize(NUM_SWAPCHAIN);
 	presentCommandBuffers.resize(NUM_SWAPCHAIN);
 
 	for (u32 i = 0; i < NUM_SWAPCHAIN; i++)
 	{
 		uniformUpdateBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[0]);
-		preDepthBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[1]);
+		depthBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[1]);
 		shadowBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[2]);
 		geometryBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[3]);
 		shadingBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[0]);
-		downscaleComputeCommandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[0]);
-		upscaleComputeCommandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[0]);
+		downscaleCommandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[0]);
+		upscaleCommandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[0]);
 		blendColorCommandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[0]);
 		presentCommandBuffers[i] = WillEngine::VulkanUtil::createCommandBuffer(logicalDevice, commandPools[0]);
 	}
@@ -1492,18 +1501,33 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	if (vkResetFences(logicalDevice, 1, &fences[imageIndex]) != VK_SUCCESS)
 		throw std::runtime_error("Failed to reset fence");
 
+	std::vector<VkCommandBuffer>& depthBuffers = pipelineCommandBuffers[VulkanPipelineType::Depth];
+	std::vector<VkCommandBuffer>& shadowBuffers = pipelineCommandBuffers[VulkanPipelineType::Shadow];
+	std::vector<VkCommandBuffer>& geometryBuffers = pipelineCommandBuffers[VulkanPipelineType::Geometry];
+	std::vector<VkCommandBuffer>& shadingBuffers = pipelineCommandBuffers[VulkanPipelineType::Shading];
+	std::vector<VkCommandBuffer>& downscaleCommandBuffers = pipelineCommandBuffers[VulkanPipelineType::Downscale];
+	std::vector<VkCommandBuffer>& upscaleCommandBuffers = pipelineCommandBuffers[VulkanPipelineType::Upscale];
+	std::vector<VkCommandBuffer>& blendColorCommandBuffers = pipelineCommandBuffers[VulkanPipelineType::BlendColor];
+
+	assert(imageIndex < depthBuffers.size());
+	assert(imageIndex < shadowBuffers.size());
 	assert(imageIndex < geometryBuffers.size());
+	assert(imageIndex < shadingBuffers.size());
+	assert(imageIndex < downscaleCommandBuffers.size());
+	assert(imageIndex < upscaleCommandBuffers.size());
+	assert(imageIndex < blendColorCommandBuffers.size());
+	assert(imageIndex < presentCommandBuffers.size());
 	assert(imageIndex < fences.size());
 
 	// Make sure command buffer finishes executing
 	// Primary buffers
 	vkResetCommandBuffer(uniformUpdateBuffers[imageIndex], 0);
-	vkResetCommandBuffer(preDepthBuffers[imageIndex], 0);
+	vkResetCommandBuffer(depthBuffers[imageIndex], 0);
 	vkResetCommandBuffer(shadowBuffers[imageIndex], 0);
 	vkResetCommandBuffer(geometryBuffers[imageIndex], 0);
 	vkResetCommandBuffer(shadingBuffers[imageIndex], 0);
-	vkResetCommandBuffer(downscaleComputeCommandBuffers[imageIndex], 0);
-	vkResetCommandBuffer(upscaleComputeCommandBuffers[imageIndex], 0);
+	vkResetCommandBuffer(downscaleCommandBuffers[imageIndex], 0);
+	vkResetCommandBuffer(upscaleCommandBuffers[imageIndex], 0);
 	vkResetCommandBuffer(blendColorCommandBuffers[imageIndex], 0);
 	vkResetCommandBuffer(presentCommandBuffers[imageIndex], 0);
 	// Secondary buffers
@@ -1523,7 +1547,7 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	submitCommands(1, &uniformUpdateBuffers[imageIndex], 1, &imageAvailable, 1, &uniformUpdated, graphicsQueue, nullptr);
 
 	// Record depth rendering command on thread 1
-	std::thread t1(&VulkanEngine::recordDepthPrePass, this, std::ref(preDepthBuffers[imageIndex]), std::ref(depthMeshBuffers[imageIndex]), 
+	std::thread t1(&VulkanEngine::recordDepthPrePass, this, std::ref(depthBuffers[imageIndex]), std::ref(depthMeshBuffers[imageIndex]), 
 		std::ref(depthSkeletalBuffers[imageIndex]));
 
 	std::thread t2;
@@ -1553,7 +1577,7 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 
 	// Submit Depth rendering command
 	VkSemaphore& preDepthFinished = semaphores[VulkanSemaphoreType::PreDepthFinished];
-	submitCommands(1, &preDepthBuffers[imageIndex], 1, &uniformUpdated, 1, &preDepthFinished, graphicsQueue, nullptr);
+	submitCommands(1, &depthBuffers[imageIndex], 1, &uniformUpdated, 1, &preDepthFinished, graphicsQueue, nullptr);
 
 	// Check if thread 2 has done recording
 	t2.join();
@@ -1590,12 +1614,12 @@ void VulkanEngine::update(GLFWwindow* window, VkInstance& instance, VkDevice& lo
 	{
 		// Record bloom commands if enabled
 		VkSemaphore& downscaleFinished = semaphores[VulkanSemaphoreType::DownscaleFinished];
-		recordDownscaleComputeCommands(downscaleComputeCommandBuffers[imageIndex]);
-		submitCommands(1, &downscaleComputeCommandBuffers[imageIndex], 1, &renderFinished, 1, &downscaleFinished, graphicsQueue, nullptr);
+		recordDownscaleComputeCommands(downscaleCommandBuffers[imageIndex]);
+		submitCommands(1, &downscaleCommandBuffers[imageIndex], 1, &renderFinished, 1, &downscaleFinished, graphicsQueue, nullptr);
 
 		VkSemaphore& upscaleFinished = semaphores[VulkanSemaphoreType::UpscaleFinished];
-		recordUpscaleComputeCommands(upscaleComputeCommandBuffers[imageIndex]);
-		submitCommands(1, &upscaleComputeCommandBuffers[imageIndex], 1, &downscaleFinished, 1, &upscaleFinished, graphicsQueue, nullptr);
+		recordUpscaleComputeCommands(upscaleCommandBuffers[imageIndex]);
+		submitCommands(1, &upscaleCommandBuffers[imageIndex], 1, &downscaleFinished, 1, &upscaleFinished, graphicsQueue, nullptr);
 
 		VkSemaphore& colorBlendFinished = semaphores[VulkanSemaphoreType::ColorBlendFinished];
 		recordBlendColorComputeCommands(blendColorCommandBuffers[imageIndex]);

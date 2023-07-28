@@ -109,14 +109,9 @@ public:
 
 
 	// Primary Command Buffers
-	std::vector<VkCommandBuffer> preDepthBuffers;
-	std::vector<VkCommandBuffer> shadowBuffers;
-	std::vector<VkCommandBuffer> geometryBuffers;
-	std::vector<VkCommandBuffer> shadingBuffers;
-	std::vector<VkCommandBuffer> downscaleComputeCommandBuffers;
-	std::vector<VkCommandBuffer> upscaleComputeCommandBuffers;
-	std::vector<VkCommandBuffer> blendColorCommandBuffers;
 	std::vector<VkCommandBuffer> presentCommandBuffers;
+
+	std::unordered_map<VulkanPipelineType, std::vector<VkCommandBuffer>> pipelineCommandBuffers;
 
 	// Semaphore for waiting and signaling
 	// Used for GPU - GPU sync
