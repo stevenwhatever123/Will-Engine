@@ -15,6 +15,16 @@ struct VulkanAllocatedImage
 	VmaAllocation allocation;
 };
 
+enum VulkanAllocatedImageType : u8
+{
+
+};
+
+struct VulkanPostProcessingImages
+{
+	std::vector<VulkanAllocatedImage> allocatedImages;
+};
+
 struct VulkanDescriptorSet
 {
 	VkDescriptorSet descriptorSet;
@@ -127,49 +137,33 @@ enum class VulkanSemaphoreType : u8
 enum VulkanFramebufferType : u8
 {
 	Depth,
-	ShadowMap,
 	Geometry,
-	Shading
+	Shading,
+	ShadowMap
 };
 
-enum VulkanAllocatedImageType : u8
+enum VulkanPostProcessingType : u8
 {
-
+	Downscale,
+	Upscale
 };
 
-class VulkanFramebufferAttachment
+struct VulkanFramebufferAttachment
 {
-public:
-
 	VulkanAllocatedImage vulkanImage;
 	VkImageView imageView;
 	VkFormat format;
 
 	// For ImGui UI
 	VkDescriptorSet imguiTextureDescriptorSet;
-
-public:
-
-	VulkanFramebufferAttachment();
-	~VulkanFramebufferAttachment();
 };
 
-class VulkanFramebuffer
+struct VulkanFramebuffer
 {
-public:
-
 	static const u32 ATTACHMENT_SIZE = 4;
-
-public:
 
 	VkFramebuffer framebuffer;
 	std::vector<VulkanFramebufferAttachment> attachments;
-
-public:
-
-	VulkanFramebuffer();
-	VulkanFramebuffer(VkFramebuffer framebuffer);
-	~VulkanFramebuffer();
 
 	void cleanUp(VkDevice& logicalDevice, VmaAllocator& vmaAllocator);
 };

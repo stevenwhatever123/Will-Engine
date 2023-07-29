@@ -31,7 +31,6 @@ public:
 
 	Camera* camera;
 
-	
 
 public:
 
@@ -41,6 +40,9 @@ public:
 	const VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
 
 	const VkFormat shadowDepthFormat = VK_FORMAT_D32_SFLOAT;
+
+	const u32 numDownSampleImage = 6;
+	const u32 numUpSampleImage = 7;
 
 public:
 
@@ -67,27 +69,24 @@ public:
 	VkExtent2D sceneExtent = {100, 100};
 	bool sceneExtentChanged = true;
 
-
+	std::unordered_map<VulkanFramebufferType, VulkanAllocatedImage> framebuffersImages;
 	std::unordered_map<VulkanFramebufferType, VulkanFramebuffer> framebuffers;
-	std::vector<VkFramebuffer> presentFramebuffers;
 
-	// Depth buffer
-	VulkanAllocatedImage depthImage;
+	std::unordered_map<VulkanPostProcessingType, VulkanPostProcessingImages> postProcessingImages;
+
+	std::vector<VkFramebuffer> presentFramebuffers;
 
 	// Shadow map framebuffer
 	VkFramebuffer shadowFramebuffer;
 
-	VulkanAllocatedImage shadingImage;
-
-	std::array<VulkanAllocatedImage, 6> downSampleImages;
-	std::array<VulkanAllocatedImage, 7> upSampleImages;
+	VulkanAllocatedImage shadowCubeMap;
 
 	// Sampler to sample framebuffer's color attachment
 	std::unordered_map<VulkanSamplerType, VkSampler> samplers;
 
 	// Command pool and buffer
 	// The first command pools are used for allocation/initialisation, the rests is used for recording command buffers for rendering commands
-	std::vector<VkCommandPool> commandPools;
+	VkCommandPool commandPool;
 
 	// Secondary Command buffers that store the rendering command that will be used several times in a rendering loop
 	std::vector<VkCommandBuffer> depthMeshBuffers;
@@ -121,11 +120,6 @@ public:
 
 	// Shader modules
 	std::unordered_map<VulkanPipelineType, VulkanShaderModule> pipelineShaders;
-
-	// ======================================
-	VulkanAllocatedImage shadowCubeMap;
-
-	// ======================================
 
 	// GUI
 	VulkanGui* vulkanGui;
@@ -176,7 +170,7 @@ public:
 	void createImageBuffersForPostProcessing(VkDevice& logicalDevice, VkQueue& graphicsQueue);
 	void destroyImageBuffersForPostProcessing(VkDevice& logicalDevice, VmaAllocator& vmaAllocator);
 
-	void createCommandPools(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, std::vector<VkCommandPool>& commandPools);
+	void createCommandPool(VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkSurfaceKHR& surface, VkCommandPool& commandPool);
 
 	void createCommandBuffers(VkDevice& logicalDevice);
 	void createSecondaryCommandBuffers(VkDevice& logicalDevice);
