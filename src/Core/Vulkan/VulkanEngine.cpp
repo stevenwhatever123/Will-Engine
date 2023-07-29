@@ -239,7 +239,7 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 		vkDestroyFramebuffer(logicalDevice, presentFramebuffer, nullptr);
 	}
 
-	vkDestroyFramebuffer(logicalDevice, shadowFramebuffer, nullptr);
+	//vkDestroyFramebuffer(logicalDevice, shadowFramebuffer, nullptr);
 
 	// Destroy swapchain imageview
 	for (auto imageView : swapchainImageViews)
@@ -743,6 +743,12 @@ void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& lo
 		
 		for (auto it : framebuffers)
 		{
+			// Exceptions
+			if (it.first == VulkanFramebufferType::ShadowMap)
+			{
+				continue;
+			}
+
 			VulkanFramebuffer& framebuffer = it.second;
 			framebuffer.cleanUp(logicalDevice, vmaAllocator);
 		}
@@ -794,8 +800,10 @@ void VulkanEngine::recreateSwapchainFramebuffer(GLFWwindow* window, VkDevice& lo
 
 void VulkanEngine::createShadowFramebuffer(VkDevice& logicalDevice, VkFramebuffer& shadowFramebuffer, VkRenderPass& shadowRenderPass, u32 width, u32 height)
 {
+	VulkanAllocatedImage& shadowCubemapImage = framebuffersImages[VulkanFramebufferType::ShadowMap];
+
 	VkImageView attachments[1]{};
-	attachments[0] = shadowCubeMap.imageView;
+	attachments[0] = shadowCubemapImage.imageView;
 
 	VkFramebufferCreateInfo framebufferInfo{};
 	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -1068,7 +1076,8 @@ void VulkanEngine::initShadowMapDescriptors(VkDevice& logicalDevice, VkDescripto
 
 	WillEngine::VulkanUtil::allocDescriptorSet(logicalDevice, descriptorPool, descriptorSet.layout, descriptorSet.descriptorSet);
 
-	std::vector<VkImageView> imageViews = { shadowCubeMap.imageView };
+	VulkanAllocatedImage& shadowCubemapImage = framebuffersImages[VulkanFramebufferType::ShadowMap];
+	std::vector<VkImageView> imageViews = { shadowCubemapImage.imageView };
 
 	VkSampler& shadowSampler = samplers[VulkanSamplerType::Shadow];
 
@@ -1371,20 +1380,22 @@ void VulkanEngine::initDepthPipeline(VkDevice& logicalDevice)
 
 void VulkanEngine::initShadowPipeline(VkDevice& logicalDevice)
 {
+	VulkanAllocatedImage& shadowCubemapImage = framebuffersImages[VulkanFramebufferType::ShadowMap];
+
 	// Create an image, imageview and sampler for point light's cube shadow map
-	shadowCubeMap = WillEngine::VulkanUtil::createImageWithFlags(logicalDevice, vmaAllocator, shadowDepthFormat,
+	shadowCubemapImage = WillEngine::VulkanUtil::createImageWithFlags(logicalDevice, vmaAllocator, shadowDepthFormat,
 		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT,
 		1024, 1024, 1, 6);
 
-	WillEngine::VulkanUtil::createDepthImageView(logicalDevice, shadowCubeMap.image, shadowCubeMap.imageView, 6, shadowDepthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+	WillEngine::VulkanUtil::createDepthImageView(logicalDevice, shadowCubemapImage.image, shadowCubemapImage.imageView, 6, shadowDepthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 
 	VkSampler& shadowSampler = samplers[VulkanSamplerType::Shadow];
 	WillEngine::VulkanUtil::createDepthSampler(logicalDevice, shadowSampler);
 
 	// Shadow Framebuffer
-	//VulkanFramebuffer& shadowFramebuffer = framebuffers[VulkanFramebufferType::ShadowMap];
+	VulkanFramebuffer& shadowFramebuffer = framebuffers[VulkanFramebufferType::ShadowMap];
 	VkRenderPass& shadowRenderPass = renderPasses[VulkanRenderPassType::Shadow];
-	createShadowFramebuffer(logicalDevice, shadowFramebuffer, shadowRenderPass, 1024, 1024);
+	createShadowFramebuffer(logicalDevice, shadowFramebuffer.framebuffer, shadowRenderPass, 1024, 1024);
 
 	VulkanDescriptorSet& lightMatrixDescriptorSet = descriptorSets[VulkanDescriptorSetType::LightMatrix];
 	VulkanDescriptorSet& lightDescriptorSet = descriptorSets[VulkanDescriptorSetType::Light];
@@ -2577,14 +2588,14 @@ void VulkanEngine::shadowPasses(VkCommandBuffer& commandBuffer)
 	// Clear Depth
 	clearValue[0].depthStencil.depth = 1.0f;
 
-	//VulkanFramebuffer& shadowFramebuffer = framebuffers[VulkanFramebufferType::ShadowMap];
+	VulkanFramebuffer& shadowFramebuffer = framebuffers[VulkanFramebufferType::ShadowMap];
 	VkRenderPass& shadowRenderPass = renderPasses[VulkanRenderPassType::Shadow];
 
 	// Begin Render Pass
 	VkRenderPassBeginInfo renderPassBeginInfo{};
 	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassBeginInfo.renderPass = shadowRenderPass;
-	renderPassBeginInfo.framebuffer = shadowFramebuffer;
+	renderPassBeginInfo.framebuffer = shadowFramebuffer.framebuffer;
 	renderPassBeginInfo.renderArea.extent.width = 1024;
 	renderPassBeginInfo.renderArea.extent.height = 1024;
 	renderPassBeginInfo.clearValueCount = static_cast<u32>(sizeof(clearValue) / sizeof(clearValue[0]));
