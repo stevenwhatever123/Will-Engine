@@ -239,8 +239,6 @@ void VulkanEngine::cleanup(VkDevice& logicalDevice)
 		vkDestroyFramebuffer(logicalDevice, presentFramebuffer, nullptr);
 	}
 
-	//vkDestroyFramebuffer(logicalDevice, shadowFramebuffer, nullptr);
-
 	// Destroy swapchain imageview
 	for (auto imageView : swapchainImageViews)
 	{

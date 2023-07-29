@@ -76,10 +76,6 @@ public:
 
 	std::vector<VkFramebuffer> presentFramebuffers;
 
-	// Shadow map framebuffer
-	//VkFramebuffer shadowFramebuffer;
-	//VulkanAllocatedImage shadowCubeMap;
-
 	// Sampler to sample framebuffer's color attachment
 	std::unordered_map<VulkanSamplerType, VkSampler> samplers;
 
