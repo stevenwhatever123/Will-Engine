@@ -44,6 +44,8 @@ public:
 	const u32 numDownSampleImage = 6;
 	const u32 numUpSampleImage = 7;
 
+	const VkFormat generalImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+
 public:
 
 	std::queue<Skeleton*> skeletonToInitialise;
