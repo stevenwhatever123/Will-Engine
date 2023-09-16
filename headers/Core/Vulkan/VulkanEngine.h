@@ -36,6 +36,7 @@ public:
 
 	// Triple buffering
 	static const u32 NUM_SWAPCHAIN = 3;
+	const VkFormat desiredSwapchainFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
 	const VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
 
