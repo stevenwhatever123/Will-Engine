@@ -2312,8 +2312,6 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer)
 {
 	u32 depthPipelineIdx = pipelineIndexLookup[VulkanPipelineType::Depth];
 
-	u32 geometryPipelineIdx = pipelineIndexLookup[VulkanPipelineType::Geometry];
-
 	VulkanDescriptorSet& sceneDescriptorSet = descriptorSets[VulkanDescriptorSetType::Scene];
 
 	// Bind pipeline
@@ -2360,18 +2358,11 @@ void VulkanEngine::depthPrePasses(VkCommandBuffer& commandBuffer)
 
 			vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-			// Bind Texture
-			// Check if the mesh has a material
-			if (gameState->graphicsResources.materials[meshComponent->materialIndicies[i]])
-			{
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[geometryPipelineIdx].layout, 1, 1, &gameState->graphicsResources.materials[meshComponent->materialIndicies[i]]->textureDescriptorSet, 0, nullptr);
-			}
-
 			// Push constant for model matrix
 			// Copying the reference is faster than copying the actual mat4 value
 			mat4& transformation = transformComponent->getWorldTransformation();
 
-			vkCmdPushConstants(commandBuffer, pipelines[geometryPipelineIdx].layout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+			vkCmdPushConstants(commandBuffer, pipelines[depthPipelineIdx].layout, VK_SHADER_STAGE_VERTEX_BIT, 0,
 				sizeof(transformation), &transformation);
 
 			vkCmdDrawIndexed(commandBuffer, static_cast<u32>(mesh->indiciesSize), 3, 0, 0, 0);
