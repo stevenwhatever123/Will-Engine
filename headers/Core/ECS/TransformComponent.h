@@ -56,7 +56,7 @@ namespace WillEngine
 		void updateWorldTransformation() { worldTransformation = getGlobalTransformation(); };
 		void updateWorldTransformation(const Animation* animation, const AnimationComponent* animationComp) { worldTransformation = getGlobalTransformation(animation, animationComp); };
 
-		void updateAllChildWorldTransformation(const std::unordered_map<std::string, bool>* necessityMap = nullptr);
+		void updateAllChildWorldTransformation();
 		void updateAllChildWorldTransformation(const Animation* animation, const AnimationComponent* animationComp, const std::unordered_map<std::string, bool>* necessityMap = nullptr);
 
 	private:
