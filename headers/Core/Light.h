@@ -38,6 +38,8 @@ public:
 	// Command call
 	void shadowRendered();
 
+	// Setters
+	void needRenderShadow() { renderShadow = true; }
 	// Getters
 	bool shouldRenderShadow() const;
 

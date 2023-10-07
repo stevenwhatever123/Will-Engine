@@ -130,6 +130,11 @@ void Skeleton::traverseRootNecessityMapUpdate(Entity* entity)
 			{
 				if (child->HasComponent<MeshComponent>() || child->ChildHasComponent<MeshComponent>())
 				{
+					if (!necessityMap.contains(child->name))
+					{
+						return;
+					}
+
 					necessityMap.at(child->name) = true;
 					traverseChildNecessityMapUpdate(child);
 				}

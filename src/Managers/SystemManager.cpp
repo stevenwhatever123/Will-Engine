@@ -330,7 +330,7 @@ void SystemManager::processMesh()
     {
         Entity* entity = gameState.queryTasks.meshesToAdd.front();
 
-        std::string defaultPreset = "C:/Users/Steven/source/repos/Will-Engine/presets/meshes/cube.fbx";
+        std::string defaultPreset = "C:/Users/steve/Documents/GitHub/Will-Engine/presets/meshes/cube.fbx";
 
         std::vector<Mesh*> loadedMeshes;
         std::map<u32, Material*> loadedMaterials;
@@ -384,7 +384,12 @@ void SystemManager::processTransformationCalculations()
                 Entity* entity = jt.second;
 
                 // Check if they're from the same root entity
-                if (entity->getRoot() != rootEntity)
+                if (entity->getRoot()->id != rootEntity->id)
+                    continue;
+
+                SkeletalComponent* skeletalComponent = entity->AnyParentGetComponent<SkeletalComponent>();
+
+                if (skeletalComponent && skeleton->id == skeletalComponent->skeletalId)
                     continue;
 
                 if (skeleton->hasBone(entity->name))
@@ -410,7 +415,7 @@ void SystemManager::processTransformationCalculations()
         }
         else
         {
-            transformComponent->updateAllChildWorldTransformation(necessityMap);
+            transformComponent->updateAllChildWorldTransformation();
         }
 
         // Update Skeleton Bone Uniform if it is has a skeleton
@@ -424,4 +429,6 @@ void SystemManager::processTransformationCalculations()
         // Remove the current entity from the queue
         gameState.queryTasks.transformToUpdate.pop();
     }
+
+    gameState.graphicsResources.lights[1]->needRenderShadow();
 }

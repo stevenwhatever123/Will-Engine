@@ -125,15 +125,8 @@ mat4 TransformComponent::getGlobalTransformation(const Animation* animation, con
 	return resultMatrix;
 }
 
-void TransformComponent::updateAllChildWorldTransformation(const std::unordered_map<std::string, bool>* necessityMap)
+void TransformComponent::updateAllChildWorldTransformation()
 {
-	// Don't update transformation if all of the following is met:
-	// 1. We have a necessity map included
-	// 2. It does not appear in the necessity map / The node appears in the necessity map but has not been visited before
-	// More details (Bone Section): https://assimp.sourceforge.net/lib_html/data.html
-	if (necessityMap && (!necessityMap->contains(parent->name) || necessityMap->at(parent->name) == false))
-		return;
-
 	updateWorldTransformation();
 
 	for (auto* child : getParent()->children)
